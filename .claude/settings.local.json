@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./node_modules/.bin/tailwindcss init:*)",
+      "Bash(npm install:*)",
+      "Bash(node node_modules/tailwindcss/lib/cli.js init -p)",
+      "Bash(npm run:*)",
+      "Bash(curl -L \"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&q=85\" -o scrapbooking.jpg)",
+      "Bash(curl -L \"https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=600&fit=crop&q=85\" -o fimo.jpg)",
+      "WebSearch",
+      "WebFetch(domain:www.shutterstock.com)",
+      "WebFetch(domain:www.istockphoto.com)",
+      "WebFetch(domain:www.gettyimages.com)",
+      "WebFetch(domain:www.gettyimages.fr)",
+      "WebFetch(domain:stock.adobe.com)",
+      "WebFetch(domain:media.gettyimages.com)",
+      "WebFetch(domain:t3.ftcdn.net)",
+      "WebFetch(domain:www.123rf.com)",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__list_projects",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__get_project_url",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__get_publishable_keys",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__apply_migration",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__execute_sql",
+      "WebFetch(domain:www.papercenter.fr)",
+      "Bash(npx tsc:*)",
+      "Bash(dir /b)",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__list_tables",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__get_project",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__restore_project",
+      "mcp__03b56581-ead8-4059-a1fb-9451568a1b47__get_logs",
+      "Bash(npx vite *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
