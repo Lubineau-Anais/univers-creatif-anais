@@ -1,28 +1,26 @@
 import { useState } from 'react'
-import { X, Check, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote } from 'lucide-react'
+import { X, Check, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from '@stripe/react-stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { supabase } from '../lib/supabase'
 import type { Atelier } from '../types'
 
-// Clé publique Stripe (à remplacer par votre clé dans .env)
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
 )
 
+const STRIPE_NOT_CONFIGURED =
+  !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY === 'pk_test_placeholder'
+
 // ─── Types ────────────────────────────────────────────────────────────────────
+type ModePaiement = 'cb' | 'virement' | 'cheque' | 'especes' | ''
+
+interface PersonneSup { prenom: string; nom: string; age: string }
+
 interface FormData {
-  prenom: string
-  nom: string
-  age: string
-  email: string
-  telephone: string
-  paiement: 'carte' | 'cheque' | 'especes' | ''
+  prenom: string; nom: string; age: string; email: string
+  telephone: string; paiement: ModePaiement
 }
 
 interface Props {
@@ -31,164 +29,143 @@ interface Props {
   onReserved: () => void
 }
 
-// ─── Composant interne du paiement Stripe ─────────────────────────────────────
+const MODES_INFO: Record<string, { label: string; icon: React.ReactNode; desc: string }> = {
+  cb:       { label: 'CB',       icon: <CreditCard className="w-5 h-5" />, desc: 'Carte bancaire' },
+  virement: { label: 'Virement', icon: <Landmark   className="w-5 h-5" />, desc: 'Bancaire' },
+  cheque:   { label: 'Chèque',   icon: <BookCheck  className="w-5 h-5" />, desc: 'Sur place' },
+  especes:  { label: 'Espèces',  icon: <Banknote   className="w-5 h-5" />, desc: 'Sur place' },
+}
+
+// ─── Stripe Card Form ─────────────────────────────────────────────────────────
 function StripeCardForm({
-  atelier,
-  form,
-  onSuccess,
-  onError,
+  atelier, form, nbPersonnes, onSuccess, onError,
 }: {
-  atelier: Atelier
-  form: FormData
-  onSuccess: () => void
-  onError: (msg: string) => void
+  atelier: Atelier; form: FormData; nbPersonnes: number
+  onSuccess: () => void; onError: (msg: string) => void
 }) {
-  const stripe = useStripe()
+  const stripe   = useStripe()
   const elements = useElements()
   const [processing, setProcessing] = useState(false)
+  const total = calcTotal(atelier, nbPersonnes)
 
-  const STRIPE_NOT_CONFIGURED =
-    !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-    import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY === 'pk_test_placeholder'
-
-  async function handleStripeSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (STRIPE_NOT_CONFIGURED) { onSuccess(); return }
     if (!stripe || !elements) return
-
-    if (STRIPE_NOT_CONFIGURED) {
-      // Mode démo sans Stripe configuré
-      onSuccess()
-      return
-    }
-
     setProcessing(true)
     const card = elements.getElement(CardElement)
     if (!card) { setProcessing(false); return }
-
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: 'card',
-      card,
-      billing_details: {
-        name: `${form.prenom} ${form.nom}`,
-        email: form.email,
-        phone: form.telephone,
-      },
+    const { error } = await stripe.createPaymentMethod({
+      type: 'card', card,
+      billing_details: { name: `${form.prenom} ${form.nom}`, email: form.email, phone: form.telephone },
     })
-
-    if (error) {
-      onError(error.message || 'Erreur lors du paiement.')
-      setProcessing(false)
-    } else {
-      console.log('PaymentMethod créé :', paymentMethod.id)
-      // Ici : appeler votre backend (Supabase Edge Function) pour confirmer
-      onSuccess()
-    }
+    if (error) { onError(error.message || 'Erreur lors du paiement.'); setProcessing(false) }
+    else onSuccess()
   }
 
   return (
-    <form onSubmit={handleStripeSubmit} className="space-y-4">
-      {/* Terminal de paiement */}
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="bg-[#1A1040] rounded-2xl p-5 border-2 border-[#1A1040]">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="w-5 h-5 text-citron-400" />
           <span className="text-white font-black text-sm">Terminal de paiement sécurisé</span>
           <div className="ml-auto flex gap-1">
-            {/* Logos cartes */}
             {['VISA', 'MC', 'CB'].map(c => (
-              <span key={c} className="bg-white/10 text-white/70 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/20">
-                {c}
-              </span>
+              <span key={c} className="bg-white/10 text-white/70 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/20">{c}</span>
             ))}
           </div>
         </div>
-
         {STRIPE_NOT_CONFIGURED ? (
           <div className="bg-citron-400/20 border border-citron-400/40 rounded-xl p-4 text-center">
             <p className="text-citron-300 text-xs font-bold mb-1">⚙️ Mode démo</p>
-            <p className="text-white/70 text-xs">
-              Ajoutez votre clé Stripe dans le fichier <code className="bg-white/10 px-1 rounded">.env</code> pour activer le paiement réel.
-            </p>
+            <p className="text-white/70 text-xs">Ajoutez votre clé Stripe dans le fichier <code className="bg-white/10 px-1 rounded">.env</code> pour activer le paiement réel.</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl px-4 py-3 border-2 border-white/20">
-            <CardElement
-              options={{
-                style: {
-                  base: {
-                    fontSize: '15px',
-                    color: '#1A1040',
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                    '::placeholder': { color: '#9ca3af' },
-                  },
-                  invalid: { color: '#ef4444' },
-                },
-                hidePostalCode: true,
-              }}
-            />
+            <CardElement options={{ style: { base: { fontSize: '15px', color: '#1A1040', fontFamily: 'Inter, system-ui, sans-serif', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } }, hidePostalCode: true }} />
           </div>
         )}
-
-        {/* Montant */}
         <div className="flex items-center justify-between mt-4 bg-white/10 rounded-xl px-4 py-2">
           <span className="text-white/70 text-sm">Total à régler</span>
-          <span className="text-citron-400 font-black text-xl">{atelier.prix} €</span>
+          <span className="text-citron-400 font-black text-xl">{total} €</span>
         </div>
       </div>
-
-      <button
-        type="submit"
-        disabled={processing || (!STRIPE_NOT_CONFIGURED && !stripe)}
+      <button type="submit" disabled={processing || (!STRIPE_NOT_CONFIGURED && !stripe)}
         className="w-full flex items-center justify-center gap-2 bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
-        style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}
-      >
+        style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
         <CreditCard className="w-4 h-4" />
-        {processing
-          ? '⏳ Traitement...'
-          : STRIPE_NOT_CONFIGURED
-          ? `🎉 Confirmer (démo) — ${atelier.prix} €`
-          : `🔒 Payer ${atelier.prix} €`}
+        {processing ? '⏳ Traitement...' : STRIPE_NOT_CONFIGURED ? `🎉 Confirmer (démo) — ${total} €` : `🔒 Payer ${total} €`}
       </button>
     </form>
   )
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function calcTotal(atelier: Atelier, nb: number) {
+  if (atelier.prix_type === 'duo') return atelier.prix * Math.ceil(nb / 2)
+  return atelier.prix * nb
+}
+
+function formatDate(d: string) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
+
 // ─── Modal principal ───────────────────────────────────────────────────────────
 export default function ReservationModal({ atelier, onClose, onReserved }: Props) {
-  const [step, setStep] = useState<'form' | 'paiement'>('form')
-  const [form, setForm] = useState<FormData>({
-    prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
+  const [step, setStep]               = useState<'form' | 'paiement'>('form')
+  const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
+  const [nbPersonnes, setNbPersonnes] = useState(1)
+  const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>([])
+  const [loading, setLoading]         = useState(false)
+  const [success, setSuccess]         = useState(false)
+  const [error, setError]             = useState('')
 
-  const dateFormatted = new Date(atelier.date).toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-  })
+  const dateFormatted = formatDate(atelier.date)
+  const modesDispos   = atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes']
+  const total         = calcTotal(atelier, nbPersonnes)
+  const maxPlaces     = atelier.places_restantes
 
-  // ── Enregistrer en base ──────────────────────────────────────────────────────
+  // ── Gestion participants supplémentaires ──────────────────────────────────
+  function changeNbPersonnes(delta: number) {
+    const next = Math.max(1, Math.min(maxPlaces, nbPersonnes + delta))
+    setNbPersonnes(next)
+    setPersonnesSup(prev => {
+      const needed = next - 1
+      if (needed > prev.length) return [...prev, ...Array(needed - prev.length).fill({ prenom: '', nom: '', age: '' })]
+      return prev.slice(0, needed)
+    })
+  }
+
+  function updatePersonneSup(idx: number, field: keyof PersonneSup, value: string) {
+    setPersonnesSup(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p))
+  }
+
+  // ── Enregistrement ────────────────────────────────────────────────────────
   async function saveReservation() {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
-      if (atelier.places_restantes <= 0)
-        throw new Error('Plus de places disponibles.')
+      if (atelier.places_restantes < nbPersonnes)
+        throw new Error(`Il ne reste que ${atelier.places_restantes} place(s).`)
 
       const { error: insertError } = await supabase.from('reservations').insert([{
-        atelier_id: atelier.id,
-        nom: form.nom,
-        prenom: form.prenom,
-        age: form.age,
-        email: form.email,
-        telephone: form.telephone,
-        mode_paiement: form.paiement || 'especes',
-        statut_paiement: form.paiement === 'carte' ? 'paye' : 'en_attente',
+        atelier_id:       atelier.id,
+        nom:              form.nom,
+        prenom:           form.prenom,
+        age:              form.age,
+        email:            form.email,
+        telephone:        form.telephone,
+        mode_paiement:    form.paiement || 'especes',
+        statut_paiement:  form.paiement === 'cb' ? 'paye' : 'en_attente',
+        nb_personnes:     nbPersonnes,
+        personnes_sup:    personnesSup,
       }])
       if (insertError) throw insertError
 
       if (!atelier.id.startsWith('demo-')) {
         await supabase.from('ateliers')
-          .update({ places_restantes: atelier.places_restantes - 1 })
+          .update({ places_restantes: atelier.places_restantes - nbPersonnes })
           .eq('id', atelier.id)
       }
 
@@ -201,23 +178,24 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     }
   }
 
-  // ── Étape 1 : Formulaire ─────────────────────────────────────────────────────
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.paiement) { setError('Veuillez choisir un mode de règlement.'); return }
-    setError('')
-
-    if (form.paiement === 'carte') {
-      setStep('paiement')
-    } else {
-      await saveReservation()
+    for (const p of personnesSup) {
+      if (!p.prenom.trim() || !p.nom.trim() || !p.age.trim()) {
+        setError('Merci de remplir les infos de chaque participant.')
+        return
+      }
     }
+    setError('')
+    if (form.paiement === 'cb') setStep('paiement')
+    else await saveReservation()
   }
 
-  // ── Succès ───────────────────────────────────────────────────────────────────
+  // ── Écran succès ──────────────────────────────────────────────────────────
   if (success) {
-    const ICONE_PAIEMENT = { carte: '💳', cheque: '📝', especes: '💵' }
-    const LABEL_PAIEMENT = { carte: 'par carte', cheque: 'par chèque', especes: 'en espèces' }
+    const ICONE: Record<string, string> = { cb: '💳', virement: '🏦', cheque: '📝', especes: '💵' }
+    const LABEL: Record<string, string> = { cb: 'par carte', virement: 'par virement', cheque: 'par chèque', especes: 'en espèces' }
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
         <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
@@ -229,16 +207,17 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           <div className="inline-block bg-citron-400 text-[#1A1040] px-4 py-1 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
             🎉 C'est confirmé !
           </div>
-          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">
-            Super {form.prenom} ! 🎊
-          </h2>
-          <p className="text-gray-600 mb-1 font-medium">Ta place est réservée pour</p>
+          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">Super {form.prenom} ! 🎊</h2>
+          <p className="text-gray-600 mb-1 font-medium">
+            {nbPersonnes > 1 ? `${nbPersonnes} places réservées pour` : 'Ta place est réservée pour'}
+          </p>
           <p className="text-rose-400 font-black text-lg mb-1">« {atelier.titre} »</p>
           <p className="text-gray-500 text-sm capitalize mb-3">{dateFormatted} à {atelier.heure}</p>
           {form.paiement && (
-            <div className="inline-flex items-center gap-2 bg-primary-50 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 mb-4">
-              {ICONE_PAIEMENT[form.paiement]} Règlement {LABEL_PAIEMENT[form.paiement]}
-              {form.paiement !== 'carte' && ' — à régler sur place'}
+            <div className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 mb-4">
+              {ICONE[form.paiement]} Règlement {LABEL[form.paiement]} — <strong>{total} €</strong>
+              {form.paiement === 'virement' && ' (avant l\'atelier)'}
+              {(form.paiement === 'cheque' || form.paiement === 'especes') && ' (sur place)'}
             </div>
           )}
           <p className="text-gray-400 text-sm mb-8">
@@ -254,7 +233,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     )
   }
 
-  // ── Récap atelier (commun aux deux étapes) ───────────────────────────────────
+  // ── Récap atelier ─────────────────────────────────────────────────────────
   const RecapAtelier = () => (
     <div className="px-6 py-4 bg-rose-50 border-b-2 border-dashed border-rose-200">
       <h3 className="font-black text-[#1A1040] mb-2 text-sm">📸 {atelier.titre}</h3>
@@ -262,7 +241,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-rose-400" /><span className="capitalize">{dateFormatted}</span></div>
         <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-turquoise-500" />{atelier.heure} · {atelier.duree}</div>
         <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" />{atelier.lieu}</div>
-        <div className="flex items-center gap-1.5"><Euro className="w-3.5 h-3.5 text-lime-600" /><strong>{atelier.prix} €</strong>/personne</div>
+        <div className="flex items-center gap-1.5">
+          <Euro className="w-3.5 h-3.5 text-lime-600" />
+          <strong>{atelier.prix} €</strong>/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+        </div>
       </div>
     </div>
   )
@@ -278,7 +260,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             <h2 className={`font-serif text-xl font-black ${step === 'paiement' ? 'text-white' : 'text-[#1A1040]'}`}>
               {step === 'form' ? '🎟️ Réserver ma place' : '💳 Paiement sécurisé'}
             </h2>
-            {/* Étapes */}
             <div className="flex items-center gap-2 mt-1">
               <div className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 ${step === 'form' ? 'bg-[#1A1040] text-white border-[#1A1040]' : 'bg-lime-300 text-[#1A1040] border-lime-400'}`}>1</div>
               <div className="w-6 h-0.5 bg-white/40" />
@@ -317,8 +298,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             {/* Âge */}
             <div>
               <label className="block text-xs font-black text-[#1A1040] mb-1">Âge *</label>
-              <input
-                required type="number" min="5" max="120"
+              <input required type="number" min="5" max="120"
                 value={form.age} placeholder="Ex : 32"
                 onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
@@ -328,8 +308,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             {/* Email */}
             <div>
               <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
-              <input
-                required type="email"
+              <input required type="email"
                 value={form.email} placeholder="votre@email.fr"
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
@@ -339,45 +318,122 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             {/* Téléphone */}
             <div>
               <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
-              <input
-                required type="tel"
+              <input required type="tel"
                 value={form.telephone} placeholder="06 00 00 00 00"
                 onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
               />
             </div>
 
-            {/* Mode de règlement */}
+            {/* ── Participants supplémentaires ── */}
+            <div className="border-2 border-dashed border-[#1A1040]/30 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black text-[#1A1040]">
+                    <UserPlus className="w-3.5 h-3.5 inline mr-1" />Nombre de participants
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {maxPlaces} place{maxPlaces > 1 ? 's' : ''} restante{maxPlaces > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= 1}
+                    className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-8 text-center font-black text-[#1A1040] text-lg">{nbPersonnes}</span>
+                  <button type="button" onClick={() => changeNbPersonnes(1)} disabled={nbPersonnes >= maxPlaces}
+                    className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-lime-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Prix total */}
+              <div className="bg-citron-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
+                <span className="text-xs font-bold text-[#1A1040]">
+                  {nbPersonnes} × {atelier.prix} €/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+                  {atelier.prix_type === 'duo' && nbPersonnes > 1 && ` (${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''})`}
+                </span>
+                <span className="font-black text-[#1A1040] text-base">Total : {total} €</span>
+              </div>
+
+              {/* Infos participants supplémentaires */}
+              {personnesSup.map((p, idx) => (
+                <div key={idx} className="bg-rose-50 border-2 border-rose-200 rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-black text-rose-500">👤 Participant {idx + 2}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black text-[#1A1040] mb-1">Prénom *</label>
+                      <input required value={p.prenom} placeholder="Marie"
+                        onChange={e => updatePersonneSup(idx, 'prenom', e.target.value)}
+                        className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-[#1A1040] mb-1">Nom *</label>
+                      <input required value={p.nom} placeholder="Martin"
+                        onChange={e => updatePersonneSup(idx, 'nom', e.target.value)}
+                        className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Âge *</label>
+                    <input required type="number" min="5" max="120" value={p.age} placeholder="28"
+                      onChange={e => updatePersonneSup(idx, 'age', e.target.value)}
+                      className="w-32 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Mode de règlement ── */}
             <div>
               <label className="block text-xs font-black text-[#1A1040] mb-2">Mode de règlement *</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'carte',   label: 'Carte',   icon: <CreditCard className="w-5 h-5" />,  desc: 'En ligne' },
-                  { value: 'cheque',  label: 'Chèque',  icon: <BookCheck className="w-5 h-5" />,   desc: 'Sur place' },
-                  { value: 'especes', label: 'Espèces', icon: <Banknote className="w-5 h-5" />,    desc: 'Sur place' },
-                ].map(({ value, label, icon, desc }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm(p => ({ ...p, paiement: value as FormData['paiement'] }))}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
-                      form.paiement === value
-                        ? 'bg-[#1A1040] text-white border-[#1A1040]'
-                        : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
-                    }`}
-                  >
-                    {icon}
-                    <span className="font-black">{label}</span>
-                    <span className={`text-[10px] font-medium ${form.paiement === value ? 'text-white/60' : 'text-gray-400'}`}>{desc}</span>
-                  </button>
-                ))}
+              <div className={`grid gap-2 ${modesDispos.length <= 2 ? 'grid-cols-2' : modesDispos.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {modesDispos.map(mode => {
+                  const info = MODES_INFO[mode]
+                  if (!info) return null
+                  return (
+                    <button key={mode} type="button"
+                      onClick={() => setForm(p => ({ ...p, paiement: mode as ModePaiement }))}
+                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
+                        form.paiement === mode
+                          ? 'bg-[#1A1040] text-white border-[#1A1040]'
+                          : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                      }`}>
+                      {info.icon}
+                      <span className="font-black">{info.label}</span>
+                      <span className={`text-[10px] font-medium ${form.paiement === mode ? 'text-white/60' : 'text-gray-400'}`}>{info.desc}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Info modes sur place */}
-            {(form.paiement === 'cheque' || form.paiement === 'especes') && (
-              <div className="bg-citron-400/20 border-2 border-citron-400/40 rounded-xl px-4 py-3 text-xs text-[#1A1040] font-medium">
-                ℹ️ Le règlement {form.paiement === 'cheque' ? 'par chèque (à l\'ordre de l\'univers créatif d\'Anaïs)' : 'en espèces'} s'effectue directement sur place le jour de l'atelier.
+            {/* Messages spécifiques aux modes */}
+            {form.paiement === 'especes' && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium space-y-1">
+                <p className="font-black">💵 Règlement en espèces sur place</p>
+                <p>⚠️ <strong>L'appoint est obligatoire.</strong></p>
+                <p>🎲 Les billets de Monopoli ne sont pas autorisés 😄</p>
+              </div>
+            )}
+
+            {form.paiement === 'virement' && (
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3 text-xs text-blue-800 font-medium space-y-1">
+                <p className="font-black">🏦 Règlement par virement bancaire</p>
+                <p>⏰ <strong>Le règlement doit être arrivé avant le commencement de l'atelier.</strong></p>
+                <p>📧 Les coordonnées bancaires seront présentes sur le mail de confirmation de réservation.</p>
+              </div>
+            )}
+
+            {form.paiement === 'cheque' && (
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl px-4 py-3 text-xs text-purple-800 font-medium">
+                <p className="font-black">📝 Règlement par chèque sur place</p>
+                <p className="mt-1">Chèque à l'ordre de <strong>L'univers créatif d'Anaïs</strong>, remis le jour de l'atelier.</p>
               </div>
             )}
 
@@ -389,11 +445,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <button type="submit" disabled={loading}
                 className="flex-1 bg-turquoise-400 text-[#1A1040] py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
                 style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                {loading
-                  ? '⏳ Envoi...'
-                  : form.paiement === 'carte'
-                  ? '➡️ Passer au paiement'
-                  : `🎉 Confirmer — ${atelier.prix} €`}
+                {loading ? '⏳ Envoi...' : form.paiement === 'cb' ? '➡️ Passer au paiement' : `🎉 Confirmer — ${total} €`}
               </button>
             </div>
           </form>
@@ -402,10 +454,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         {/* ── ÉTAPE 2 : Paiement Stripe ── */}
         {step === 'paiement' && (
           <div className="px-6 py-5">
-            {/* Récap identité */}
             <div className="bg-candy rounded-2xl border-2 border-[#1A1040] px-4 py-3 mb-4 text-sm">
               <p className="font-black text-[#1A1040] mb-0.5">👤 {form.prenom} {form.nom}</p>
               <p className="text-gray-500 text-xs">{form.email} · {form.telephone}</p>
+              {nbPersonnes > 1 && <p className="text-xs text-rose-500 font-bold mt-0.5">+{nbPersonnes - 1} participant(s)</p>}
             </div>
 
             {error && (
@@ -416,17 +468,13 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
 
             <Elements stripe={stripePromise}>
               <StripeCardForm
-                atelier={atelier}
-                form={form}
-                onSuccess={saveReservation}
-                onError={(msg) => setError(msg)}
+                atelier={atelier} form={form} nbPersonnes={nbPersonnes}
+                onSuccess={saveReservation} onError={msg => setError(msg)}
               />
             </Elements>
 
-            <button
-              onClick={() => { setStep('form'); setError('') }}
-              className="w-full mt-3 border-2 border-gray-200 text-gray-500 py-2.5 rounded-2xl font-bold text-sm hover:bg-gray-50"
-            >
+            <button onClick={() => { setStep('form'); setError('') }}
+              className="w-full mt-3 border-2 border-gray-200 text-gray-500 py-2.5 rounded-2xl font-bold text-sm hover:bg-gray-50">
               ← Retour au formulaire
             </button>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Upload } from 'lucide-react'
+import { X, Upload, CreditCard, Landmark, BookCheck, Banknote } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Atelier } from '../types'
 
@@ -10,10 +10,18 @@ interface Props {
   onSaved: () => void
 }
 
+const MODES_PAIEMENT = [
+  { value: 'cb',       label: 'CB',        icon: CreditCard, desc: 'Carte bancaire' },
+  { value: 'virement', label: 'Virement',  icon: Landmark,   desc: 'Virement bancaire' },
+  { value: 'cheque',   label: 'Chèque',    icon: BookCheck,  desc: 'Sur place' },
+  { value: 'especes',  label: 'Espèces',   icon: Banknote,   desc: 'Sur place' },
+]
+
 const EMPTY_FORM = {
   titre: '', description: '', date: '', heure: '',
   duree: '', lieu: '', prix: '', places_max: '',
   prix_type: 'personne' as 'personne' | 'duo',
+  modes_paiement: ['cheque', 'especes'] as string[],
 }
 
 export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved }: Props) {
@@ -27,19 +35,28 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
   useEffect(() => {
     if (atelier) {
       setForm({
-        titre:       atelier.titre,
-        description: atelier.description,
-        date:        atelier.date,
-        heure:       atelier.heure,
-        duree:       atelier.duree,
-        lieu:        atelier.lieu,
-        prix:        String(atelier.prix),
-        places_max:  String(atelier.places_max),
-        prix_type:   atelier.prix_type ?? 'personne',
+        titre:          atelier.titre,
+        description:    atelier.description,
+        date:           atelier.date,
+        heure:          atelier.heure,
+        duree:          atelier.duree,
+        lieu:           atelier.lieu,
+        prix:           String(atelier.prix),
+        places_max:     String(atelier.places_max),
+        prix_type:      atelier.prix_type ?? 'personne',
+        modes_paiement: atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes'],
       })
       if (atelier.image_url) setImagePreview(atelier.image_url)
     }
   }, [atelier])
+
+  function toggleMode(mode: string) {
+    setForm(p => {
+      const has = p.modes_paiement.includes(mode)
+      if (has && p.modes_paiement.length === 1) return p // au moins 1 mode requis
+      return { ...p, modes_paiement: has ? p.modes_paiement.filter(m => m !== mode) : [...p.modes_paiement, mode] }
+    })
+  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -76,6 +93,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         places_restantes: parseInt(form.places_max),
         image_url,
         category_id:      categoryId ?? atelier?.category_id ?? null,
+        modes_paiement:   form.modes_paiement,
       }
 
       if (isEdit && atelier) {
@@ -192,6 +210,38 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
           </div>
 
           {field('👥 Nb de places', 'places_max', 'number', '8')}
+
+          {/* Modes de paiement */}
+          <div>
+            <label className="block text-sm font-black text-[#1A1040] mb-2">
+              💳 Modes de règlement acceptés
+              <span className="text-gray-400 font-normal text-xs ml-1">(au moins 1)</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {MODES_PAIEMENT.map(({ value, label, icon: Icon, desc }) => {
+                const active = form.modes_paiement.includes(value)
+                return (
+                  <button key={value} type="button" onClick={() => toggleMode(value)}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 text-left transition-all text-sm font-black ${
+                      active
+                        ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
+                        : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                    }`}>
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-citron-400' : 'text-gray-400'}`} />
+                    <div>
+                      <div>{label}</div>
+                      <div className={`text-[10px] font-medium ${active ? 'text-white/60' : 'text-gray-400'}`}>{desc}</div>
+                    </div>
+                    <div className={`ml-auto w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+                      active ? 'bg-citron-400 border-citron-400' : 'border-gray-300'
+                    }`}>
+                      {active && <span className="text-[#1A1040] text-xs font-black leading-none">✓</span>}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}

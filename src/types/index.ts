@@ -21,6 +21,7 @@ export interface Atelier {
   places_restantes: number
   image_url: string | null
   category_id: string | null
+  modes_paiement: string[]
   created_at: string
 }
 
@@ -32,8 +33,10 @@ export interface Reservation {
   age: string | null
   email: string
   telephone: string | null
-  mode_paiement: 'carte' | 'cheque' | 'especes'
+  mode_paiement: 'cb' | 'virement' | 'cheque' | 'especes'
   statut_paiement: 'en_attente' | 'paye' | 'annule'
+  nb_personnes: number
+  personnes_sup: Array<{ prenom: string; nom: string; age: string }>
   created_at: string
 }
 
