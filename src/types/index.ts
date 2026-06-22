@@ -1,3 +1,12 @@
+export interface AtelierCategory {
+  id: string
+  nom: string
+  description: string | null
+  cover_url: string | null
+  ordre: number
+  created_at: string
+}
+
 export interface Atelier {
   id: string
   titre: string
@@ -7,9 +16,11 @@ export interface Atelier {
   duree: string
   lieu: string
   prix: number
+  prix_type: 'personne' | 'duo'
   places_max: number
   places_restantes: number
   image_url: string | null
+  category_id: string | null
   created_at: string
 }
 

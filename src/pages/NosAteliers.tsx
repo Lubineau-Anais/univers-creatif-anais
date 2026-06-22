@@ -1,240 +1,463 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import type { Atelier } from '../types'
+import type { Atelier, AtelierCategory } from '../types'
 import AtelierFormModal from '../components/AtelierFormModal'
 import ReservationModal from '../components/ReservationModal'
 
-// Données de démonstration (affichées si la base est vide ou non configurée)
-const DEMO_ATELIERS: Atelier[] = [
-  {
-    id: 'demo-1',
-    titre: 'Scrapbooking',
-    description: 'Créez de magnifiques albums souvenirs en assemblant photos, papiers colorés, stickers et décorations. Un atelier créatif et convivial pour tous les niveaux !',
-    date: '2026-04-25',
-    heure: '15:00',
-    duree: '3h',
-    lieu: "l'univers créatif d'Anaïs",
-    prix: 25,
-    places_max: 7,
-    places_restantes: 7,
-    image_url: '/images/scrapbooking.jpg',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-2',
-    titre: 'Bijoux en Fimo',
-    description: 'Modelez et créez vos propres bijoux uniques en pâte Fimo ! Bagues, colliers, boucles d\'oreilles... Laissez parler votre créativité et repartez avec vos créations.',
-    date: '2026-04-26',
-    heure: '15:00',
-    duree: '3h',
-    lieu: "l'univers créatif d'Anaïs",
-    prix: 30,
-    places_max: 8,
-    places_restantes: 8,
-    image_url: '/images/fimo.jpg',
-    created_at: new Date().toISOString(),
-  },
-]
+// ─── Déco polaroïd ───────────────────────────────────────────────────────────
+const ROTATIONS  = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-3', 'rotate-1']
+const TAPE_COLORS = ['bg-citron-400/70', 'bg-rose-400/70', 'bg-turquoise-400/70', 'bg-lime-300/70', 'bg-rose-300/60']
 
-// Rotations légèrement différentes pour chaque polaroid
-const ROTATIONS = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-3', 'rotate-1']
+function dateLongue(d: string) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
 
-// Couleurs du scotch décoratif en haut
-const TAPE_COLORS = [
-  'bg-citron-400/70',
-  'bg-rose-400/70',
-  'bg-turquoise-400/70',
-  'bg-lime-300/70',
-  'bg-corail-400/70',
-]
+// ─── Modale catégorie ─────────────────────────────────────────────────────────
+interface CatModalProps {
+  cat: AtelierCategory | null
+  onClose: () => void
+  onSaved: (cats: AtelierCategory[]) => void
+}
 
+function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
+  const [nom,         setNom]         = useState(cat?.nom         || '')
+  const [description, setDescription] = useState(cat?.description || '')
+  const [coverFile,   setCoverFile]   = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState(cat?.cover_url || '')
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+  const isEdit = !!cat
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nom.trim()) { setError('Le nom est requis'); return }
+    setSaving(true); setError('')
+    try {
+      let cover_url = cat?.cover_url ?? null
+      if (coverFile) {
+        const ext  = coverFile.name.split('.').pop()
+        const path = `categories/${Date.now()}.${ext}`
+        await supabase.storage.from('ateliers').upload(path, coverFile, { upsert: true })
+        cover_url = supabase.storage.from('ateliers').getPublicUrl(path).data.publicUrl
+      }
+      const payload = { nom: nom.trim(), description: description.trim() || null, cover_url }
+      if (isEdit && cat) {
+        await supabase.from('atelier_categories').update(payload).eq('id', cat.id)
+      } else {
+        await supabase.from('atelier_categories').insert([payload])
+      }
+      const { data } = await supabase
+        .from('atelier_categories').select('*')
+        .order('ordre').order('created_at')
+      onSaved((data as AtelierCategory[]) || [])
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md overflow-hidden"
+        style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
+
+        <div className="bg-[#1A1040] px-6 py-4 flex items-center justify-between rounded-t-3xl">
+          <h2 className="font-serif text-xl font-black text-citron-400">
+            {isEdit ? '✏️ Modifier la catégorie' : '✨ Nouvelle catégorie'}
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20">
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <p className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-bold border-2 border-red-200">{error}</p>
+          )}
+
+          {/* Photo de couverture */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
+              📸 Photo de couverture
+            </label>
+            <div
+              className="border-4 border-dashed border-[#1A1040] rounded-2xl overflow-hidden cursor-pointer hover:bg-rose-50 transition-colors"
+              onClick={() => document.getElementById('cat-cover-input')?.click()}
+            >
+              {coverPreview ? (
+                <img src={coverPreview} alt="" draggable={false}
+                  className="w-full h-44 object-cover pointer-events-none" />
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
+                  <Upload className="w-8 h-8" />
+                  <span className="text-sm font-bold">Cliquer pour ajouter une photo</span>
+                </div>
+              )}
+              <input id="cat-cover-input" type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            </div>
+          </div>
+
+          {/* Nom */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
+              🏷️ Nom de la catégorie
+            </label>
+            <input
+              required value={nom} onChange={e => setNom(e.target.value)}
+              placeholder="Ex: Macramé"
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
+              📝 Description
+            </label>
+            <textarea
+              rows={3} value={description} onChange={e => setDescription(e.target.value)}
+              placeholder="Décrivez cette catégorie d'ateliers..."
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-3 rounded-2xl font-black text-sm hover:bg-gray-50">
+              Annuler
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-[#1A1040] text-citron-400 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] disabled:opacity-60"
+              style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
+              {saving ? '⏳ Enregistrement...' : isEdit ? '✅ Modifier' : '🚀 Créer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 export default function NosAteliers() {
   const { isAdmin } = useAuth()
-  const [ateliers, setAteliers] = useState<Atelier[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editingAtelier, setEditingAtelier] = useState<Atelier | null>(null)
-  const [reservingAtelier, setReservingAtelier] = useState<Atelier | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [categories,   setCategories]   = useState<AtelierCategory[]>([])
+  const [selectedCat,  setSelectedCat]  = useState<AtelierCategory | null>(null)
+  const [ateliers,     setAteliers]     = useState<Atelier[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [loadingAteliers, setLoadingAteliers] = useState(false)
 
-  useEffect(() => { loadAteliers() }, [])
+  const [reservingAtelier,     setReservingAtelier]     = useState<Atelier | null>(null)
+  const [showAtelierModal,     setShowAtelierModal]     = useState(false)
+  const [editingAtelier,       setEditingAtelier]       = useState<Atelier | null>(null)
+  const [deleteAtelierConfirm, setDeleteAtelierConfirm] = useState<string | null>(null)
 
-  async function loadAteliers() {
+  const [showCatModal,    setShowCatModal]    = useState(false)
+  const [editingCat,      setEditingCat]      = useState<AtelierCategory | null>(null)
+  const [deleteCatConfirm, setDeleteCatConfirm] = useState<string | null>(null)
+
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  useEffect(() => { loadCategories() }, [])
+
+  async function loadCategories() {
     setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('ateliers').select('*').order('date', { ascending: true })
-      if (!error && data && data.length > 0) {
-        setAteliers(data)
-      } else {
-        // Fallback : données démo si base vide ou non configurée
-        setAteliers(DEMO_ATELIERS)
-      }
-    } catch {
-      setAteliers(DEMO_ATELIERS)
-    }
+    const { data } = await supabase
+      .from('atelier_categories').select('*')
+      .order('ordre', { ascending: true })
+      .order('created_at', { ascending: true })
+    setCategories((data as AtelierCategory[]) || [])
     setLoading(false)
   }
 
+  async function openCategory(cat: AtelierCategory) {
+    setSelectedCat(cat)
+    setLoadingAteliers(true)
+    const { data } = await supabase
+      .from('ateliers').select('*')
+      .eq('category_id', cat.id)
+      .order('date', { ascending: true })
+    setAteliers((data as Atelier[]) || [])
+    setLoadingAteliers(false)
+  }
+
+  function back() { setSelectedCat(null); setAteliers([]) }
+
+  async function deleteCategory(id: string) {
+    await supabase.from('atelier_categories').delete().eq('id', id)
+    setCategories(p => p.filter(c => c.id !== id))
+    if (selectedCat?.id === id) back()
+    setDeleteCatConfirm(null)
+  }
+
   async function deleteAtelier(id: string) {
-    if (id.startsWith('demo-')) {
-      setAteliers(prev => prev.filter(a => a.id !== id))
-      setDeleteConfirm(null)
-      return
+    await supabase.from('ateliers').delete().eq('id', id)
+    setAteliers(p => p.filter(a => a.id !== id))
+    setDeleteAtelierConfirm(null)
+  }
+
+  function handleCatSaved(cats: AtelierCategory[]) {
+    setCategories(cats)
+    if (selectedCat) {
+      const updated = cats.find(c => c.id === selectedCat.id)
+      if (updated) setSelectedCat(updated)
     }
-    const { error } = await supabase.from('ateliers').delete().eq('id', id)
-    if (!error) setAteliers(prev => prev.filter(a => a.id !== id))
-    setDeleteConfirm(null)
   }
 
-  function handleEdit(atelier: Atelier) {
-    setEditingAtelier(atelier)
-    setShowForm(true)
+  function handleAtelierSaved() {
+    if (selectedCat) openCategory(selectedCat)
   }
-
-  function handleCloseForm() {
-    setShowForm(false)
-    setEditingAtelier(null)
-  }
-
-  const dateFormatted = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString('fr-FR', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    })
-
-  const isDemo = ateliers.length > 0 && ateliers[0].id.startsWith('demo-')
 
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
 
-      {/* ===== HEADER ===== */}
+      {/* ── HEADER ── */}
       <section className="relative bg-[#1A1040] py-16 px-4 text-center border-b-4 border-[#1A1040] overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none confetti-bg opacity-20" />
-        {/* Polaroids décoratifs en fond */}
+        {/* Polaroïds déco */}
         <div className="absolute -left-8 top-4 w-24 h-28 bg-white/10 border-2 border-white/20 rounded-sm rotate-12 hidden md:block" />
         <div className="absolute -right-6 bottom-2 w-20 h-24 bg-white/10 border-2 border-white/20 rounded-sm -rotate-6 hidden md:block" />
 
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 bg-citron-400 text-[#1A1040] px-4 py-1.5 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
-            📸 Collection printemps 2026
-          </div>
-          <h1 className="font-serif text-5xl font-black text-white mb-3">
-            Nos Ateliers <span className="text-rose-400">✦</span>
-          </h1>
-          <p className="text-gray-300 text-lg max-w-xl mx-auto font-medium">
-            Choisis ton atelier, réserve ta place et viens créer avec nous !
-          </p>
+        <div className="relative max-w-3xl mx-auto">
+          {selectedCat ? (
+            <div className="flex flex-col items-center gap-4">
+              <button onClick={back}
+                className="flex items-center gap-2 bg-candy text-[#1A1040] px-4 py-2 rounded-xl font-black text-sm border-2 border-candy hover:bg-rose-200 transition-colors"
+                style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
+                <ChevronLeft className="w-4 h-4" /> Toutes les catégories
+              </button>
+              <h1 className="font-serif text-4xl md:text-5xl font-black text-white">
+                {selectedCat.nom} <span className="text-rose-400">✦</span>
+              </h1>
+              {selectedCat.description && (
+                <p className="text-gray-300 text-base max-w-xl">{selectedCat.description}</p>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="inline-flex items-center gap-2 bg-citron-400 text-[#1A1040] px-4 py-1.5 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
+                📸 Nos ateliers créatifs
+              </div>
+              <h1 className="font-serif text-5xl font-black text-white mb-3">
+                Nos Ateliers <span className="text-rose-400">✦</span>
+              </h1>
+              <p className="text-gray-300 text-lg max-w-xl mx-auto font-medium">
+                Choisis ta catégorie et découvre nos ateliers créatifs !
+              </p>
+            </>
+          )}
         </div>
       </section>
 
-      {/* ===== CONTENU ===== */}
+      {/* ── CONTENU ── */}
       <section className="max-w-6xl mx-auto px-4 py-16">
 
-        {/* Bouton Admin */}
+        {/* Boutons admin */}
         {isAdmin && (
-          <div className="flex justify-end mb-10">
-            <button
-              onClick={() => { setEditingAtelier(null); setShowForm(true) }}
-              className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-5 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
-              style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}
-            >
-              <Plus className="w-5 h-5" />
-              ✦ Ajouter un atelier
-            </button>
+          <div className="flex justify-end mb-10 gap-3 flex-wrap">
+            {!selectedCat ? (
+              <button
+                onClick={() => { setEditingCat(null); setShowCatModal(true) }}
+                className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-5 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
+                style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
+                <Plus className="w-5 h-5" /> ✦ Ajouter une catégorie
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setEditingCat(selectedCat); setShowCatModal(true) }}
+                  className="flex items-center gap-2 bg-white text-[#1A1040] px-4 py-2.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-candy transition-all"
+                  style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+                  <Pencil className="w-4 h-4" /> Modifier la catégorie
+                </button>
+                <button
+                  onClick={() => { setEditingAtelier(null); setShowAtelierModal(true) }}
+                  className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-5 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
+                  style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
+                  <Plus className="w-5 h-5" /> ✦ Ajouter un atelier
+                </button>
+              </>
+            )}
           </div>
         )}
 
-        {/* Badge demo */}
-        {isDemo && !isAdmin && (
-          <div className="text-center mb-8">
-            <span className="inline-block bg-citron-400/30 text-[#1A1040] px-4 py-2 rounded-full text-xs font-bold border border-citron-400">
-              💡 Aperçu — Configurez Supabase pour gérer vos vrais ateliers
-            </span>
-          </div>
-        )}
-
+        {/* Chargement */}
         {loading ? (
           <div className="text-center py-20">
             <div className="text-5xl mb-4 animate-bounce">📸</div>
-            <p className="text-gray-500 font-bold">Développement des photos...</p>
+            <p className="text-gray-500 font-bold">Chargement des ateliers...</p>
+          </div>
+
+        /* ── VUE CATÉGORIES ── */
+        ) : !selectedCat ? (
+          categories.length === 0 ? (
+            <div className="text-center py-24">
+              <div className="text-7xl mb-4">🎨</div>
+              <p className="text-[#1A1040] text-xl font-black">Aucune catégorie créée.</p>
+              {isAdmin && <p className="text-rose-400 mt-2 font-bold">Clique sur « + » pour en créer une !</p>}
+            </div>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-10 md:gap-14">
+              {categories.map((cat, idx) => {
+                const rotation  = ROTATIONS[idx % ROTATIONS.length]
+                const tapeColor = TAPE_COLORS[idx % TAPE_COLORS.length]
+                return (
+                  <div key={cat.id}
+                    className={`relative ${rotation} hover:rotate-0 hover:-translate-y-3 transition-all duration-300`}
+                    style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.25))' }}>
+
+                    {/* Scotch */}
+                    <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-14 h-6 ${tapeColor} rounded-sm z-10 border border-white/40`} />
+
+                    {/* Carte polaroïd */}
+                    <div
+                      className="bg-white border-2 border-gray-100 w-64 md:w-72 cursor-pointer"
+                      style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}
+                      onClick={() => openCategory(cat)}
+                    >
+                      {/* Photo */}
+                      <div className="relative w-full h-60 overflow-hidden bg-rose-100 select-none"
+                        onContextMenu={e => e.preventDefault()}>
+                        {cat.cover_url ? (
+                          <>
+                            <img src={cat.cover_url} alt="" draggable={false}
+                              onContextMenu={e => e.preventDefault()}
+                              className="w-full h-full object-cover pointer-events-none" />
+                            <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-7xl">🎨</div>
+                        )}
+                      </div>
+
+                      {/* Bande info */}
+                      <div className="px-4 pt-4 pb-5">
+                        <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-2 leading-tight">
+                          {cat.nom}
+                        </h3>
+                        {cat.description && (
+                          <p className="text-xs text-gray-500 text-center leading-relaxed line-clamp-2 mb-2">
+                            {cat.description}
+                          </p>
+                        )}
+                        <div className="border-t border-dashed border-gray-200 mt-2 mb-3" />
+                        {isAdmin ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={e => { e.stopPropagation(); setEditingCat(cat); setShowCatModal(true) }}
+                              className="flex-1 flex items-center justify-center gap-1 bg-[#1A1040] text-citron-400 py-2 rounded-xl text-xs font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all"
+                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
+                              <Pencil className="w-3 h-3" /> Modifier
+                            </button>
+                            <button
+                              onClick={e => { e.stopPropagation(); setDeleteCatConfirm(cat.id) }}
+                              className="w-9 h-9 flex items-center justify-center bg-[#1A1040] text-rose-400 rounded-xl border-2 border-[#1A1040] hover:bg-red-700 hover:text-white transition-colors"
+                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-center text-xs font-black text-[#1A1040]/60">
+                            Voir les ateliers →
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
+
+        /* ── VUE ATELIERS D'UNE CATÉGORIE ── */
+        ) : loadingAteliers ? (
+          <div className="text-center py-20">
+            <div className="text-5xl mb-4 animate-bounce">📸</div>
+            <p className="text-gray-500 font-bold">Chargement des ateliers...</p>
           </div>
         ) : ateliers.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-24">
             <div className="text-7xl mb-4">📷</div>
-            <p className="text-[#1A1040] text-xl font-black">Aucun atelier prévu.</p>
-            {isAdmin && <p className="text-rose-400 mt-2 font-bold">Clique sur « + » pour créer le premier !</p>}
+            <p className="text-[#1A1040] text-xl font-black">Aucun atelier dans cette catégorie.</p>
+            {isAdmin && <p className="text-rose-400 mt-2 font-bold">Clique sur « + Ajouter un atelier » pour en créer un !</p>}
           </div>
         ) : (
-          /* ===== GRILLE POLAROIDS ===== */
           <div className="flex flex-wrap justify-center gap-10 md:gap-14">
             {ateliers.map((atelier, idx) => {
-              const rotation = ROTATIONS[idx % ROTATIONS.length]
+              const rotation  = ROTATIONS[idx % ROTATIONS.length]
               const tapeColor = TAPE_COLORS[idx % TAPE_COLORS.length]
               const isComplet = atelier.places_restantes === 0
-              const isUrgent = atelier.places_restantes > 0 && atelier.places_restantes <= 2
+              const isUrgent  = atelier.places_restantes > 0 && atelier.places_restantes <= 2
+              const atelierDate = new Date(atelier.date + 'T00:00:00')
+              const isPasse   = atelierDate < today
 
               return (
-                <div
-                  key={atelier.id}
-                  className={`relative ${rotation} hover:rotate-0 hover:-translate-y-3 transition-all duration-300 cursor-pointer`}
-                  style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.25))' }}
-                >
-                  {/* Scotch décoratif */}
+                <div key={atelier.id}
+                  className={`relative ${rotation} hover:rotate-0 hover:-translate-y-3 transition-all duration-300 ${isPasse ? 'opacity-70' : ''}`}
+                  style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.25))' }}>
+
+                  {/* Scotch */}
                   <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-14 h-6 ${tapeColor} rounded-sm z-10 border border-white/40`} />
 
-                  {/* Carte polaroid */}
+                  {/* Carte polaroïd */}
                   <div className="bg-white border-2 border-gray-100 w-64 md:w-72"
-                    style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}
-                  >
-                    {/* Zone photo */}
-                    <div className="relative w-full h-60 overflow-hidden bg-gray-100">
+                    style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}>
+
+                    {/* Photo */}
+                    <div className="relative w-full h-56 overflow-hidden bg-rose-100 select-none"
+                      onContextMenu={e => e.preventDefault()}>
                       {atelier.image_url ? (
-                        <img
-                          src={atelier.image_url}
-                          alt={atelier.titre}
-                          className="w-full h-full object-cover"
-                        />
+                        <>
+                          <img src={atelier.image_url} alt={atelier.titre} draggable={false}
+                            onContextMenu={e => e.preventDefault()}
+                            className="w-full h-full object-cover pointer-events-none" />
+                          <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
+                        </>
                       ) : (
-                        <div className="w-full h-full bg-rose-100 flex items-center justify-center text-6xl">
-                          🎨
-                        </div>
+                        <div className="w-full h-full flex items-center justify-center text-6xl">🎨</div>
                       )}
 
-                      {/* Overlay complet */}
                       {isComplet && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <span className="bg-white text-[#1A1040] font-black px-4 py-2 text-lg rotate-[-15deg] border-4 border-[#1A1040]">
+                          <span className="bg-white text-[#1A1040] font-black px-4 py-2 text-lg -rotate-12 border-4 border-[#1A1040]">
                             COMPLET
                           </span>
                         </div>
                       )}
-
-                      {/* Badge places urgentes */}
-                      {isUrgent && !isComplet && (
-                        <div className="absolute top-2 right-2 bg-corail-400 text-white text-xs font-black px-2 py-1 rounded-full border-2 border-white">
+                      {isPasse && !isComplet && (
+                        <div className="absolute top-2 left-2 bg-gray-700/80 text-white text-xs font-black px-2.5 py-1 rounded-full">
+                          Passé
+                        </div>
+                      )}
+                      {isUrgent && !isComplet && !isPasse && (
+                        <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-black px-2 py-1 rounded-full border-2 border-white">
                           🔥 Dernières places !
                         </div>
                       )}
                     </div>
 
-                    {/* ===== STRIP POLAROID (info) ===== */}
+                    {/* Bande info */}
                     <div className="px-4 pt-4 pb-5">
-
-                      {/* Nom de l'atelier */}
                       <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-3 leading-tight">
                         {atelier.titre}
                       </h3>
-
-                      {/* Ligne séparatrice */}
                       <div className="border-t border-dashed border-gray-200 mb-3" />
-
-                      {/* Infos */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                          <span className="capitalize">{dateFormatted(atelier.date)}</span>
+                        <div className="flex items-start gap-2 text-xs text-gray-600 font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                          <span className="capitalize leading-snug">{dateLongue(atelier.date)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
                           <Clock className="w-3.5 h-3.5 text-turquoise-500 shrink-0" />
@@ -244,39 +467,41 @@ export default function NosAteliers() {
                           <MapPin className="w-3.5 h-3.5 text-citron-500 shrink-0" />
                           {atelier.lieu}
                         </div>
-                        <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-1.5 text-xs font-medium">
                             <Users className="w-3.5 h-3.5 text-lime-600 shrink-0" />
-                            <span className={isComplet ? 'text-red-500 font-black' : isUrgent ? 'text-corail-500 font-black' : 'text-gray-600'}>
-                              {isComplet ? 'Complet 😢' : `${atelier.places_restantes} place${atelier.places_restantes > 1 ? 's' : ''} restante${atelier.places_restantes > 1 ? 's' : ''}`}
+                            <span className={isComplet ? 'text-red-500 font-black' : isUrgent ? 'text-red-500 font-black' : 'text-gray-600'}>
+                              {isComplet
+                                ? 'Complet 😢'
+                                : `${atelier.places_restantes} place${atelier.places_restantes > 1 ? 's' : ''} restante${atelier.places_restantes > 1 ? 's' : ''}`}
                             </span>
                           </div>
-                          <span className="text-lg font-black text-[#1A1040]">
-                            {atelier.prix}€<span className="text-xs font-bold text-gray-400">/pers.</span>
+                          <span className="font-black text-[#1A1040] text-lg leading-none">
+                            {atelier.prix}€
+                            <span className="text-[10px] font-bold text-gray-400 ml-0.5">
+                              /{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+                            </span>
                           </span>
                         </div>
                       </div>
 
-                      {/* Boutons */}
                       <div className="mt-4">
                         {isAdmin ? (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleEdit(atelier)}
-                              className="flex-1 flex items-center justify-center gap-1 bg-[#1A1040] text-citron-400 py-2 rounded-xl text-xs font-black border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
-                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}
-                            >
+                              onClick={() => { setEditingAtelier(atelier); setShowAtelierModal(true) }}
+                              className="flex-1 flex items-center justify-center gap-1 bg-[#1A1040] text-citron-400 py-2 rounded-xl text-xs font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all"
+                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
                               <Pencil className="w-3 h-3" /> Modifier
                             </button>
                             <button
-                              onClick={() => setDeleteConfirm(atelier.id)}
+                              onClick={() => setDeleteAtelierConfirm(atelier.id)}
                               className="w-9 h-9 flex items-center justify-center bg-[#1A1040] text-rose-400 rounded-xl border-2 border-[#1A1040] hover:bg-red-700 hover:text-white transition-colors"
-                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}
-                            >
+                              style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        ) : (
+                        ) : !isPasse ? (
                           <button
                             onClick={() => !isComplet && setReservingAtelier(atelier)}
                             disabled={isComplet}
@@ -285,11 +510,10 @@ export default function NosAteliers() {
                                 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                 : 'bg-rose-400 text-white border-[#1A1040] hover:-translate-y-0.5'
                             }`}
-                            style={!isComplet ? { boxShadow: '3px 3px 0px 0px #1A1040' } : {}}
-                          >
+                            style={!isComplet ? { boxShadow: '3px 3px 0px 0px #1A1040' } : {}}>
                             {isComplet ? 'Complet' : '🎟️ Je réserve !'}
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -300,16 +524,56 @@ export default function NosAteliers() {
         )}
       </section>
 
-      {/* Modales */}
-      {showForm && (
-        <AtelierFormModal atelier={editingAtelier} onClose={handleCloseForm} onSaved={loadAteliers} />
-      )}
-      {reservingAtelier && (
-        <ReservationModal atelier={reservingAtelier} onClose={() => setReservingAtelier(null)} onReserved={loadAteliers} />
+      {/* ── MODALES ── */}
+      {showCatModal && (
+        <CategoryModal
+          cat={editingCat}
+          onClose={() => { setShowCatModal(false); setEditingCat(null) }}
+          onSaved={handleCatSaved}
+        />
       )}
 
-      {/* Confirmation suppression */}
-      {deleteConfirm && (
+      {showAtelierModal && (
+        <AtelierFormModal
+          atelier={editingAtelier}
+          categoryId={selectedCat?.id ?? null}
+          onClose={() => { setShowAtelierModal(false); setEditingAtelier(null) }}
+          onSaved={handleAtelierSaved}
+        />
+      )}
+
+      {reservingAtelier && (
+        <ReservationModal
+          atelier={reservingAtelier}
+          onClose={() => setReservingAtelier(null)}
+          onReserved={() => selectedCat && openCategory(selectedCat)}
+        />
+      )}
+
+      {/* Confirmation suppression catégorie */}
+      {deleteCatConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 text-center"
+            style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
+            <div className="text-5xl mb-3">🗑️</div>
+            <h3 className="font-serif text-xl font-black text-[#1A1040] mb-2">Supprimer la catégorie ?</h3>
+            <p className="text-gray-500 text-sm mb-6">Les ateliers associés ne seront plus liés à cette catégorie.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteCatConfirm(null)}
+                className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-2.5 rounded-2xl text-sm font-black hover:bg-gray-50">
+                Annuler
+              </button>
+              <button onClick={() => deleteCategory(deleteCatConfirm)}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-2xl text-sm font-black border-2 border-red-700 hover:bg-red-600">
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation suppression atelier */}
+      {deleteAtelierConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 text-center"
             style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
@@ -317,11 +581,11 @@ export default function NosAteliers() {
             <h3 className="font-serif text-xl font-black text-[#1A1040] mb-2">Supprimer l'atelier ?</h3>
             <p className="text-gray-500 text-sm mb-6">Cette action est définitive.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)}
+              <button onClick={() => setDeleteAtelierConfirm(null)}
                 className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-2.5 rounded-2xl text-sm font-black hover:bg-gray-50">
                 Annuler
               </button>
-              <button onClick={() => deleteAtelier(deleteConfirm)}
+              <button onClick={() => deleteAtelier(deleteAtelierConfirm)}
                 className="flex-1 bg-red-500 text-white py-2.5 rounded-2xl text-sm font-black border-2 border-red-700 hover:bg-red-600">
                 Supprimer
               </button>
