@@ -4,6 +4,7 @@ import { Menu, X, LogIn, LogOut, Settings, LayoutDashboard, Archive, Newspaper, 
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { useCart } from '../context/CartContext'
+import { useAtelierCart } from '../context/AtelierCartContext'
 import { supabase } from '../lib/supabase'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -45,7 +46,9 @@ export default function Navbar() {
   const { isAdmin, signOut } = useAuth()
   const { logoUrl } = useSiteSettings()
   const location = useLocation()
-  const { itemCount, setIsOpen: openCart } = useCart()
+  const { itemCount: shopCount, setIsOpen: openCart } = useCart()
+  const { itemCount: atelierCount } = useAtelierCart()
+  const itemCount = shopCount + atelierCount
 
   const [nav, setNav]           = useState<NavSettings>(DEFAULT_NAV)
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)

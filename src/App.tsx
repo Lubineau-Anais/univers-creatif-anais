@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { SiteSettingsProvider } from './context/SiteSettingsContext'
 import { CartProvider } from './context/CartContext'
+import { AtelierCartProvider } from './context/AtelierCartContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import CartDrawer from './components/CartDrawer'
 import ProtectedRoute from './components/ProtectedRoute'
 import Accueil from './pages/Accueil'
 import NosAteliers from './pages/NosAteliers'
@@ -28,9 +30,11 @@ export default function App() {
     <AuthProvider>
       <SiteSettingsProvider>
         <CartProvider>
+          <AtelierCartProvider>
           <BrowserRouter>
             <div className="flex flex-col min-h-screen">
               <Navbar />
+              <CartDrawer />
               <Routes>
                 <Route path="/" element={<Accueil />} />
                 <Route path="/ateliers" element={<NosAteliers />} />
@@ -75,6 +79,7 @@ export default function App() {
               <Footer />
             </div>
           </BrowserRouter>
+          </AtelierCartProvider>
         </CartProvider>
       </SiteSettingsProvider>
     </AuthProvider>

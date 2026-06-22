@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { X, Check, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus } from 'lucide-react'
+import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { supabase } from '../lib/supabase'
+import { useAtelierCart } from '../context/AtelierCartContext'
+import { useCart } from '../context/CartContext'
 import type { Atelier } from '../types'
+
+// supabase import removed — saving happens in CartDrawer at checkout
 
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
@@ -114,12 +117,15 @@ function formatDate(d: string) {
 
 // ─── Modal principal ───────────────────────────────────────────────────────────
 export default function ReservationModal({ atelier, onClose, onReserved }: Props) {
+  const { addItem: addAtelierItem } = useAtelierCart()
+  const { setIsOpen: openCart }     = useCart()
+
   const [step, setStep]               = useState<'form' | 'paiement'>('form')
   const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
   const [nbPersonnes, setNbPersonnes] = useState(1)
   const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>([])
   const [loading, setLoading]         = useState(false)
-  const [success, setSuccess]         = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
   const [error, setError]             = useState('')
 
   const dateFormatted = formatDate(atelier.date)
@@ -142,40 +148,21 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     setPersonnesSup(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p))
   }
 
-  // ── Enregistrement ────────────────────────────────────────────────────────
-  async function saveReservation() {
-    setLoading(true); setError('')
-    try {
-      if (atelier.places_restantes < nbPersonnes)
-        throw new Error(`Il ne reste que ${atelier.places_restantes} place(s).`)
-
-      const { error: insertError } = await supabase.from('reservations').insert([{
-        atelier_id:       atelier.id,
-        nom:              form.nom,
-        prenom:           form.prenom,
-        age:              form.age,
-        email:            form.email,
-        telephone:        form.telephone,
-        mode_paiement:    form.paiement || 'especes',
-        statut_paiement:  form.paiement === 'cb' ? 'paye' : 'en_attente',
-        nb_personnes:     nbPersonnes,
-        personnes_sup:    personnesSup,
-      }])
-      if (insertError) throw insertError
-
-      if (!atelier.id.startsWith('demo-')) {
-        await supabase.from('ateliers')
-          .update({ places_restantes: atelier.places_restantes - nbPersonnes })
-          .eq('id', atelier.id)
-      }
-
-      setSuccess(true)
-      onReserved()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue.')
-    } finally {
-      setLoading(false)
-    }
+  // ── Ajouter au panier ────────────────────────────────────────────────────
+  function addToCart() {
+    addAtelierItem({
+      atelier,
+      form: {
+        prenom: form.prenom, nom: form.nom, age: form.age,
+        email: form.email, telephone: form.telephone,
+        paiement: form.paiement || 'especes',
+      },
+      nbPersonnes,
+      personnesSup,
+      total,
+    })
+    setAddedToCart(true)
+    onReserved()
   }
 
   async function handleFormSubmit(e: React.FormEvent) {
@@ -189,45 +176,44 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     }
     setError('')
     if (form.paiement === 'cb') setStep('paiement')
-    else await saveReservation()
+    else addToCart()
   }
 
-  // ── Écran succès ──────────────────────────────────────────────────────────
-  if (success) {
-    const ICONE: Record<string, string> = { cb: '💳', virement: '🏦', cheque: '📝', especes: '💵' }
-    const LABEL: Record<string, string> = { cb: 'par carte', virement: 'par virement', cheque: 'par chèque', especes: 'en espèces' }
+  // ── Écran "Ajouté au panier" ──────────────────────────────────────────────
+  if (addedToCart) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
         <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
           style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
-          <div className="w-20 h-20 bg-lime-300 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#1A1040]"
+          <div className="w-20 h-20 bg-citron-400 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#1A1040]"
             style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-            <Check className="w-10 h-10 text-[#1A1040]" />
+            <ShoppingCart className="w-10 h-10 text-[#1A1040]" />
           </div>
-          <div className="inline-block bg-citron-400 text-[#1A1040] px-4 py-1 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
-            🎉 C'est confirmé !
+          <div className="inline-block bg-lime-300 text-[#1A1040] px-4 py-1 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
+            ✅ Ajouté au panier !
           </div>
-          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">Super {form.prenom} ! 🎊</h2>
-          <p className="text-gray-600 mb-1 font-medium">
-            {nbPersonnes > 1 ? `${nbPersonnes} places réservées pour` : 'Ta place est réservée pour'}
+          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">
+            Super {form.prenom} ! 🎊
+          </h2>
+          <p className="text-gray-500 font-medium mb-1">
+            {nbPersonnes > 1 ? `${nbPersonnes} places` : '1 place'} pour{' '}
+            <span className="text-rose-400 font-black">« {atelier.titre} »</span>
           </p>
-          <p className="text-rose-400 font-black text-lg mb-1">« {atelier.titre} »</p>
-          <p className="text-gray-500 text-sm capitalize mb-3">{dateFormatted} à {atelier.heure}</p>
-          {form.paiement && (
-            <div className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold border border-gray-200 mb-4">
-              {ICONE[form.paiement]} Règlement {LABEL[form.paiement]} — <strong>{total} €</strong>
-              {form.paiement === 'virement' && ' (avant l\'atelier)'}
-              {(form.paiement === 'cheque' || form.paiement === 'especes') && ' (sur place)'}
-            </div>
-          )}
-          <p className="text-gray-400 text-sm mb-8">
-            Confirmation envoyée à <strong className="text-[#1A1040]">{form.email}</strong> 📧
-          </p>
-          <button onClick={onClose}
-            className="w-full bg-rose-400 text-white py-3.5 rounded-2xl font-black border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
-            style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-            Super, à bientôt ! 👋
-          </button>
+          <p className="text-[#1A1040] font-black text-lg mb-6">{total} €</p>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => { openCart(true); onClose() }}
+              className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+              style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
+              <ShoppingCart className="w-4 h-4" /> Voir mon panier & confirmer
+            </button>
+            <button
+              onClick={onClose}
+              className="w-full border-2 border-[#1A1040] text-[#1A1040] py-3 rounded-2xl font-black text-sm hover:bg-candy transition-colors flex items-center justify-center gap-2">
+              <ShoppingBag className="w-4 h-4" /> Continuer mes achats
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -469,7 +455,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             <Elements stripe={stripePromise}>
               <StripeCardForm
                 atelier={atelier} form={form} nbPersonnes={nbPersonnes}
-                onSuccess={saveReservation} onError={msg => setError(msg)}
+                onSuccess={addToCart} onError={msg => setError(msg)}
               />
             </Elements>
 
