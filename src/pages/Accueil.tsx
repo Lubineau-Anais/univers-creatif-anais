@@ -337,7 +337,7 @@ export default function Accueil() {
 
       {/* ===== HERO ===== */}
       <section
-        className="relative min-h-screen py-20 px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex items-center justify-center"
+        className="relative min-h-screen px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex flex-col"
         style={buildHeroBgStyle(heroBg)}>
 
         {/* Vidéo de fond */}
@@ -357,7 +357,9 @@ export default function Accueil() {
           </>
         )}
 
-        <div className="relative z-10 max-w-3xl mx-auto w-full">
+        {/* Contenu centré verticalement */}
+        <div className="relative z-10 flex-1 flex items-center justify-center py-20">
+        <div className="max-w-3xl mx-auto w-full">
           {/* Logo centré */}
           {logoVisible && (
             <div className="mb-8 flex justify-center">
@@ -434,18 +436,21 @@ export default function Accueil() {
             </>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/ateliers"
-              className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn1.radius}`}
-              style={heroBtnStyle(heroBtn1)}>
-              {heroBtn1.label}
-            </Link>
-            <Link to="/contact"
-              className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn2.radius}`}
-              style={heroBtnStyle(heroBtn2)}>
-              {heroBtn2.label}
-            </Link>
-          </div>
+        </div>
+        </div>
+
+        {/* Boutons CTA — ancrés en bas du hero */}
+        <div className="relative z-10 pb-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <Link to="/ateliers"
+            className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn1.radius}`}
+            style={heroBtnStyle(heroBtn1)}>
+            {heroBtn1.label}
+          </Link>
+          <Link to="/contact"
+            className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn2.radius}`}
+            style={heroBtnStyle(heroBtn2)}>
+            {heroBtn2.label}
+          </Link>
         </div>
       </section>
 
