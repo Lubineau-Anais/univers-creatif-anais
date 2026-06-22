@@ -499,45 +499,47 @@ export default function Boutique() {
             </aside>
           )}
 
-          {/* ── Filtre mobile (accordion) ── */}
-          <div className="sm:hidden w-full mb-2">
-            <button
-              onClick={() => setMobileFilterOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border-4 border-[#1A1040] font-black text-sm text-[#1A1040]"
-              style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
-              <span className="flex items-center gap-2"><SlidersHorizontal className="w-4 h-4"/> Filtrer par catégorie</span>
-              {mobileFilterOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
-            </button>
-            {mobileFilterOpen && (
-              <div className="mt-2 bg-white rounded-2xl border-4 border-[#1A1040] p-3 space-y-1" style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
-                <button onClick={() => { setActiveCategory(''); setMobileFilterOpen(false) }}
-                  className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${!activeCategory ? 'bg-[#1A1040] text-citron-400' : 'hover:bg-candy text-[#1A1040]'}`}>
-                  Tout voir
+          {/* ── Colonne produits (filtre mobile + grille) ── */}
+          <div className="flex-1 min-w-0">
+
+            {/* Filtre mobile (accordion) — visible uniquement sous 640px */}
+            {topCategories.length > 0 && (
+              <div className="sm:hidden mb-4">
+                <button
+                  onClick={() => setMobileFilterOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border-4 border-[#1A1040] font-black text-sm text-[#1A1040]"
+                  style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
+                  <span className="flex items-center gap-2"><SlidersHorizontal className="w-4 h-4"/> Filtrer par catégorie</span>
+                  {mobileFilterOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
                 </button>
-                {topCategories.map(cat => {
-                  const subCats = categories.filter(c => c.parent_id === cat.id)
-                  return (
-                    <div key={cat.id}>
-                      <button onClick={() => { setActiveCategory(cat.id); if(subCats.length === 0) setMobileFilterOpen(false) }}
-                        className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${activeCategory === cat.id ? 'bg-rose-100 text-rose-600' : 'hover:bg-candy text-[#1A1040]'}`}>
-                        {cat.name}
-                      </button>
-                      {subCats.map(sub => (
-                        <button key={sub.id}
-                          onClick={() => { setActiveCategory(sub.id); setMobileFilterOpen(false) }}
-                          className={`w-full text-left px-4 py-1.5 rounded-xl text-xs font-bold ml-2 ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:bg-candy hover:text-[#1A1040]'}`}>
-                          └ {sub.name}
-                        </button>
-                      ))}
-                    </div>
-                  )
-                })}
+                {mobileFilterOpen && (
+                  <div className="mt-2 bg-white rounded-2xl border-4 border-[#1A1040] p-3 space-y-1" style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
+                    <button onClick={() => { setActiveCategory(''); setMobileFilterOpen(false) }}
+                      className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${!activeCategory ? 'bg-[#1A1040] text-citron-400' : 'hover:bg-candy text-[#1A1040]'}`}>
+                      Tout voir
+                    </button>
+                    {topCategories.map(cat => {
+                      const subCats = categories.filter(c => c.parent_id === cat.id)
+                      return (
+                        <div key={cat.id}>
+                          <button onClick={() => { setActiveCategory(cat.id); if(subCats.length === 0) setMobileFilterOpen(false) }}
+                            className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${activeCategory === cat.id ? 'bg-rose-100 text-rose-600' : 'hover:bg-candy text-[#1A1040]'}`}>
+                            {cat.name}
+                          </button>
+                          {subCats.map(sub => (
+                            <button key={sub.id}
+                              onClick={() => { setActiveCategory(sub.id); setMobileFilterOpen(false) }}
+                              className={`w-full text-left px-4 py-1.5 rounded-xl text-xs font-bold ml-2 ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:bg-candy hover:text-[#1A1040]'}`}>
+                              └ {sub.name}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-
-          {/* ── Grille produits ── */}
-          <div className="flex-1 min-w-0">
             {/* Label catégorie active */}
             {activeCategory && (
               <div className="flex items-center gap-2 mb-4">
