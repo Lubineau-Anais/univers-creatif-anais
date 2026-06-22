@@ -429,8 +429,16 @@ export default function Accueil() {
         if (!hasContent && !hasEmpty) return null
 
         return (
-          <section className="py-16 px-4 border-b-4 border-[#1A1040]" style={buildHeroBgStyle(actuBg)}>
-            <div className="max-w-6xl mx-auto">
+          <section className="relative py-16 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(actuBg)}>
+            {actuBg.type === 'video' && actuBg.videoUrl && (
+              <>
+                <video src={actuBg.videoUrl} autoPlay loop={actuBg.videoLoop} muted={actuBg.videoMuted} playsInline className="absolute inset-0 w-full h-full object-cover" />
+                {actuBg.videoOverlay && actuBg.videoOverlay !== 'transparent' && (
+                  <div className="absolute inset-0" style={{ backgroundColor: actuBg.videoOverlay }} />
+                )}
+              </>
+            )}
+            <div className="relative z-10 max-w-6xl mx-auto">
               <div className="text-center mb-12">
                 {/* Titre */}
                 <h2
@@ -483,7 +491,9 @@ export default function Accueil() {
                         style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
                         <div className="w-full h-44 bg-candy border border-gray-200 overflow-hidden mb-4">
                           {actu.photo_url
-                            ? <img src={actu.photo_url} alt={actu.titre} className="w-full h-full object-cover" />
+                            ? /\.(mp4|webm|mov)(\?|$)/i.test(actu.photo_url)
+                              ? <video src={actu.photo_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                              : <img src={actu.photo_url} alt={actu.titre} className="w-full h-full object-cover" />
                             : <div className="w-full h-full flex items-center justify-center text-4xl">🎨</div>}
                         </div>
                         {actu.titre && (
@@ -511,8 +521,16 @@ export default function Accueil() {
 
       {/* ===== VALEURS ===== */}
       {valeursCards.length > 0 && (
-        <section className="py-16 px-4 border-b-4 border-[#1A1040]" style={buildHeroBgStyle(valeursBg)}>
-          <div className="max-w-5xl mx-auto">
+        <section className="relative py-16 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(valeursBg)}>
+          {valeursBg.type === 'video' && valeursBg.videoUrl && (
+            <>
+              <video src={valeursBg.videoUrl} autoPlay loop={valeursBg.videoLoop} muted={valeursBg.videoMuted} playsInline className="absolute inset-0 w-full h-full object-cover" />
+              {valeursBg.videoOverlay && valeursBg.videoOverlay !== 'transparent' && (
+                <div className="absolute inset-0" style={{ backgroundColor: valeursBg.videoOverlay }} />
+              )}
+            </>
+          )}
+          <div className="relative z-10 max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h2
                 className="leading-tight"
@@ -578,8 +596,16 @@ export default function Accueil() {
       )}
 
       {/* ===== À PROPOS ===== */}
-      <section className="py-20 px-4 border-y-4 border-[#1A1040]" style={buildHeroBgStyle(aproposBg)}>
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
+      <section className="relative py-20 px-4 border-y-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(aproposBg)}>
+        {aproposBg.type === 'video' && aproposBg.videoUrl && (
+          <>
+            <video src={aproposBg.videoUrl} autoPlay loop={aproposBg.videoLoop} muted={aproposBg.videoMuted} playsInline className="absolute inset-0 w-full h-full object-cover" />
+            {aproposBg.videoOverlay && aproposBg.videoOverlay !== 'transparent' && (
+              <div className="absolute inset-0" style={{ backgroundColor: aproposBg.videoOverlay }} />
+            )}
+          </>
+        )}
+        <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
           {/* Photo polaroïd */}
           <div className="flex-1 flex justify-center relative">
@@ -658,7 +684,15 @@ export default function Accueil() {
 
       {/* ===== AVIS CLIENTS ===== */}
       {(googleReviews.length > 0 || reviewsLoading || isAdmin) && (
-        <section className="py-16 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(avisBg)}>
+        <section className="relative py-16 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(avisBg)}>
+          {avisBg.type === 'video' && avisBg.videoUrl && (
+            <>
+              <video src={avisBg.videoUrl} autoPlay loop={avisBg.videoLoop} muted={avisBg.videoMuted} playsInline className="absolute inset-0 w-full h-full object-cover" />
+              {avisBg.videoOverlay && avisBg.videoOverlay !== 'transparent' && (
+                <div className="absolute inset-0" style={{ backgroundColor: avisBg.videoOverlay }} />
+              )}
+            </>
+          )}
           <style>{`
             @keyframes avis-scroll {
               from { transform: translateX(0); }
@@ -668,7 +702,7 @@ export default function Accueil() {
             .avis-scroll-track:hover { animation-play-state: paused; }
           `}</style>
 
-          <div className="max-w-6xl mx-auto">
+          <div className="relative z-10 max-w-6xl mx-auto">
             {/* Titre */}
             <div className="text-center mb-12">
               <h2

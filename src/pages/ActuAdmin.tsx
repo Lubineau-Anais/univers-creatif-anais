@@ -141,7 +141,7 @@ export default function ActuAdmin() {
     setUploading(true)
     const ext = file.name.split('.').pop()
     const path = `actu_${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('actus').upload(path, file, { upsert: true })
+    const { error } = await supabase.storage.from('actus').upload(path, file, { upsert: true, contentType: file.type })
     if (!error) {
       const { data: { publicUrl } } = supabase.storage.from('actus').getPublicUrl(path)
       setForm(p => ({ ...p, photo_url: publicUrl }))
@@ -150,6 +150,8 @@ export default function ActuAdmin() {
     }
     setUploading(false)
   }
+
+  function isVideo(url: string) { return /\.(mp4|webm|mov)(\?|$)/i.test(url) }
 
   async function saveActu() {
     if (!form.date_debut || !form.date_fin || !form.slot) return
@@ -311,7 +313,9 @@ export default function ActuAdmin() {
                       <div key={actu.id} className="flex items-start gap-4 px-6 py-4 hover:bg-candy/50 transition-colors">
                         <div className="w-16 h-16 rounded-xl border-2 border-[#1A1040] overflow-hidden shrink-0 bg-gray-100">
                           {actu.photo_url
-                            ? <img src={actu.photo_url} alt="" className="w-full h-full object-cover" />
+                            ? isVideo(actu.photo_url)
+                              ? <video src={actu.photo_url} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                              : <img src={actu.photo_url} alt="" className="w-full h-full object-cover" />
                             : <div className="w-full h-full flex items-center justify-center text-2xl">🎨</div>}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -488,11 +492,13 @@ export default function ActuAdmin() {
 
               {/* Photo */}
               <div>
-                <label className="block text-xs font-black text-[#1A1040] mb-2 uppercase tracking-wide">Photo</label>
+                <label className="block text-xs font-black text-[#1A1040] mb-2 uppercase tracking-wide">Photo / Vidéo</label>
                 <div className="flex gap-3 items-start">
                   {form.photo_url && (
                     <div className="relative shrink-0">
-                      <img src={form.photo_url} alt="" className="w-20 h-20 object-cover rounded-xl border-2 border-[#1A1040]" />
+                      {isVideo(form.photo_url)
+                        ? <video src={form.photo_url} className="w-20 h-20 object-cover rounded-xl border-2 border-[#1A1040]" muted autoPlay loop playsInline />
+                        : <img src={form.photo_url} alt="" className="w-20 h-20 object-cover rounded-xl border-2 border-[#1A1040]" />}
                       <button onClick={() => setForm(p => ({ ...p, photo_url: '' }))}
                         className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center border border-white">×</button>
                     </div>
@@ -500,10 +506,10 @@ export default function ActuAdmin() {
                   <label className={`flex-1 flex flex-col items-center gap-2 border-2 border-dashed border-[#1A1040] rounded-xl px-4 py-4 cursor-pointer hover:bg-candy transition-colors ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
                     <Upload className="w-5 h-5 text-[#1A1040]" />
                     <span className="text-xs font-bold text-[#1A1040] text-center">
-                      {uploading ? '⏳ Chargement...' : form.photo_url ? 'Changer la photo' : 'Cliquer pour uploader'}
+                      {uploading ? '⏳ Chargement...' : form.photo_url ? 'Changer le média' : 'Cliquer pour uploader'}
                     </span>
-                    <span className="text-[10px] text-gray-400">JPG, PNG, WebP — max 5 Mo</span>
-                    <input type="file" accept="image/*" className="sr-only"
+                    <span className="text-[10px] text-gray-400">JPG, PNG, WebP, MP4 — max 50 Mo</span>
+                    <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="sr-only"
                       onChange={e => { if (e.target.files?.[0]) uploadPhoto(e.target.files[0]) }} />
                   </label>
                 </div>

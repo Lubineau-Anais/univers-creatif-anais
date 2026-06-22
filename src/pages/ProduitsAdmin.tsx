@@ -195,13 +195,15 @@ function ProductModal({ product, categories, onSave, onClose }: {
             </button>
             <span className="text-sm font-black text-[#1A1040]">{isActive ? 'Produit actif (visible)' : 'Produit inactif (masqué)'}</span>
           </div>
-          {/* Images */}
+          {/* Images & Vidéos */}
           <div>
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Images</label>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Images / Vidéos</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {images.map((img, i) => (
                 <div key={i} className="relative w-20 h-20 rounded-xl border-2 border-[#1A1040] overflow-hidden group">
-                  <img src={img} alt="" className="w-full h-full object-cover"/>
+                  {/\.(mp4|webm|mov)(\?|$)/i.test(img)
+                    ? <video src={img} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                    : <img src={img} alt="" className="w-full h-full object-cover"/>}
                   <button onClick={() => setImages(p => p.filter((_,j)=>j!==i))}
                     className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <Trash2 className="w-4 h-4 text-white"/>
@@ -213,7 +215,7 @@ function ProductModal({ product, categories, onSave, onClose }: {
                 {uploading ? <RefreshCw className="w-5 h-5 animate-spin text-gray-400"/> : <Plus className="w-5 h-5 text-[#1A1040]"/>}
               </label>
             </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden"
+            <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e=>{const f=e.target.files?.[0];if(f)uploadImage(f);e.target.value=''}}/>
           </div>
           <div className="flex gap-3 pt-2">
