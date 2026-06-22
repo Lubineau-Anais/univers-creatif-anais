@@ -84,11 +84,22 @@ export default function Contact() {
     setSending(true)
     setError('')
     try {
+      // 1. Enregistrer en base
       await supabase.from('messages').insert([{
         nom:     form.nom,
         email:   form.email,
         message: form.message,
       }])
+
+      // 2. Notification email via Edge Function (silencieuse si non configurée)
+      try {
+        await supabase.functions.invoke('send-contact-email', {
+          body: { nom: form.nom, email: form.email, message: form.message },
+        })
+      } catch {
+        // Email optionnel — le message est déjà sauvegardé
+      }
+
       setSent(true)
       setForm(EMPTY_FORM)
     } catch {
