@@ -426,9 +426,9 @@ export default function Boutique() {
       <section className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex gap-6 items-start">
 
-          {/* ── Sidebar catégories (desktop) ── */}
+          {/* ── Sidebar catégories (desktop + tablet) ── */}
           {topCategories.length > 0 && (
-            <aside className="hidden lg:block w-56 shrink-0 sticky top-20">
+            <aside className="hidden sm:block w-48 shrink-0 sticky top-20">
               <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow:'4px 4px 0px 0px #1A1040' }}>
                 <div className="px-4 py-3 bg-[#1A1040] flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4 text-citron-400"/>
@@ -500,7 +500,7 @@ export default function Boutique() {
           )}
 
           {/* ── Filtre mobile (accordion) ── */}
-          <div className="lg:hidden w-full mb-2">
+          <div className="sm:hidden w-full mb-2">
             <button
               onClick={() => setMobileFilterOpen(o => !o)}
               className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border-4 border-[#1A1040] font-black text-sm text-[#1A1040]"

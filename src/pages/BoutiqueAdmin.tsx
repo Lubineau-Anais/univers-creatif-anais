@@ -165,10 +165,15 @@ export default function BoutiqueAdmin() {
           <div className="w-14 h-14 bg-citron-400 rounded-2xl flex items-center justify-center border-2 border-yellow-300" style={{ boxShadow:'3px 3px 0px 0px #fb7185' }}>
             <ShoppingBag className="w-7 h-7 text-[#1A1040]" />
           </div>
-          <div>
+          <div className="flex-1">
             <div className="inline-flex items-center gap-1.5 bg-rose-400/20 text-rose-300 px-3 py-1 rounded-full text-xs font-bold border border-rose-400/30 mb-1">🔐 Espace administrateur</div>
             <h1 className="font-serif text-3xl font-black text-white">Boutique <span className="text-citron-400">✦</span></h1>
           </div>
+          <a href="/produits-admin"
+            className="ml-auto shrink-0 flex items-center gap-2 bg-citron-400 text-[#1A1040] px-5 py-3 rounded-2xl font-black text-sm border-2 border-yellow-300 hover:bg-yellow-300 transition-all"
+            style={{ boxShadow:'3px 3px 0px 0px #fb7185' }}>
+            📦 Gérer les articles & catégories
+          </a>
         </div>
       </section>
 
