@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, LogIn, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart } from 'lucide-react'
+import { Menu, X, LogIn, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { useCart } from '../context/CartContext'
@@ -146,6 +146,15 @@ export default function Navbar() {
               </Link>
             ))}
 
+            {/* Lien galerie (fixe, toujours visible) */}
+            <Link to="/galerie"
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
+                isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040] hover:bg-violet-300'
+              }`}
+              style={{ boxShadow: isActive('/galerie') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
+              <Images className="w-4 h-4" /> Galerie
+            </Link>
+
             {/* Lien boutique (fixe, toujours visible) */}
             <Link to="/boutique"
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
@@ -218,6 +227,14 @@ export default function Navbar() {
                   }`}>
                   <ShoppingBag className="w-4 h-4" /> Boutique
                 </Link>
+                <Link to="/galerie-admin"
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                    isActive('/galerie-admin')
+                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
+                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
+                  }`}>
+                  <Images className="w-4 h-4" /> Galerie
+                </Link>
                 <Link to="/archives"
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                     isActive('/archives')
@@ -281,6 +298,12 @@ export default function Navbar() {
             </Link>
           ))}
 
+          {/* Galerie (fixe) */}
+          <Link to="/galerie" onClick={() => setMenuOpen(false)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'}`}>
+            <Images className="w-4 h-4" /> Galerie
+          </Link>
+
           {/* Boutique (fixe) */}
           <Link to="/boutique" onClick={() => setMenuOpen(false)}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'}`}>
@@ -320,6 +343,10 @@ export default function Navbar() {
               <Link to="/boutique-admin" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
                 <ShoppingBag className="w-4 h-4" /> Boutique
+              </Link>
+              <Link to="/galerie-admin" onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
+                <Images className="w-4 h-4" /> Galerie
               </Link>
               <Link to="/archives" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">

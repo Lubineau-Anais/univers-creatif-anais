@@ -20,6 +20,8 @@ import Boutique from './pages/Boutique'
 import BoutiqueAdmin from './pages/BoutiqueAdmin'
 import ProduitsAdmin from './pages/ProduitsAdmin'
 import PromosAdmin from './pages/PromosAdmin'
+import Galerie from './pages/Galerie'
+import GalerieAdmin from './pages/GalerieAdmin'
 
 export default function App() {
   return (
@@ -35,6 +37,7 @@ export default function App() {
                 <Route path="/boutique" element={<Boutique />} />
                 <Route path="/connexion" element={<Connexion />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/galerie" element={<Galerie />} />
                 <Route path="/connecteurs" element={
                   <ProtectedRoute><Connecteurs /></ProtectedRoute>
                 } />
@@ -64,6 +67,9 @@ export default function App() {
                 } />
                 <Route path="/promos-admin" element={
                   <ProtectedRoute><PromosAdmin /></ProtectedRoute>
+                } />
+                <Route path="/galerie-admin" element={
+                  <ProtectedRoute><GalerieAdmin /></ProtectedRoute>
                 } />
               </Routes>
               <Footer />
