@@ -198,6 +198,8 @@ export default function Accueil() {
   }
   const [heroSubStyle, setHeroSubStyle]         = useState<HeroStyle>(DEFAULT_HERO_SUB_STYLE)
   const [showSubEditor, setShowSubEditor]       = useState(false)
+  const [heroTitreVisible,     setHeroTitreVisible]     = useState(true)
+  const [heroSousTitreVisible, setHeroSousTitreVisible] = useState(true)
 
   // Sync muted sur la vidéo (React ne propage pas l'attribut muted en re-render)
   useEffect(() => {
@@ -294,6 +296,8 @@ export default function Accueil() {
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch {} }
+      else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch {} }
+      else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
       else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
       else if (s.key === 'hero_titre_style') {
@@ -380,32 +384,54 @@ export default function Accueil() {
             </div>
           )}
 
-          <h1
-            className="text-4xl md:text-5xl mb-6 leading-tight"
-            style={buildTitleStyle(heroStyle)}
-            dangerouslySetInnerHTML={{ __html: content['hero_titre'] }}
-          />
-          {isAdmin && (
-            <div className="flex justify-center mb-2 -mt-4">
-              <button onClick={() => setShowTitleEditor(true)}
-                className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-                <Pencil className="w-3 h-3" /> Modifier le titre
-              </button>
-            </div>
+          {(heroTitreVisible || isAdmin) && (
+            <>
+              {heroTitreVisible && (
+                <h1
+                  className="text-4xl md:text-5xl mb-6 leading-tight"
+                  style={buildTitleStyle(heroStyle)}
+                  dangerouslySetInnerHTML={{ __html: content['hero_titre'] }}
+                />
+              )}
+              {isAdmin && (
+                <div className="flex justify-center items-center gap-2 mb-2 -mt-4">
+                  <button onClick={() => setShowTitleEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Modifier le titre
+                  </button>
+                  <button
+                    onClick={async () => { const next = !heroTitreVisible; setHeroTitreVisible(next); await supabase.from('settings').upsert({ key: 'hero_titre_visible', value: JSON.stringify(next) }, { onConflict: 'key' }) }}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border-2 transition-all ${heroTitreVisible ? 'bg-lime-300 border-[#1A1040] text-[#1A1040]' : 'bg-gray-300 border-gray-500 text-gray-600'}`}>
+                    {heroTitreVisible ? '👁 Visible' : '🙈 Masqué'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
-          <p
-            className={`max-w-2xl mx-auto leading-relaxed ${isAdmin ? 'mb-2' : 'mb-10'}`}
-            style={buildTitleStyle(heroSubStyle)}
-            dangerouslySetInnerHTML={{ __html: content['hero_sous_titre'] }}
-          />
-          {isAdmin && (
-            <div className="flex justify-center mb-10">
-              <button onClick={() => setShowSubEditor(true)}
-                className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-                <Pencil className="w-3 h-3" /> Modifier le sous-titre
-              </button>
-            </div>
+          {(heroSousTitreVisible || isAdmin) && (
+            <>
+              {heroSousTitreVisible && (
+                <p
+                  className={`max-w-2xl mx-auto leading-relaxed ${isAdmin ? 'mb-2' : 'mb-10'}`}
+                  style={buildTitleStyle(heroSubStyle)}
+                  dangerouslySetInnerHTML={{ __html: content['hero_sous_titre'] }}
+                />
+              )}
+              {isAdmin && (
+                <div className="flex justify-center items-center gap-2 mb-10">
+                  <button onClick={() => setShowSubEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Modifier le sous-titre
+                  </button>
+                  <button
+                    onClick={async () => { const next = !heroSousTitreVisible; setHeroSousTitreVisible(next); await supabase.from('settings').upsert({ key: 'hero_sous_titre_visible', value: JSON.stringify(next) }, { onConflict: 'key' }) }}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border-2 transition-all ${heroSousTitreVisible ? 'bg-lime-300 border-[#1A1040] text-[#1A1040]' : 'bg-gray-300 border-gray-500 text-gray-600'}`}>
+                    {heroSousTitreVisible ? '👁 Visible' : '🙈 Masqué'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
