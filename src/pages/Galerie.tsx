@@ -8,6 +8,12 @@ interface GalerieCategory {
   nom: string
   ordre: number
   created_at: string
+  cover_url: string | null
+  couleur_bg: string
+  couleur_texte: string
+  icone: string
+  taille_texte: string
+  police: string
 }
 
 interface GaleriePhoto {
@@ -18,19 +24,16 @@ interface GaleriePhoto {
   created_at: string
 }
 
-// ─── Couleurs cycliques pour les cartes de catégories ────────────────────────
-const CAT_COLORS = [
-  { bg: '#ffb5c8', text: '#1A1040', emoji: '🪢' },
-  { bg: '#ffe500', text: '#1A1040', emoji: '🧵' },
-  { bg: '#4dd9c0', text: '#1A1040', emoji: '💎' },
-  { bg: '#c4b5fd', text: '#1A1040', emoji: '🎨' },
-  { bg: '#fdba74', text: '#1A1040', emoji: '✨' },
-  { bg: '#86efac', text: '#1A1040', emoji: '🌸' },
-]
+const FONT_FAMILY: Record<string, string> = {
+  serif:   'serif',
+  sans:    'sans-serif',
+  cursive: 'cursive',
+  mono:    'monospace',
+}
 
 // ─── Page publique Galerie ────────────────────────────────────────────────────
 export default function Galerie() {
-  const [categories, setCategories] = useState<GalerieCategory[]>([])
+  const [categories, setCategories]   = useState<GalerieCategory[]>([])
   const [selectedCat, setSelectedCat] = useState<GalerieCategory | null>(null)
   const [photos, setPhotos]           = useState<GaleriePhoto[]>([])
   const [loading, setLoading]         = useState(true)
@@ -91,9 +94,17 @@ export default function Galerie() {
               >
                 <ChevronLeft className="w-4 h-4" /> Retour à la galerie
               </button>
-              <div>
-                <p className="text-rose-300 text-sm font-bold">Galerie</p>
-                <h1 className="font-serif text-3xl font-black text-white">{selectedCat.nom}</h1>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{selectedCat.icone || '🎨'}</span>
+                <div>
+                  <p className="text-rose-300 text-sm font-bold">Galerie</p>
+                  <h1
+                    className={`font-black text-white ${selectedCat.taille_texte || 'text-3xl'}`}
+                    style={{ fontFamily: FONT_FAMILY[selectedCat.police] || 'serif' }}
+                  >
+                    {selectedCat.nom}
+                  </h1>
+                </div>
               </div>
             </div>
           ) : (
@@ -126,22 +137,49 @@ export default function Galerie() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {categories.map((cat, i) => {
-                  const c = CAT_COLORS[i % CAT_COLORS.length]
+                {categories.map(cat => {
+                  const bg   = cat.couleur_bg   || '#ffb5c8'
+                  const text = cat.couleur_texte || '#1A1040'
+                  const icon = cat.icone         || '🎨'
+                  const size = cat.taille_texte  || 'text-2xl'
+                  const font = FONT_FAMILY[cat.police] || 'serif'
+
                   return (
                     <button
                       key={cat.id}
                       onClick={() => openCategory(cat)}
-                      className="group rounded-3xl border-4 border-[#1A1040] overflow-hidden transition-all hover:-translate-y-1.5 active:translate-y-0 text-left focus:outline-none focus:ring-4 focus:ring-[#1A1040]/20"
-                      style={{ backgroundColor: c.bg, boxShadow: '6px 6px 0px 0px #1A1040' }}
+                      className="group rounded-3xl border-4 border-[#1A1040] overflow-hidden transition-all hover:-translate-y-1.5 active:translate-y-0 text-left focus:outline-none focus:ring-4 focus:ring-[#1A1040]/20 relative"
+                      style={{ backgroundColor: bg, boxShadow: '6px 6px 0px 0px #1A1040' }}
                     >
-                      <div className="p-8">
-                        <div className="text-5xl mb-4">{c.emoji}</div>
-                        <h2 className="font-serif text-2xl font-black mb-1" style={{ color: c.text }}>
+                      {/* Photo de couverture */}
+                      {cat.cover_url && (
+                        <>
+                          <img
+                            src={cat.cover_url}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                            draggable={false}
+                            onContextMenu={e => e.preventDefault()}
+                          />
+                          <div className="absolute inset-0 bg-black/35" />
+                        </>
+                      )}
+
+                      <div className="relative z-10 p-8">
+                        <div className="text-5xl mb-4">{icon}</div>
+                        <h2
+                          className={`font-black mb-1 ${size}`}
+                          style={{
+                            color:      cat.cover_url ? '#ffffff' : text,
+                            fontFamily: font,
+                          }}
+                        >
                           {cat.nom}
                         </h2>
-                        <p className="text-sm font-bold opacity-60 group-hover:opacity-100 transition-opacity"
-                          style={{ color: c.text }}>
+                        <p
+                          className="text-sm font-bold opacity-60 group-hover:opacity-100 transition-opacity"
+                          style={{ color: cat.cover_url ? '#ffffff' : text }}
+                        >
                           Voir les créations →
                         </p>
                       </div>
@@ -183,11 +221,8 @@ export default function Galerie() {
                         onContextMenu={e => e.preventDefault()}
                         className="w-full h-auto block pointer-events-none"
                       />
-                      {/* Overlay protecteur — intercepte le clic droit */}
-                      <div
-                        className="absolute inset-0 z-10"
-                        onContextMenu={e => e.preventDefault()}
-                      />
+                      {/* Overlay protecteur */}
+                      <div className="absolute inset-0 z-10" onContextMenu={e => e.preventDefault()} />
                       {/* Survol */}
                       <div className="absolute inset-0 z-20 bg-[#1A1040]/0 group-hover:bg-[#1A1040]/20 transition-colors flex items-center justify-center">
                         <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
@@ -224,7 +259,6 @@ export default function Galerie() {
               onContextMenu={e => e.preventDefault()}
               className="max-w-full max-h-[88vh] rounded-2xl object-contain select-none pointer-events-none"
             />
-            {/* Overlay protecteur dans la lightbox */}
             <div
               className="absolute inset-0 z-10 rounded-2xl"
               onContextMenu={e => e.preventDefault()}
