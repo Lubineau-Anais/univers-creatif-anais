@@ -15,8 +15,10 @@ interface GalerieCategory {
   couleur_bg: string
   couleur_texte: string
   icone: string
+  icone_visible: boolean
   taille_texte: string
   police: string
+  visible: boolean
 }
 
 interface GaleriePhoto {
@@ -31,8 +33,10 @@ interface Apparence {
   couleur_bg: string
   couleur_texte: string
   icone: string
+  icone_visible: boolean
   taille_texte: string
   police: string
+  visible: boolean
 }
 
 // ─── Constantes de personnalisation ──────────────────────────────────────────
@@ -78,7 +82,7 @@ const FONT_FAMILY: Record<string, string> = {
 }
 
 function defaultApparence(): Apparence {
-  return { couleur_bg: '#ffb5c8', couleur_texte: '#1A1040', icone: '🎨', taille_texte: 'text-2xl', police: 'serif' }
+  return { couleur_bg: '#ffb5c8', couleur_texte: '#1A1040', icone: '🎨', icone_visible: true, taille_texte: 'text-2xl', police: 'serif', visible: true }
 }
 
 // ─── Page admin Galerie ───────────────────────────────────────────────────────
@@ -143,8 +147,10 @@ export default function GalerieAdmin() {
       couleur_bg:    cat.couleur_bg    || '#ffb5c8',
       couleur_texte: cat.couleur_texte || '#1A1040',
       icone:         cat.icone         || '🎨',
+      icone_visible: cat.icone_visible !== false,
       taille_texte:  cat.taille_texte  || 'text-2xl',
       police:        cat.police        || 'serif',
+      visible:       cat.visible       !== false,
     })
     setRightTab('photos')
     await loadPhotos(cat.id)
@@ -161,7 +167,7 @@ export default function GalerieAdmin() {
       .insert({
         nom: newCatNom.trim(), ordre: maxOrdre,
         couleur_bg: '#ffb5c8', couleur_texte: '#1A1040',
-        icone: '🎨', taille_texte: 'text-2xl', police: 'serif',
+        icone: '🎨', icone_visible: true, taille_texte: 'text-2xl', police: 'serif', visible: true,
       })
       .select()
       .single()
@@ -316,7 +322,7 @@ export default function GalerieAdmin() {
           </>
         )}
         <div className="relative z-10 p-5">
-          <div className="text-3xl mb-2">{app.icone}</div>
+          {app.icone_visible && <div className="text-3xl mb-2">{app.icone}</div>}
           <p
             className={`font-black leading-tight ${app.taille_texte}`}
             style={{
@@ -462,9 +468,12 @@ export default function GalerieAdmin() {
                     ) : (
                       <>
                         <span className={`flex-1 text-sm font-black truncate ${
-                          selectedCat?.id === cat.id ? 'text-rose-600' : 'text-[#1A1040]'
+                          selectedCat?.id === cat.id ? 'text-rose-600' : cat.visible === false ? 'text-gray-400' : 'text-[#1A1040]'
                         }`}>
                           {cat.nom}
+                          {cat.visible === false && (
+                            <span className="ml-1.5 text-[10px] font-black bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full">masquée</span>
+                          )}
                         </span>
                         <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
                           <button onClick={() => moveCategory(cat.id, 'up')} disabled={idx === 0}
@@ -626,6 +635,35 @@ export default function GalerieAdmin() {
               {rightTab === 'apparence' && (
                 <div className="p-6 space-y-6">
 
+                  {/* ── Visibilité de la catégorie ── */}
+                  <div className={`rounded-2xl border-3 border-[#1A1040] px-5 py-4 flex items-center justify-between gap-4 ${
+                    apparence.visible ? 'bg-lime-50 border-lime-400' : 'bg-gray-100 border-gray-300'
+                  }`} style={{ borderWidth: 3 }}>
+                    <div>
+                      <p className="text-sm font-black text-[#1A1040]">
+                        {apparence.visible ? '👁 Catégorie visible' : '🙈 Catégorie masquée'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {apparence.visible
+                          ? 'Cette catégorie est affichée dans la galerie publique'
+                          : 'Les visiteurs ne verront pas cette catégorie'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setApparence(prev => ({ ...prev, visible: !prev.visible }))}
+                      className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-black text-sm transition-all ${
+                        apparence.visible
+                          ? 'bg-lime-400 border-[#1A1040] text-[#1A1040] hover:bg-lime-300'
+                          : 'bg-gray-300 border-gray-400 text-gray-600 hover:bg-gray-400'
+                      }`}
+                    >
+                      {apparence.visible ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                      {apparence.visible ? 'Visible' : 'Masquée'}
+                    </button>
+                  </div>
+
+                  <div className="border-t-2 border-[#1A1040]/10" />
+
                   {/* Aperçu en direct */}
                   <div>
                     <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide mb-3">Aperçu en direct</p>
@@ -707,9 +745,22 @@ export default function GalerieAdmin() {
 
                   {/* Icône */}
                   <div>
-                    <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide mb-3">
-                      Icône — sélectionnée : <span className="text-2xl">{apparence.icone}</span>
-                    </p>
+                    <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+                      <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">
+                        Icône — sélectionnée : <span className="text-2xl">{apparence.icone}</span>
+                      </p>
+                      <button
+                        onClick={() => setApparence(prev => ({ ...prev, icone_visible: !prev.icone_visible }))}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 font-black text-xs transition-all ${
+                          apparence.icone_visible
+                            ? 'bg-lime-400 border-[#1A1040] text-[#1A1040] hover:bg-lime-300'
+                            : 'bg-gray-200 border-gray-400 text-gray-500 hover:bg-gray-300'
+                        }`}
+                      >
+                        {apparence.icone_visible ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                        Icône {apparence.icone_visible ? 'active' : 'masquée'}
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {EMOJIS.map(emoji => (
                         <button

@@ -12,8 +12,10 @@ interface GalerieCategory {
   couleur_bg: string
   couleur_texte: string
   icone: string
+  icone_visible: boolean
   taille_texte: string
   police: string
+  visible: boolean
 }
 
 interface GaleriePhoto {
@@ -49,7 +51,8 @@ export default function Galerie() {
       .select('*')
       .order('ordre', { ascending: true })
       .order('created_at', { ascending: true })
-    setCategories((data as GalerieCategory[]) || [])
+    const all = (data as GalerieCategory[]) || []
+    setCategories(all.filter(c => c.visible !== false))
     setLoading(false)
   }
 
@@ -95,7 +98,9 @@ export default function Galerie() {
                 <ChevronLeft className="w-4 h-4" /> Retour à la galerie
               </button>
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{selectedCat.icone || '🎨'}</span>
+                {selectedCat.icone_visible !== false && (
+                  <span className="text-3xl">{selectedCat.icone || '🎨'}</span>
+                )}
                 <div>
                   <p className="text-rose-300 text-sm font-bold">Galerie</p>
                   <h1
@@ -166,7 +171,9 @@ export default function Galerie() {
                       )}
 
                       <div className="relative z-10 p-8">
-                        <div className="text-5xl mb-4">{icon}</div>
+                        {cat.icone_visible !== false && (
+                          <div className="text-5xl mb-4">{icon}</div>
+                        )}
                         <h2
                           className={`font-black mb-1 ${size}`}
                           style={{
