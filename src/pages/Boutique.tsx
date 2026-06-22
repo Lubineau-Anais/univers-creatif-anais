@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, Trash2, AlertCircle } from 'lucide-react'
+import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buildHeroBgStyle, type HeroBg, DEFAULT_HERO_BG } from '../lib/heroBg'
 import { buildTitleStyle, type HeroStyle } from '../components/HeroTitleEditor'
@@ -275,6 +275,8 @@ export default function Boutique() {
   const [products, setProducts]       = useState<ShopProduct[]>([])
   const [promotions, setPromotions]   = useState<ShopPromotion[]>([])
   const [activeCategory, setActiveCategory] = useState('')
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => { loadShop() }, [])
@@ -420,57 +422,162 @@ export default function Boutique() {
         </div>
       </section>
 
-      {/* FILTRE CATÉGORIES */}
-      {topCategories.length > 0 && (
-        <section className="bg-white border-b-2 border-[#1A1040] sticky top-16 z-30">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            <button onClick={() => setActiveCategory('')}
-              className={`px-4 py-2 rounded-xl font-black text-sm border-2 shrink-0 transition-all ${!activeCategory ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'bg-white text-[#1A1040] border-[#1A1040] hover:bg-candy'}`}>
-              Tout voir
-            </button>
-            {topCategories.map(cat => {
-              const subCats = categories.filter(c => c.parent_id === cat.id)
-              const isActive = activeCategory === cat.id || subCats.some(s => s.id === activeCategory)
-              return (
-                <div key={cat.id} className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => setActiveCategory(activeCategory === cat.id ? '' : cat.id)}
-                    className={`px-4 py-2 rounded-xl font-black text-sm border-2 transition-all ${isActive ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'bg-white text-[#1A1040] border-[#1A1040] hover:bg-candy'}`}>
-                    {cat.name}
-                  </button>
-                  {subCats.map(sub => (
-                    <button key={sub.id} onClick={() => setActiveCategory(activeCategory === sub.id ? '' : sub.id)}
-                      className={`px-3 py-1.5 rounded-xl font-bold text-xs border-2 transition-all ${activeCategory === sub.id ? 'bg-rose-400 text-white border-rose-400' : 'bg-white text-gray-600 border-gray-300 hover:border-[#1A1040]'}`}>
-                      <ChevronRight className="w-3 h-3 inline -mt-0.5"/> {sub.name}
-                    </button>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      {/* CONTENU : SIDEBAR + GRILLE */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex gap-6 items-start">
 
-      {/* GRILLE PRODUITS */}
-      <section className="max-w-6xl mx-auto px-4 py-10">
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[...Array(8)].map((_,i) => (
-              <div key={i} className="bg-white rounded-3xl border-4 border-gray-200 h-72 animate-pulse"/>
-            ))}
+          {/* ── Sidebar catégories (desktop) ── */}
+          {topCategories.length > 0 && (
+            <aside className="hidden lg:block w-56 shrink-0 sticky top-20">
+              <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow:'4px 4px 0px 0px #1A1040' }}>
+                <div className="px-4 py-3 bg-[#1A1040] flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-citron-400"/>
+                  <span className="font-black text-white text-sm">Catégories</span>
+                </div>
+
+                <div className="p-2">
+                  {/* Tout voir */}
+                  <button onClick={() => setActiveCategory('')}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl font-black text-sm transition-all mb-1 ${!activeCategory ? 'bg-[#1A1040] text-citron-400' : 'text-[#1A1040] hover:bg-candy'}`}>
+                    Tout voir
+                  </button>
+
+                  {topCategories.map(cat => {
+                    const subCats = categories.filter(c => c.parent_id === cat.id)
+                    const isCatActive  = activeCategory === cat.id
+                    const hasSubActive = subCats.some(s => s.id === activeCategory)
+                    const isOpen       = isCatActive || hasSubActive || expandedCats.has(cat.id)
+
+                    return (
+                      <div key={cat.id} className="mb-1">
+                        {/* Catégorie principale */}
+                        <button
+                          onClick={() => {
+                            if (subCats.length === 0) {
+                              setActiveCategory(isCatActive ? '' : cat.id)
+                            } else {
+                              setExpandedCats(prev => {
+                                const n = new Set(prev)
+                                if (n.has(cat.id)) n.delete(cat.id)
+                                else n.add(cat.id)
+                                return n
+                              })
+                              if (!isCatActive && !hasSubActive) setActiveCategory(cat.id)
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-black text-sm transition-all ${isCatActive || hasSubActive ? 'bg-rose-100 text-rose-600' : 'text-[#1A1040] hover:bg-candy'}`}>
+                          <span>{cat.name}</span>
+                          {subCats.length > 0 && (
+                            isOpen
+                              ? <ChevronDown className="w-4 h-4 shrink-0"/>
+                              : <ChevronRight className="w-4 h-4 shrink-0"/>
+                          )}
+                        </button>
+
+                        {/* Sous-catégories */}
+                        {subCats.length > 0 && isOpen && (
+                          <div className="ml-3 mt-0.5 space-y-0.5 border-l-2 border-[#1A1040]/10 pl-2">
+                            <button
+                              onClick={() => setActiveCategory(cat.id)}
+                              className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === cat.id ? 'bg-[#1A1040] text-citron-400' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
+                              Tout ({cat.name})
+                            </button>
+                            {subCats.map(sub => (
+                              <button key={sub.id}
+                                onClick={() => setActiveCategory(activeCategory === sub.id ? cat.id : sub.id)}
+                                className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
+                                {sub.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </aside>
+          )}
+
+          {/* ── Filtre mobile (accordion) ── */}
+          <div className="lg:hidden w-full mb-2">
+            <button
+              onClick={() => setMobileFilterOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border-4 border-[#1A1040] font-black text-sm text-[#1A1040]"
+              style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
+              <span className="flex items-center gap-2"><SlidersHorizontal className="w-4 h-4"/> Filtrer par catégorie</span>
+              {mobileFilterOpen ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
+            </button>
+            {mobileFilterOpen && (
+              <div className="mt-2 bg-white rounded-2xl border-4 border-[#1A1040] p-3 space-y-1" style={{ boxShadow:'3px 3px 0px 0px #1A1040' }}>
+                <button onClick={() => { setActiveCategory(''); setMobileFilterOpen(false) }}
+                  className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${!activeCategory ? 'bg-[#1A1040] text-citron-400' : 'hover:bg-candy text-[#1A1040]'}`}>
+                  Tout voir
+                </button>
+                {topCategories.map(cat => {
+                  const subCats = categories.filter(c => c.parent_id === cat.id)
+                  return (
+                    <div key={cat.id}>
+                      <button onClick={() => { setActiveCategory(cat.id); if(subCats.length === 0) setMobileFilterOpen(false) }}
+                        className={`w-full text-left px-3 py-2 rounded-xl font-black text-sm ${activeCategory === cat.id ? 'bg-rose-100 text-rose-600' : 'hover:bg-candy text-[#1A1040]'}`}>
+                        {cat.name}
+                      </button>
+                      {subCats.map(sub => (
+                        <button key={sub.id}
+                          onClick={() => { setActiveCategory(sub.id); setMobileFilterOpen(false) }}
+                          className={`w-full text-left px-4 py-1.5 rounded-xl text-xs font-bold ml-2 ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:bg-candy hover:text-[#1A1040]'}`}>
+                          └ {sub.name}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-20"/>
-            <p className="font-black text-xl">Aucun produit disponible</p>
-            <p className="text-sm mt-1">Revenez bientôt, de nouveaux articles arrivent !</p>
+
+          {/* ── Grille produits ── */}
+          <div className="flex-1 min-w-0">
+            {/* Label catégorie active */}
+            {activeCategory && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
+                  {(() => {
+                    const cat = categories.find(c => c.id === activeCategory)
+                    if (!cat) return ''
+                    const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null
+                    return parent ? `${parent.name} › ${cat.name}` : cat.name
+                  })()}
+                </span>
+                <button onClick={() => setActiveCategory('')}
+                  className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
+                  <X className="w-3 h-3"/> Effacer
+                </button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {[...Array(6)].map((_,i) => (
+                  <div key={i} className="bg-white rounded-3xl border-4 border-gray-200 h-72 animate-pulse"/>
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-20"/>
+                <p className="font-black text-xl">Aucun produit disponible</p>
+                <p className="text-sm mt-1">Revenez bientôt, de nouveaux articles arrivent !</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {filteredProducts.map(prod => (
+                  <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}/>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredProducts.map(prod => (
-              <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}/>
-            ))}
-          </div>
-        )}
+
+        </div>
       </section>
 
       {/* BOUTON PANIER FLOTTANT */}
