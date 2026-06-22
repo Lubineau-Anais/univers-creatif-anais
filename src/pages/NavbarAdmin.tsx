@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, RefreshCw, Navigation } from 'lucide-react'
+import { Check, RefreshCw, Navigation, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -126,6 +126,9 @@ export default function NavbarAdmin() {
   const [hovered, setHovered] = useState<number | null>(null)
 
   // Section saves
+  const [tabVisible, setTabVisible] = useState({ ateliers: true, contact: true, galerie: true, boutique: true })
+  const [savingTab, setSavingTab] = useState<string | null>(null)
+
   const [s1Saving, setS1Saving] = useState(false); const [s1Saved, setS1Saved] = useState(false)
   const [s2Saving, setS2Saving] = useState(false); const [s2Saved, setS2Saved] = useState(false)
   const [s3Saving, setS3Saving] = useState(false); const [s3Saved, setS3Saved] = useState(false)
@@ -141,6 +144,8 @@ export default function NavbarAdmin() {
       'navbar_active_bg', 'navbar_active_text',
       'navbar_inactive_text', 'navbar_hover_bg',
       'navbar_mobile_bg', 'navbar_public_labels',
+      'nav_ateliers_visible', 'nav_contact_visible',
+      'nav_galerie_visible', 'nav_boutique_visible',
     ])
     if (!data) return
     const map: Record<string, string> = {}
@@ -159,6 +164,12 @@ export default function NavbarAdmin() {
         ? (() => { try { return JSON.parse(map['navbar_public_labels']) } catch { return prev.labels } })()
         : prev.labels,
     }))
+    setTabVisible({
+      ateliers: map['nav_ateliers_visible'] !== 'false',
+      contact:  map['nav_contact_visible']  !== 'false',
+      galerie:  map['nav_galerie_visible']  !== 'false',
+      boutique: map['nav_boutique_visible'] !== 'false',
+    })
   }
 
   async function upsertMany(pairs: { key: string; value: string }[]) {
@@ -169,6 +180,17 @@ export default function NavbarAdmin() {
 
   function flash(set: (v: boolean) => void) {
     set(true); setTimeout(() => set(false), 3000)
+  }
+
+  async function toggleTab(key: keyof typeof tabVisible) {
+    const next = !tabVisible[key]
+    setTabVisible(prev => ({ ...prev, [key]: next }))
+    setSavingTab(key)
+    await supabase.from('settings').upsert(
+      { key: `nav_${key}_visible`, value: JSON.stringify(next) },
+      { onConflict: 'key' }
+    )
+    setSavingTab(null)
   }
 
   async function saveFond() {
@@ -241,6 +263,53 @@ export default function NavbarAdmin() {
           <div className="p-6">
             <NavPreview nav={nav} hovered={hovered} setHovered={setHovered} />
           </div>
+        </div>
+
+        {/* VISIBILITÉ DES ONGLETS */}
+        <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow: '5px 5px 0px 0px #4dd9c0' }}>
+          <SectionHeader icon={<span className="text-lg">👁️</span>} title="Visibilité des onglets" sub="Choisir quels onglets sont affichés aux visiteurs" />
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([
+              { key: 'ateliers', label: 'Nos Ateliers', icon: '🎨', href: '/ateliers' },
+              { key: 'contact',  label: 'Contact',      icon: '✉️',  href: '/contact'  },
+              { key: 'galerie',  label: 'Galerie',       icon: '🖼️', href: '/galerie'  },
+              { key: 'boutique', label: 'Boutique',      icon: '🛍️', href: '/boutique' },
+            ] as const).map(tab => {
+              const isVisible = tabVisible[tab.key]
+              const isSaving  = savingTab === tab.key
+              return (
+                <div key={tab.key}
+                  className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-colors ${
+                    isVisible ? 'bg-lime-50 border-lime-300' : 'bg-gray-100 border-gray-300'
+                  }`}
+                >
+                  <div>
+                    <p className="font-black text-[#1A1040] text-sm">{tab.icon} {tab.label}</p>
+                    <p className="text-[10px] text-gray-400 font-bold mt-0.5">{tab.href}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleTab(tab.key)}
+                    disabled={!!isSaving}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 font-black text-xs transition-all disabled:opacity-50 ${
+                      isVisible
+                        ? 'bg-lime-400 border-[#1A1040] text-[#1A1040] hover:bg-lime-300'
+                        : 'bg-gray-300 border-gray-400 text-gray-600 hover:bg-gray-400'
+                    }`}
+                  >
+                    {isSaving
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : isVisible
+                        ? <Check className="w-3.5 h-3.5" />
+                        : <X className="w-3.5 h-3.5" />}
+                    {isVisible ? 'Visible' : 'Masqué'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <p className="px-6 pb-5 text-xs text-gray-400 font-bold">
+            💡 Les modifications sont appliquées immédiatement sans bouton Enregistrer.
+          </p>
         </div>
 
         {/* FOND + BORDURE */}

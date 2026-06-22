@@ -49,6 +49,7 @@ export default function Navbar() {
 
   const [nav, setNav]           = useState<NavSettings>(DEFAULT_NAV)
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
+  const [tabVisible, setTabVisible]   = useState({ ateliers: true, contact: true, galerie: true, boutique: true })
 
   // ── Chargement des paramètres ─────────────────────────────────────────────────
   useEffect(() => {
@@ -68,6 +69,8 @@ export default function Navbar() {
       'navbar_active_bg', 'navbar_active_text',
       'navbar_inactive_text', 'navbar_hover_bg',
       'navbar_mobile_bg', 'navbar_public_labels',
+      'nav_ateliers_visible', 'nav_contact_visible',
+      'nav_galerie_visible', 'nav_boutique_visible',
     ])
     if (!data) return
     const map: Record<string, string> = {}
@@ -86,6 +89,12 @@ export default function Navbar() {
         ? (() => { try { return JSON.parse(map['navbar_public_labels']) } catch { return prev.labels } })()
         : prev.labels,
     }))
+    setTabVisible({
+      ateliers: map['nav_ateliers_visible'] !== 'false',
+      contact:  map['nav_contact_visible']  !== 'false',
+      galerie:  map['nav_galerie_visible']  !== 'false',
+      boutique: map['nav_boutique_visible'] !== 'false',
+    })
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,36 +142,44 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-2 flex-wrap">
 
             {/* Liens publics dynamiques */}
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className="px-4 py-2 rounded-xl text-sm font-bold"
-                style={publicLinkStyle(link.href)}
-                onMouseEnter={() => setHoveredHref(link.href)}
-                onMouseLeave={() => setHoveredHref(null)}
-              >
-                {link.label}
+            {navLinks.map((link) => {
+              if (link.href === '/ateliers' && !tabVisible.ateliers) return null
+              if (link.href === '/contact'  && !tabVisible.contact)  return null
+              return (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="px-4 py-2 rounded-xl text-sm font-bold"
+                  style={publicLinkStyle(link.href)}
+                  onMouseEnter={() => setHoveredHref(link.href)}
+                  onMouseLeave={() => setHoveredHref(null)}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+
+            {/* Lien galerie (fixe, conditionnel) */}
+            {tabVisible.galerie && (
+              <Link to="/galerie"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
+                  isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040] hover:bg-violet-300'
+                }`}
+                style={{ boxShadow: isActive('/galerie') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
+                <Images className="w-4 h-4" /> Galerie
               </Link>
-            ))}
+            )}
 
-            {/* Lien galerie (fixe, toujours visible) */}
-            <Link to="/galerie"
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
-                isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040] hover:bg-violet-300'
-              }`}
-              style={{ boxShadow: isActive('/galerie') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
-              <Images className="w-4 h-4" /> Galerie
-            </Link>
-
-            {/* Lien boutique (fixe, toujours visible) */}
-            <Link to="/boutique"
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
-                isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040] hover:bg-yellow-300'
-              }`}
-              style={{ boxShadow: isActive('/boutique') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
-              <ShoppingBag className="w-4 h-4" /> Boutique
-            </Link>
+            {/* Lien boutique (fixe, conditionnel) */}
+            {tabVisible.boutique && (
+              <Link to="/boutique"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
+                  isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040] hover:bg-yellow-300'
+                }`}
+                style={{ boxShadow: isActive('/boutique') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
+                <ShoppingBag className="w-4 h-4" /> Boutique
+              </Link>
+            )}
 
             {/* Bouton panier */}
             <button onClick={() => openCart(true)}
@@ -286,29 +303,37 @@ export default function Navbar() {
           style={{ backgroundColor: nav.mobileBg, borderTopColor: nav.borderColor }}>
 
           {/* Liens publics dynamiques */}
-          {navLinks.map((link) => (
-            <Link key={link.href} to={link.href} onClick={() => setMenuOpen(false)}
-              className="block px-4 py-3 rounded-xl text-sm font-bold transition-colors"
-              style={{
-                fontFamily:      FONT_MAP[nav.linkFont] || 'sans-serif',
-                backgroundColor: isActive(link.href) ? nav.activeBg : 'transparent',
-                color:           isActive(link.href) ? nav.activeText : nav.inactiveText,
-              }}>
-              {link.label}
+          {navLinks.map((link) => {
+            if (link.href === '/ateliers' && !tabVisible.ateliers) return null
+            if (link.href === '/contact'  && !tabVisible.contact)  return null
+            return (
+              <Link key={link.href} to={link.href} onClick={() => setMenuOpen(false)}
+                className="block px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+                style={{
+                  fontFamily:      FONT_MAP[nav.linkFont] || 'sans-serif',
+                  backgroundColor: isActive(link.href) ? nav.activeBg : 'transparent',
+                  color:           isActive(link.href) ? nav.activeText : nav.inactiveText,
+                }}>
+                {link.label}
+              </Link>
+            )
+          })}
+
+          {/* Galerie (fixe, conditionnel) */}
+          {tabVisible.galerie && (
+            <Link to="/galerie" onClick={() => setMenuOpen(false)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'}`}>
+              <Images className="w-4 h-4" /> Galerie
             </Link>
-          ))}
+          )}
 
-          {/* Galerie (fixe) */}
-          <Link to="/galerie" onClick={() => setMenuOpen(false)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'}`}>
-            <Images className="w-4 h-4" /> Galerie
-          </Link>
-
-          {/* Boutique (fixe) */}
-          <Link to="/boutique" onClick={() => setMenuOpen(false)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'}`}>
-            <ShoppingBag className="w-4 h-4" /> Boutique
-          </Link>
+          {/* Boutique (fixe, conditionnel) */}
+          {tabVisible.boutique && (
+            <Link to="/boutique" onClick={() => setMenuOpen(false)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'}`}>
+              <ShoppingBag className="w-4 h-4" /> Boutique
+            </Link>
+          )}
 
           {/* Panier */}
           <button onClick={() => { openCart(true); setMenuOpen(false) }}
