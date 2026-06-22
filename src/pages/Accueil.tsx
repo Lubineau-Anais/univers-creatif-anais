@@ -141,6 +141,7 @@ const IconPinterest = () => (
 export default function Accueil() {
   const { isAdmin } = useAuth()
   const { logoUrl } = useSiteSettings()
+  const [logoVisible, setLogoVisible] = useState(true)
   const [content, setContent]   = useState<Record<string, string>>(DEFAULT_CONTENT)
   const [actus, setActus]             = useState<Actu[]>([])
   const [maxSlotAccueil, setMaxSlotAccueil] = useState(3)
@@ -292,6 +293,7 @@ export default function Accueil() {
       else if (s.key === 'apropos_photo_url')        { if (s.value) setAproposPhoto(s.value) }
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
       else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
       else if (s.key === 'hero_titre_style') {
@@ -353,28 +355,30 @@ export default function Accueil() {
 
         <div className="relative z-10 max-w-3xl mx-auto">
           {/* Logo centré */}
-          <div className="mb-8 flex justify-center">
-            <div className="bg-white rounded-3xl px-8 py-6 border-4 border-white/80 inline-block"
-              style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15), 6px 6px 0px 0px rgba(26,16,64,0.15)' }}>
-              <img
-                src={logoUrl}
-                alt="l'univers créatif d'Anaïs"
-                className="h-44 md:h-56 w-auto"
-                onError={e => {
-                  const t = e.currentTarget
-                  const parent = t.parentElement
-                  if (parent) parent.style.display = 'none'
-                  const fallback = document.getElementById('logo-fallback')
-                  if (fallback) fallback.style.display = 'flex'
-                }}
-              />
+          {logoVisible && (
+            <div className="mb-8 flex justify-center">
+              <div className="bg-white rounded-3xl px-8 py-6 border-4 border-white/80 inline-block"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15), 6px 6px 0px 0px rgba(26,16,64,0.15)' }}>
+                <img
+                  src={logoUrl}
+                  alt="l'univers créatif d'Anaïs"
+                  className="h-44 md:h-56 w-auto"
+                  onError={e => {
+                    const t = e.currentTarget
+                    const parent = t.parentElement
+                    if (parent) parent.style.display = 'none'
+                    const fallback = document.getElementById('logo-fallback')
+                    if (fallback) fallback.style.display = 'flex'
+                  }}
+                />
+              </div>
+              {/* Fallback si logo absent */}
+              <div id="logo-fallback" className="hidden flex-col items-center bg-white/20 backdrop-blur-sm rounded-3xl px-8 py-4 border-4 border-white/60">
+                <p className="font-script text-gray-700 text-2xl">l'univers créatif</p>
+                <p className="font-brand font-bold text-rose-700 text-5xl">d'Anaïs</p>
+              </div>
             </div>
-            {/* Fallback si logo absent */}
-            <div id="logo-fallback" className="hidden flex-col items-center bg-white/20 backdrop-blur-sm rounded-3xl px-8 py-4 border-4 border-white/60">
-              <p className="font-script text-gray-700 text-2xl">l'univers créatif</p>
-              <p className="font-brand font-bold text-rose-700 text-5xl">d'Anaïs</p>
-            </div>
-          </div>
+          )}
 
           <h1
             className="text-4xl md:text-5xl mb-6 leading-tight"

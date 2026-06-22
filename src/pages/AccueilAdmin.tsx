@@ -118,6 +118,8 @@ export default function AccueilAdmin() {
   const [logoUploading, setLogoUploading] = useState(false)
   const [logoSaved,     setLogoSaved]     = useState(false)
   const [logoError,     setLogoError]     = useState('')
+  const [logoVisible,   setLogoVisible]   = useState(true)
+  const [logoVisSaving, setLogoVisSaving] = useState(false)
   const logoFileRef = useRef<HTMLInputElement>(null)
 
   // ── Hero fond ─────────────────────────────────────────────────────────────
@@ -225,7 +227,7 @@ export default function AccueilAdmin() {
           'hero_btn1_config', 'hero_btn2_config',
           'valeurs_bg_config', 'valeurs_titre_style', 'valeurs_carte_titre_style', 'valeurs_carte_desc_style', 'valeurs_cards',
           'apropos_bg_config', 'apropos_photo_url', 'apropos_titre_style', 'apropos_texte_style',
-          'avis_bg_config', 'avis_titre_style',
+          'avis_bg_config', 'avis_titre_style', 'hero_logo_visible',
         ]),
         supabase.from('page_content').select('section, contenu')
           .eq('page', 'accueil').in('section', ['actu_section_titre', 'valeurs_titre', 'apropos_titre', 'apropos_texte', 'avis_titre']),
@@ -256,6 +258,7 @@ export default function AccueilAdmin() {
           if (s.key === 'apropos_texte_style')      setAproposBodyStyle(p => ({ ...p, ...v }))
           if (s.key === 'avis_bg_config')           { setAvisBg(p => ({ ...p, ...v })); setAvisBgTab(v.type || 'color') }
           if (s.key === 'avis_titre_style')         setAvisTitleStyle(p => ({ ...p, ...v }))
+          if (s.key === 'hero_logo_visible')        setLogoVisible(v !== false)
         } catch {}
         if (s.key === 'valeurs_cards' && s.value)      { try { setValeursCards(JSON.parse(s.value)) } catch {} }
         if (s.key === 'apropos_photo_url' && s.value)  setAproposPhoto(s.value)
@@ -276,6 +279,12 @@ export default function AccueilAdmin() {
   }
 
   // ── Sauvegardes ──────────────────────────────────────────────────────────
+  async function saveLogoVisibility(visible: boolean) {
+    setLogoVisSaving(true)
+    await supabase.from('settings').upsert({ key: 'hero_logo_visible', value: JSON.stringify(visible) }, { onConflict: 'key' })
+    setLogoVisSaving(false)
+  }
+
   async function saveHeroBg() {
     setHeroBgSaving(true)
     const final = { ...heroBg, type: heroBgTab }
@@ -441,6 +450,19 @@ export default function AccueilAdmin() {
               <input ref={logoFileRef} id="logo-upload" type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = '' }} />
               {logoError && <p className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1"><X className="w-3 h-3" />{logoError}</p>}
               {logoSaved && <p className="mt-2 text-xs text-lime-700 font-black flex items-center gap-1"><Check className="w-3 h-3" />Logo mis à jour partout !</p>}
+
+              {/* Toggle visibilité */}
+              <div className="mt-4 flex items-center gap-3">
+                <span className="text-xs font-black text-[#1A1040] uppercase tracking-wide">Affichage sur le site :</span>
+                <button
+                  disabled={logoVisSaving}
+                  onClick={() => { const next = !logoVisible; setLogoVisible(next); saveLogoVisibility(next) }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-black text-xs transition-all disabled:opacity-50 ${logoVisible ? 'bg-lime-400 border-[#1A1040] text-[#1A1040]' : 'bg-gray-200 border-gray-400 text-gray-500'}`}
+                  style={logoVisible ? { boxShadow: '2px 2px 0px 0px #1A1040' } : {}}>
+                  {logoVisSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : logoVisible ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                  {logoVisible ? 'Visible' : 'Masqué'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
