@@ -337,7 +337,7 @@ export default function Accueil() {
 
       {/* ===== HERO ===== */}
       <section
-        className="relative py-16 px-4 text-center overflow-hidden border-b-4 border-[#1A1040]"
+        className="relative min-h-screen py-20 px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex items-center justify-center"
         style={buildHeroBgStyle(heroBg)}>
 
         {/* Vidéo de fond */}
@@ -357,7 +357,7 @@ export default function Accueil() {
           </>
         )}
 
-        <div className="relative z-10 max-w-3xl mx-auto">
+        <div className="relative z-10 max-w-3xl mx-auto w-full">
           {/* Logo centré */}
           {logoVisible && (
             <div className="mb-8 flex justify-center">
