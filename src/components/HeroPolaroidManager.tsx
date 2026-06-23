@@ -2,6 +2,10 @@ import { useState, useRef } from 'react'
 import { X, Plus, Trash2, RefreshCw, Eye, EyeOff, Move, Lock, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+export const POLAROID_FONTS: Record<string, string> = {
+  sans: 'sans-serif', serif: 'serif', mono: 'monospace', cursive: 'cursive',
+}
+
 export interface HeroPolaroid {
   id: string
   image_url: string
@@ -12,6 +16,12 @@ export interface HeroPolaroid {
   size: number
   title: string | null
   text: string | null
+  title_size: number
+  title_font: string
+  title_color: string
+  text_size: number
+  text_font: string
+  text_color: string
   draggable: boolean
   is_visible: boolean
   sort_order: number
@@ -92,24 +102,50 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
           <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide flex items-center justify-between">
             <span>Taille</span><span>{polaroid.size}px</span>
           </label>
-          <input type="range" min={60} max={280} step={5} value={polaroid.size}
+          <input type="range" min={60} max={500} step={5} value={polaroid.size}
             onChange={e => onChange(polaroid.id, { size: parseInt(e.target.value) })}
             className="w-full" />
         </div>
       </div>
 
-      {/* Titre + Texte (optionnels) */}
-      <div>
+      {/* Titre (optionnel) + style */}
+      <div className="border-t border-[#1A1040]/10 pt-3">
         <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Titre (optionnel)</label>
         <input value={polaroid.title ?? ''} onChange={e => onChange(polaroid.id, { title: e.target.value || null })}
           placeholder="Ex: Atelier macramé"
-          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold mb-2 focus:outline-none focus:ring-2 focus:ring-citron-400" />
+        <div className="grid grid-cols-3 gap-2">
+          <input type="number" min={8} max={48} value={polaroid.title_size}
+            onChange={e => onChange(polaroid.id, { title_size: parseInt(e.target.value) || 13 })}
+            title="Taille du texte (px)"
+            className="border-2 border-[#1A1040] rounded-lg px-2 py-1 text-xs font-bold" />
+          <select value={polaroid.title_font} onChange={e => onChange(polaroid.id, { title_font: e.target.value })}
+            className="border-2 border-[#1A1040] rounded-lg px-1 py-1 text-xs font-bold bg-white">
+            {Object.keys(POLAROID_FONTS).map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={polaroid.title_color} onChange={e => onChange(polaroid.id, { title_color: e.target.value })}
+            className="w-full h-8 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+        </div>
       </div>
+
+      {/* Texte (optionnel) + style */}
       <div>
         <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte (optionnel)</label>
         <textarea value={polaroid.text ?? ''} onChange={e => onChange(polaroid.id, { text: e.target.value || null })} rows={2}
           placeholder="Une petite légende..."
-          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-medium resize-none focus:outline-none focus:ring-2 focus:ring-citron-400" />
+          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-medium resize-none mb-2 focus:outline-none focus:ring-2 focus:ring-citron-400" />
+        <div className="grid grid-cols-3 gap-2">
+          <input type="number" min={6} max={36} value={polaroid.text_size}
+            onChange={e => onChange(polaroid.id, { text_size: parseInt(e.target.value) || 10 })}
+            title="Taille du texte (px)"
+            className="border-2 border-[#1A1040] rounded-lg px-2 py-1 text-xs font-bold" />
+          <select value={polaroid.text_font} onChange={e => onChange(polaroid.id, { text_font: e.target.value })}
+            className="border-2 border-[#1A1040] rounded-lg px-1 py-1 text-xs font-bold bg-white">
+            {Object.keys(POLAROID_FONTS).map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          <input type="color" value={polaroid.text_color} onChange={e => onChange(polaroid.id, { text_color: e.target.value })}
+            className="w-full h-8 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+        </div>
       </div>
     </div>
   )
@@ -127,6 +163,8 @@ export default function HeroPolaroidManager({ polaroids, onClose, onRefresh }: {
     await supabase.from('hero_polaroids').insert({
       image_url: '', side: 'left', rotation: -6, offset_x: 0, offset_y: 0,
       size: 120, title: null, text: null,
+      title_size: 13, title_font: 'sans', title_color: '#1A1040',
+      text_size: 10, text_font: 'sans', text_color: '#6b7280',
       draggable: true, is_visible: true, sort_order: polaroids.length,
     })
     setSaving(false)

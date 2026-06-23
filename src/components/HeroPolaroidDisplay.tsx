@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { HeroPolaroid } from './HeroPolaroidManager'
+import { POLAROID_FONTS, type HeroPolaroid } from './HeroPolaroidManager'
 
 export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved }: {
   polaroid: HeroPolaroid
@@ -67,12 +67,14 @@ export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved 
         {(polaroid.title || polaroid.text) && (
           <div className="pt-2 px-0.5 text-center">
             {polaroid.title && (
-              <p className="font-brand font-bold text-[#1A1040] leading-tight truncate" style={{ fontSize: `${Math.max(10, polaroid.size * 0.11)}px` }}>
+              <p className="font-bold leading-tight"
+                style={{ fontSize: `${polaroid.title_size}px`, fontFamily: POLAROID_FONTS[polaroid.title_font] || 'sans-serif', color: polaroid.title_color }}>
                 {polaroid.title}
               </p>
             )}
             {polaroid.text && (
-              <p className="text-gray-500 leading-snug line-clamp-2" style={{ fontSize: `${Math.max(8, polaroid.size * 0.085)}px` }}>
+              <p className="leading-snug"
+                style={{ fontSize: `${polaroid.text_size}px`, fontFamily: POLAROID_FONTS[polaroid.text_font] || 'sans-serif', color: polaroid.text_color }}>
                 {polaroid.text}
               </p>
             )}
