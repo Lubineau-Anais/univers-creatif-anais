@@ -9,6 +9,9 @@ export interface HeroPolaroid {
   rotation: number
   offset_x: number
   offset_y: number
+  size: number
+  title: string | null
+  text: string | null
   draggable: boolean
   is_visible: boolean
   sort_order: number
@@ -75,14 +78,38 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
         </div>
       </div>
 
-      {/* Rotation */}
+      {/* Rotation + Taille */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide flex items-center justify-between">
+            <span>Inclinaison</span><span>{polaroid.rotation}°</span>
+          </label>
+          <input type="range" min={-30} max={30} step={1} value={polaroid.rotation}
+            onChange={e => onChange(polaroid.id, { rotation: parseInt(e.target.value) })}
+            className="w-full" />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide flex items-center justify-between">
+            <span>Taille</span><span>{polaroid.size}px</span>
+          </label>
+          <input type="range" min={60} max={280} step={5} value={polaroid.size}
+            onChange={e => onChange(polaroid.id, { size: parseInt(e.target.value) })}
+            className="w-full" />
+        </div>
+      </div>
+
+      {/* Titre + Texte (optionnels) */}
       <div>
-        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide flex items-center justify-between">
-          <span>Inclinaison</span><span>{polaroid.rotation}°</span>
-        </label>
-        <input type="range" min={-30} max={30} step={1} value={polaroid.rotation}
-          onChange={e => onChange(polaroid.id, { rotation: parseInt(e.target.value) })}
-          className="w-full" />
+        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Titre (optionnel)</label>
+        <input value={polaroid.title ?? ''} onChange={e => onChange(polaroid.id, { title: e.target.value || null })}
+          placeholder="Ex: Atelier macramé"
+          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+      </div>
+      <div>
+        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte (optionnel)</label>
+        <textarea value={polaroid.text ?? ''} onChange={e => onChange(polaroid.id, { text: e.target.value || null })} rows={2}
+          placeholder="Une petite légende..."
+          className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-medium resize-none focus:outline-none focus:ring-2 focus:ring-citron-400" />
       </div>
     </div>
   )
@@ -99,6 +126,7 @@ export default function HeroPolaroidManager({ polaroids, onClose, onRefresh }: {
     setSaving(true)
     await supabase.from('hero_polaroids').insert({
       image_url: '', side: 'left', rotation: -6, offset_x: 0, offset_y: 0,
+      size: 120, title: null, text: null,
       draggable: true, is_visible: true, sort_order: polaroids.length,
     })
     setSaving(false)

@@ -57,13 +57,27 @@ export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved 
         transform: `translate(${offsetX}px, ${offsetY}px) rotate(${polaroid.rotation}deg)`,
         transition: drag ? 'none' : 'transform 0.2s ease-out',
       }}>
-      <div className="bg-white p-2 pb-6 border-2 border-[#1A1040] rounded-sm w-28 md:w-36"
-        style={{ boxShadow: '4px 4px 0px 0px #1A1040', filter: 'drop-shadow(2px 4px 8px rgba(0,0,0,0.15))' }}>
+      <div className="bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm"
+        style={{ width: `${polaroid.size}px`, boxShadow: '4px 4px 0px 0px #1A1040', filter: 'drop-shadow(2px 4px 8px rgba(0,0,0,0.15))' }}>
         <div className="w-full aspect-square bg-candy border border-gray-200 overflow-hidden">
           {polaroid.image_url
             ? <img src={polaroid.image_url} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
             : <div className="w-full h-full flex items-center justify-center text-2xl">📷</div>}
         </div>
+        {(polaroid.title || polaroid.text) && (
+          <div className="pt-2 px-0.5 text-center">
+            {polaroid.title && (
+              <p className="font-brand font-bold text-[#1A1040] leading-tight truncate" style={{ fontSize: `${Math.max(10, polaroid.size * 0.11)}px` }}>
+                {polaroid.title}
+              </p>
+            )}
+            {polaroid.text && (
+              <p className="text-gray-500 leading-snug line-clamp-2" style={{ fontSize: `${Math.max(8, polaroid.size * 0.085)}px` }}>
+                {polaroid.text}
+              </p>
+            )}
+          </div>
+        )}
         {isAdmin && !polaroid.is_visible && (
           <p className="text-[9px] text-center font-black text-red-500 mt-1">MASQUÉ</p>
         )}
