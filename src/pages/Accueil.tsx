@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Star } from 'lucide-react'
+import { Pencil, Star, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
 import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface ContentBlock { section: string; contenu: string }
@@ -201,6 +203,10 @@ export default function Accueil() {
   const [heroTitreVisible,     setHeroTitreVisible]     = useState(true)
   const [heroSousTitreVisible, setHeroSousTitreVisible] = useState(true)
 
+  // Polaroïds du Hero
+  const [polaroids, setPolaroids] = useState<HeroPolaroid[]>([])
+  const [showPolaroidManager, setShowPolaroidManager] = useState(false)
+
   // Sync muted sur la vidéo (React ne propage pas l'attribut muted en re-render)
   useEffect(() => {
     if (heroVideoRef.current) heroVideoRef.current.muted = heroBg.videoMuted
@@ -226,6 +232,7 @@ export default function Accueil() {
     loadContent()
     loadActus()
     loadSocialLinks()
+    loadPolaroids()
 
     // ── Realtime : mise à jour instantanée dès qu'un admin modifie quelque chose ──
     const channelSettings = supabase
@@ -250,12 +257,29 @@ export default function Accueil() {
       })
       .subscribe()
 
+    const channelPolaroids = supabase
+      .channel('realtime-hero-polaroids')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hero_polaroids' }, () => {
+        loadPolaroids()
+      })
+      .subscribe()
+
     return () => {
       supabase.removeChannel(channelSettings)
       supabase.removeChannel(channelContent)
       supabase.removeChannel(channelActus)
+      supabase.removeChannel(channelPolaroids)
     }
   }, [])
+
+  async function loadPolaroids() {
+    const { data } = await supabase.from('hero_polaroids').select('*').order('sort_order')
+    setPolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
 
   async function loadContent() {
     const { data } = await supabase.from('page_content').select('section, contenu').eq('page', 'accueil')
@@ -355,6 +379,19 @@ export default function Accueil() {
               <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay }} />
             )}
           </>
+        )}
+
+        {/* Polaroïds décoratifs gauche/droite */}
+        {polaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} />
+        ))}
+
+        {/* Bouton admin — gérer les polaroïds */}
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
         )}
 
         {/* Contenu centré verticalement */}
@@ -918,6 +955,15 @@ export default function Accueil() {
             setShowActuTitleEditor(false)
           }}
           onClose={() => setShowActuTitleEditor(false)}
+        />
+      )}
+
+      {/* ===== GESTIONNAIRE POLAROÏDS HERO ===== */}
+      {showPolaroidManager && (
+        <HeroPolaroidManager
+          polaroids={polaroids}
+          onClose={() => setShowPolaroidManager(false)}
+          onRefresh={loadPolaroids}
         />
       )}
 
