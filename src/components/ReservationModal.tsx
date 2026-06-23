@@ -124,7 +124,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
   const [nbPersonnes, setNbPersonnes] = useState(1)
   const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>([])
-  const [loading, setLoading]         = useState(false)
+  const [loading]                     = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const [error, setError]             = useState('')
 
