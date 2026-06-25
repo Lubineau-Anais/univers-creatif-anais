@@ -303,6 +303,7 @@ export default function Boutique() {
   // Admin : gestion catégories & produits
   const [showCatModal, setShowCatModal] = useState(false)
   const [editingCat, setEditingCat] = useState<ShopCategory | null>(null)
+  const [newCatParentId, setNewCatParentId] = useState<string | null>(null)
   const [showProductModal, setShowProductModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null)
   const [deleteCatId, setDeleteCatId] = useState<string | null>(null)
@@ -517,7 +518,7 @@ export default function Boutique() {
                           </button>
                           {isAdmin && (
                             <div className="flex gap-0.5 pr-1 shrink-0">
-                              <button onClick={() => { setEditingCat(cat); setShowCatModal(true) }}
+                              <button onClick={() => { setEditingCat(cat); setNewCatParentId(null); setShowCatModal(true) }}
                                 className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-citron-200 text-[#1A1040]">
                                 <Pencil className="w-3 h-3" />
                               </button>
@@ -548,7 +549,7 @@ export default function Boutique() {
                                 </button>
                                 {isAdmin && (
                                   <div className="flex gap-0.5 shrink-0">
-                                    <button onClick={() => { setEditingCat(sub); setShowCatModal(true) }}
+                                    <button onClick={() => { setEditingCat(sub); setNewCatParentId(null); setShowCatModal(true) }}
                                       className="w-5 h-5 flex items-center justify-center rounded hover:bg-citron-200 text-[#1A1040]">
                                       <Pencil className="w-2.5 h-2.5" />
                                     </button>
@@ -561,7 +562,7 @@ export default function Boutique() {
                               </div>
                             ))}
                             {isAdmin && (
-                              <button onClick={() => { setEditingCat(null); setShowCatModal(true) }}
+                              <button onClick={() => { setEditingCat(null); setNewCatParentId(cat.id); setShowCatModal(true) }}
                                 className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold text-turquoise-600 hover:bg-candy flex items-center gap-1">
                                 <Plus className="w-3 h-3" /> Sous-catégorie
                               </button>
@@ -573,7 +574,7 @@ export default function Boutique() {
                   })}
 
                   {isAdmin && (
-                    <button onClick={() => { setEditingCat(null); setShowCatModal(true) }}
+                    <button onClick={() => { setEditingCat(null); setNewCatParentId(null); setShowCatModal(true) }}
                       className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 mt-1 rounded-xl font-black text-xs border-2 border-dashed border-[#1A1040] text-[#1A1040] hover:bg-candy transition-all">
                       <Plus className="w-3.5 h-3.5" /> Nouvelle catégorie
                     </button>
@@ -699,8 +700,9 @@ export default function Boutique() {
         <ShopCatModal
           cat={editingCat}
           categories={categories}
-          onSave={() => { setShowCatModal(false); setEditingCat(null); loadShop() }}
-          onClose={() => { setShowCatModal(false); setEditingCat(null) }}
+          defaultParentId={newCatParentId}
+          onSave={() => { setShowCatModal(false); setEditingCat(null); setNewCatParentId(null); loadShop() }}
+          onClose={() => { setShowCatModal(false); setEditingCat(null); setNewCatParentId(null) }}
         />
       )}
       {showProductModal && (

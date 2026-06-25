@@ -4,15 +4,16 @@ import { supabase } from '../lib/supabase'
 import type { ShopCategory } from '../lib/shop'
 import { slugify } from '../lib/shop'
 
-export default function ShopCatModal({ cat, categories, onSave, onClose }: {
+export default function ShopCatModal({ cat, categories, defaultParentId, onSave, onClose }: {
   cat?: ShopCategory | null
   categories: ShopCategory[]
+  defaultParentId?: string | null
   onSave: () => void
   onClose: () => void
 }) {
   const [name, setName]   = useState(cat?.name || '')
   const [slug, setSlug]   = useState(cat?.slug || '')
-  const [parent, setParent] = useState(cat?.parent_id || '')
+  const [parent, setParent] = useState(cat?.parent_id || defaultParentId || '')
   const [saving, setSaving] = useState(false)
 
   async function save() {
