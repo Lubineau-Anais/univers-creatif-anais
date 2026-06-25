@@ -148,6 +148,7 @@ export default function Accueil() {
   const [actus, setActus]             = useState<Actu[]>([])
   const [maxSlotAccueil, setMaxSlotAccueil] = useState(3)
   const [slotVisibility, setSlotVisibility] = useState<Record<number, boolean>>({})
+  const [actuPolaroidSize, setActuPolaroidSize] = useState(208)
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({})
   const [heroStyle, setHeroStyle]           = useState<HeroStyle>(DEFAULT_HERO_STYLE)
   const [showTitleEditor, setShowTitleEditor] = useState(false)
@@ -301,6 +302,7 @@ export default function Accueil() {
     let maxS = 3
     ;(settData || []).forEach((s: { key: string; value: string }) => {
       if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
+      else if (s.key === 'actu_polaroid_size')       { setActuPolaroidSize(parseInt(s.value) || 208) }
       else if (s.key === 'hero_bg_config')           { try { setHeroBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'actu_bg_config')           { try { setActuBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'actu_section_titre_style') { try { setActuTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
@@ -541,7 +543,8 @@ export default function Accueil() {
                     return (
                       <div key={slot} className={`${rot} hover:rotate-0 transition-all duration-300`}
                         style={{ filter: 'drop-shadow(3px 5px 10px rgba(0,0,0,0.15))' }}>
-                        <div className="bg-gray-50 border-4 border-dashed border-gray-300 rounded-sm p-4 pb-10 w-52 flex flex-col items-center justify-center min-h-[280px] text-center">
+                        <div className="bg-gray-50 border-4 border-dashed border-gray-300 rounded-sm p-4 pb-10 flex flex-col items-center justify-center text-center"
+                          style={{ width: `${actuPolaroidSize}px`, minHeight: `${actuPolaroidSize * 1.35}px` }}>
                           <div className="text-4xl mb-3 opacity-30">📷</div>
                           <p className="text-gray-400 text-xs font-bold uppercase tracking-wide">Polaroïd {slot} — vide</p>
                           <p className="text-gray-400 text-xs mt-1">Aucune actu active</p>
@@ -559,9 +562,10 @@ export default function Accueil() {
                       style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
                       {/* Scotch */}
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
-                      <div className="bg-white p-3 pb-10 border-2 border-[#1A1040] rounded-sm w-52"
-                        style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
-                        <div className="w-full h-44 bg-candy border border-gray-200 overflow-hidden mb-4">
+                      <div className="bg-white p-3 pb-10 border-2 border-[#1A1040] rounded-sm"
+                        style={{ width: `${actuPolaroidSize}px`, boxShadow: '5px 5px 0px 0px #1A1040' }}>
+                        <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-4"
+                          style={{ height: `${actuPolaroidSize * 0.85}px` }}>
                           {actu.photo_url
                             ? /\.(mp4|webm|mov)(\?|$)/i.test(actu.photo_url)
                               ? <video src={actu.photo_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
@@ -569,10 +573,10 @@ export default function Accueil() {
                             : <div className="w-full h-full flex items-center justify-center text-4xl">🎨</div>}
                         </div>
                         {actu.titre && (
-                          <p className="font-brand font-bold text-[#1A1040] text-center text-lg leading-tight mb-1">{actu.titre}</p>
+                          <p className="font-brand font-bold text-[#1A1040] text-center leading-tight mb-1" style={{ fontSize: `${Math.max(14, actuPolaroidSize * 0.085)}px` }}>{actu.titre}</p>
                         )}
                         {actu.texte && (
-                          <p className="text-gray-600 text-xs text-center leading-relaxed line-clamp-3">{actu.texte}</p>
+                          <p className="text-gray-600 text-center leading-relaxed line-clamp-3" style={{ fontSize: `${Math.max(11, actuPolaroidSize * 0.06)}px` }}>{actu.texte}</p>
                         )}
                         {isAdmin && (
                           <Link to="/actu-moment"

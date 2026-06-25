@@ -54,6 +54,7 @@ export default function ActuAdmin() {
   const [saving, setSaving]             = useState(false)
   const [collapsed, setCollapsed]       = useState<Record<number, boolean>>({})
   const [filterStatut, setFilterStatut] = useState<string>('tous')
+  const [polaroidSize, setPolaroidSize] = useState(208)
 
   useEffect(() => { loadAll() }, [])
 
@@ -71,6 +72,7 @@ export default function ActuAdmin() {
     let maxS = 3
     ;(settData || []).forEach((s: { key: string; value: string }) => {
       if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
+      else if (s.key === 'actu_polaroid_size') setPolaroidSize(parseInt(s.value) || 208)
       else if (s.key.startsWith('slot_visible_')) {
         const n = parseInt(s.key.replace('slot_visible_', ''))
         if (!isNaN(n)) vis[n] = s.value !== 'false'
@@ -80,6 +82,11 @@ export default function ActuAdmin() {
     setMaxSlot(Math.max(3, maxS, fromData))
     setSlotVisibility(vis)
     setLoading(false)
+  }
+
+  async function changePolaroidSize(size: number) {
+    setPolaroidSize(size)
+    await supabase.from('settings').upsert({ key: 'actu_polaroid_size', value: String(size) }, { onConflict: 'key' })
   }
 
   const slots = useMemo(() => Array.from({ length: maxSlot }, (_, i) => i + 1), [maxSlot])
@@ -223,6 +230,16 @@ export default function ActuAdmin() {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-5">
+
+        {/* ── TAILLE DES POLAROÏDS ── */}
+        <div className="bg-white rounded-2xl border-2 border-[#1A1040] px-5 py-4 flex items-center gap-4"
+          style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+          <span className="text-sm font-black text-[#1A1040] shrink-0">📐 Taille des polaroïds</span>
+          <input type="range" min={160} max={420} step={10} value={polaroidSize}
+            onChange={e => changePolaroidSize(parseInt(e.target.value))}
+            className="flex-1" />
+          <span className="text-sm font-black text-[#1A1040] w-16 text-right shrink-0">{polaroidSize}px</span>
+        </div>
 
         {/* ── FILTRES ── */}
         <div className="flex items-center gap-3 flex-wrap">
