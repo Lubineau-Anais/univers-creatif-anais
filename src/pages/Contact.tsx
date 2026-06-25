@@ -178,11 +178,8 @@ export default function Contact() {
 
             <div className="bg-citron-400 border-b-4 border-[#1A1040] px-6 py-4">
               <h2 className="font-serif font-black text-[#1A1040] text-xl">
-                ✉️ Envoie-nous un message
+                ✉️ Envoie-moi un message
               </h2>
-              <p className="text-[#1A1040]/70 text-xs font-bold mt-0.5">
-                On te répond dans les 24h !
-              </p>
             </div>
 
             <div className="p-6">
@@ -193,7 +190,7 @@ export default function Contact() {
                     <Check className="w-8 h-8 text-[#1A1040]" />
                   </div>
                   <p className="font-black text-[#1A1040] text-lg">Message envoyé ! 🎉</p>
-                  <p className="text-gray-500 text-sm">Merci ! On te revient très vite.</p>
+                  <p className="text-gray-500 text-sm">Merci ! Je te revient très vite.</p>
                   <button onClick={() => setSent(false)}
                     className="btn-outline text-sm px-4 py-2">
                     Envoyer un autre message
