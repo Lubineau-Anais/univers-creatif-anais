@@ -120,10 +120,15 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   const { addItem: addAtelierItem } = useAtelierCart()
   const { setIsOpen: openCart }     = useCart()
 
+  const isDuo = atelier.prix_type === 'duo'
+  const minPersonnes = isDuo ? 2 : 1
+
   const [step, setStep]               = useState<'form' | 'paiement'>('form')
   const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
-  const [nbPersonnes, setNbPersonnes] = useState(1)
-  const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>([])
+  const [nbPersonnes, setNbPersonnes] = useState(minPersonnes)
+  const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>(
+    Array(minPersonnes - 1).fill(null).map(() => ({ prenom: '', nom: '', age: '' }))
+  )
   const [loading]                     = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const [error, setError]             = useState('')
@@ -135,7 +140,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
 
   // ── Gestion participants supplémentaires ──────────────────────────────────
   function changeNbPersonnes(delta: number) {
-    const next = Math.max(1, Math.min(maxPlaces, nbPersonnes + delta))
+    const next = Math.max(minPersonnes, Math.min(maxPlaces, nbPersonnes + delta))
     setNbPersonnes(next)
     setPersonnesSup(prev => {
       const needed = next - 1
@@ -319,11 +324,13 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                     <UserPlus className="w-3.5 h-3.5 inline mr-1" />Nombre de participants
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {maxPlaces} place{maxPlaces > 1 ? 's' : ''} restante{maxPlaces > 1 ? 's' : ''}
+                    {isDuo
+                      ? `Atelier en duo — 2 personnes minimum · ${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`
+                      : `${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= 1}
+                  <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= minPersonnes}
                     className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed">
                     <Minus className="w-3.5 h-3.5" />
                   </button>
