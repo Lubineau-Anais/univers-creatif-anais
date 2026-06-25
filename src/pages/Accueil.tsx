@@ -63,6 +63,15 @@ const DEFAULT_AVIS_TITLE_STYLE: HeroStyle = {
   bold: true, italic: false, underline: false,
 }
 
+// ─── Section Réseaux sociaux ───────────────────────────────────────────────────
+const DEFAULT_RESEAUX_BADGE: BadgeConfig = { text: '✨ Suivez-nous !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full' }
+const DEFAULT_RESEAUX_TITLE_STYLE: HeroStyle = {
+  font: 'serif', fontSize: 24, color: '#ffffff',
+  outline: false, outlineColor: '#1A1040', outlineWidth: 2,
+  shadow: false,  shadowColor: '#00000033', shadowBlur: 4, shadowX: 2, shadowY: 2,
+  bold: true, italic: false, underline: false,
+}
+
 // ─── Section Valeurs ──────────────────────────────────────────────────────────
 interface ValeurCard {
   id: string; icon: string; iconType: 'emoji' | 'image'; iconBg: string
@@ -109,6 +118,7 @@ const DEFAULT_CONTENT: Record<string, string> = {
   avis_titre:         'Avis clients ✦',
   apropos_titre:      'Une passion, plein de couleurs !',
   apropos_texte:     'Bonjour ! Moi c\'est l\'univers créatif d\'Anaïs, le QG des passionné·e·s de créations manuelles. J\'ai ouvert cet espace parce que je crois dur comme fer que créer avec ses mains, ça rend heureux·se. Ici, on rigole, on expérimente, on rate (et on recommence avec le sourire). Peu importe ton niveau — débutant·e total·e ou artiste en herbe, t\'es le·la bienvenu·e !',
+  reseaux_titre:     'On est aussi sur les réseaux ✦',
 }
 
 
@@ -196,6 +206,12 @@ export default function Accueil() {
   const [googleApiKey,      setGoogleApiKey]      = useState('')
   const [googlePlaceId,     setGooglePlaceId]     = useState('')
   const [showAvisTitleEditor, setShowAvisTitleEditor] = useState(false)
+
+  // Section Réseaux sociaux
+  const [reseauxBadge,       setReseauxBadge]       = useState<BadgeConfig>(DEFAULT_RESEAUX_BADGE)
+  const [reseauxTitleStyle,  setReseauxTitleStyle]  = useState<HeroStyle>(DEFAULT_RESEAUX_TITLE_STYLE)
+  const [showReseauxBadgeEditor, setShowReseauxBadgeEditor] = useState(false)
+  const [showReseauxTitleEditor, setShowReseauxTitleEditor] = useState(false)
 
   // Ref pour la vidéo hero (nécessaire pour gérer muted en React)
   const heroVideoRef = useRef<HTMLVideoElement>(null)
@@ -336,6 +352,8 @@ export default function Accueil() {
       else if (s.key === 'apropos_photo_size')       { setAproposPhotoSize(parseInt(s.value) || 288) }
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      else if (s.key === 'reseaux_titre_style')      { try { setReseauxTitleStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch {} }
@@ -900,15 +918,34 @@ export default function Accueil() {
 
 
       {/* ===== RÉSEAUX SOCIAUX ===== */}
-      {hasSocialLinks && (
+      {(hasSocialLinks || isAdmin) && (
         <section className="py-12 px-4 bg-[#1A1040] border-b-4 border-[#1A1040]">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-1.5 bg-rose-400 text-white px-4 py-1.5 rounded-full text-sm font-bold border-2 border-rose-300 mb-6">
-              ✨ Suivez-nous !
+            <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-white/20 mb-2 ${reseauxBadge.radius}`}
+              style={{ backgroundColor: reseauxBadge.bg, color: reseauxBadge.textColor }}>
+              {reseauxBadge.text}
             </div>
-            <h2 className="font-serif text-2xl font-black text-white mb-8">
-              On est aussi sur les réseaux <span className="text-citron-400">✦</span>
-            </h2>
+            {isAdmin && (
+              <div className="flex justify-center mb-4">
+                <button onClick={() => setShowReseauxBadgeEditor(true)}
+                  className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3 h-3" /> Modifier le badge
+                </button>
+              </div>
+            )}
+            <h2 className="leading-tight mb-2"
+              style={buildTitleStyle(reseauxTitleStyle)}
+              dangerouslySetInnerHTML={{ __html: content['reseaux_titre'] }}
+            />
+            {isAdmin && (
+              <div className="flex justify-center mb-8">
+                <button onClick={() => setShowReseauxTitleEditor(true)}
+                  className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3 h-3" /> Modifier le titre
+                </button>
+              </div>
+            )}
+            {!isAdmin && <div className="mb-8" />}
 
             <div className="flex flex-wrap items-center justify-center gap-4">
               {socialLinks.instagram_url && (
@@ -946,9 +983,74 @@ export default function Accueil() {
                   <IconPinterest /> Pinterest
                 </a>
               )}
+              {!hasSocialLinks && isAdmin && (
+                <p className="text-white/40 text-sm font-bold">Aucun lien réseau configuré — ajoute-les dans /connecteurs</p>
+              )}
             </div>
           </div>
         </section>
+      )}
+
+      {/* ===== ÉDITEUR BADGE RÉSEAUX SOCIAUX ===== */}
+      {showReseauxBadgeEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowReseauxBadgeEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <h3 className="font-black text-[#1A1040]">🏷️ Badge — Réseaux sociaux</h3>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+              <input value={reseauxBadge.text} onChange={e => setReseauxBadge(p => ({ ...p, text: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Fond</label>
+                <input type="color" value={reseauxBadge.bg} onChange={e => setReseauxBadge(p => ({ ...p, bg: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+                <input type="color" value={reseauxBadge.textColor} onChange={e => setReseauxBadge(p => ({ ...p, textColor: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Forme</label>
+              <div className="flex gap-2 flex-wrap">
+                {['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-full'].map(r => (
+                  <button key={r} onClick={() => setReseauxBadge(p => ({ ...p, radius: r }))}
+                    className={`px-3 py-1.5 border-2 text-xs font-black ${r} ${reseauxBadge.radius === r ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-gray-300 text-gray-600 hover:border-[#1A1040]'}`}>
+                    Aa
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowReseauxBadgeEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+              <button onClick={async () => {
+                await supabase.from('settings').upsert({ key: 'reseaux_badge_config', value: JSON.stringify(reseauxBadge) }, { onConflict: 'key' })
+                setShowReseauxBadgeEditor(false)
+              }} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ÉDITEUR TITRE RÉSEAUX SOCIAUX ===== */}
+      {showReseauxTitleEditor && (
+        <HeroTitleEditor
+          initialText={content['reseaux_titre']}
+          initialStyle={reseauxTitleStyle}
+          sectionKey="reseaux_titre"
+          styleKey="reseaux_titre_style"
+          label="✏️ Titre — Réseaux sociaux"
+          onSave={(text, style) => {
+            setContent(prev => ({ ...prev, reseaux_titre: text }))
+            setReseauxTitleStyle(style)
+            setShowReseauxTitleEditor(false)
+          }}
+          onClose={() => setShowReseauxTitleEditor(false)}
+        />
       )}
 
       {/* ===== ÉDITEUR TITRE HERO ===== */}
