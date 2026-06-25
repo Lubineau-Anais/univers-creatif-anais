@@ -22,6 +22,9 @@ export interface Atelier {
   image_url: string | null
   category_id: string | null
   modes_paiement: string[]
+  age_min: number
+  age_min_duo_p1: number
+  age_min_duo_p2: number
   created_at: string
 }
 

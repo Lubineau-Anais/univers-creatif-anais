@@ -170,12 +170,31 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     onReserved()
   }
 
+  // ── Âge minimum requis selon la position du participant ────────────────────
+  function ageMinForPosition(position: number): number {
+    if (!isDuo) return atelier.age_min || 0
+    return position % 2 === 1 ? (atelier.age_min_duo_p1 || 0) : (atelier.age_min_duo_p2 || 0)
+  }
+
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.paiement) { setError('Veuillez choisir un mode de règlement.'); return }
-    for (const p of personnesSup) {
+
+    const mainMin = ageMinForPosition(1)
+    if (mainMin > 0 && (!form.age || parseInt(form.age) < mainMin)) {
+      setError(`Âge minimum requis pour le participant 1 : ${mainMin} ans.`)
+      return
+    }
+
+    for (let i = 0; i < personnesSup.length; i++) {
+      const p = personnesSup[i]
       if (!p.prenom.trim() || !p.nom.trim() || !p.age.trim()) {
         setError('Merci de remplir les infos de chaque participant.')
+        return
+      }
+      const min = ageMinForPosition(i + 2)
+      if (min > 0 && parseInt(p.age) < min) {
+        setError(`Âge minimum requis pour le participant ${i + 2} : ${min} ans.`)
         return
       }
     }
@@ -288,7 +307,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
 
             {/* Âge */}
             <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">Âge *</label>
+              <label className="block text-xs font-black text-[#1A1040] mb-1">
+                Âge *
+                {ageMinForPosition(1) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(1)} ans)</span>}
+              </label>
               <input required type="number" min="5" max="120"
                 value={form.age} placeholder="Ex : 32"
                 onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
@@ -372,7 +394,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Âge *</label>
+                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">
+                      Âge *
+                      {ageMinForPosition(idx + 2) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(idx + 2)} ans)</span>}
+                    </label>
                     <input required type="number" min="5" max="120" value={p.age} placeholder="28"
                       onChange={e => updatePersonneSup(idx, 'age', e.target.value)}
                       className="w-32 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"

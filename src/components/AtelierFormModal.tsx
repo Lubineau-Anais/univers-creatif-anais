@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   duree: '', lieu: '', prix: '', places_max: '',
   prix_type: 'personne' as 'personne' | 'duo',
   modes_paiement: ['cheque', 'especes'] as string[],
+  age_min: '0', age_min_duo_p1: '0', age_min_duo_p2: '0',
 }
 
 export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved }: Props) {
@@ -45,6 +46,9 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         places_max:     String(atelier.places_max),
         prix_type:      atelier.prix_type ?? 'personne',
         modes_paiement: atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes'],
+        age_min:         String(atelier.age_min ?? 0),
+        age_min_duo_p1:  String(atelier.age_min_duo_p1 ?? 0),
+        age_min_duo_p2:  String(atelier.age_min_duo_p2 ?? 0),
       })
       if (atelier.image_url) setImagePreview(atelier.image_url)
     }
@@ -94,6 +98,9 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         image_url,
         category_id:      categoryId ?? atelier?.category_id ?? null,
         modes_paiement:   form.modes_paiement,
+        age_min:          parseInt(form.age_min) || 0,
+        age_min_duo_p1:   parseInt(form.age_min_duo_p1) || 0,
+        age_min_duo_p2:   parseInt(form.age_min_duo_p2) || 0,
       }
 
       if (isEdit && atelier) {
@@ -210,6 +217,37 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
           </div>
 
           {field('👥 Nb de places', 'places_max', 'number', '8')}
+
+          {/* Âge minimum */}
+          {form.prix_type === 'personne' ? (
+            <div>
+              <label className="block text-sm font-black text-[#1A1040] mb-1">🔞 Âge minimum</label>
+              <input type="number" min="0" max="120" value={form.age_min}
+                onChange={e => setForm(p => ({ ...p, age_min: e.target.value }))}
+                placeholder="0 = aucune limite"
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+              <p className="text-[10px] text-gray-400 mt-1">0 = aucune limite d'âge</p>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-black text-[#1A1040] mb-1">🔞 Âge minimum (duo)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1">Participant 1</label>
+                  <input type="number" min="0" max="120" value={form.age_min_duo_p1}
+                    onChange={e => setForm(p => ({ ...p, age_min_duo_p1: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1">Participant 2</label>
+                  <input type="number" min="0" max="120" value={form.age_min_duo_p2}
+                    onChange={e => setForm(p => ({ ...p, age_min_duo_p2: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">0 = aucune limite d'âge pour ce participant</p>
+            </div>
+          )}
 
           {/* Modes de paiement */}
           <div>
