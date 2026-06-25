@@ -33,6 +33,16 @@ function dateLongue(d: string) {
   })
 }
 
+function moisAnnee(d: string) {
+  const txt = new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return txt.charAt(0).toUpperCase() + txt.slice(1)
+}
+
+function moisAnneeKey(d: string) {
+  const dt = new Date(d + 'T00:00:00')
+  return `${dt.getFullYear()}-${String(dt.getMonth()).padStart(2, '0')}`
+}
+
 // ─── Modale catégorie ─────────────────────────────────────────────────────────
 interface CatModalProps {
   cat: AtelierCategory | null
@@ -201,6 +211,18 @@ export default function NosAteliers() {
   const [showDescEditor, setShowDescEditor] = useState(false)
 
   const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  // Regroupement des ateliers par mois/année (ateliers déjà triés par date ascendante)
+  const ateliersGroupes = (() => {
+    const groups: { key: string; label: string; items: Atelier[] }[] = []
+    for (const atelier of ateliers) {
+      const key = moisAnneeKey(atelier.date)
+      let group = groups.find(g => g.key === key)
+      if (!group) { group = { key, label: moisAnnee(atelier.date), items: [] }; groups.push(group) }
+      group.items.push(atelier)
+    }
+    return groups
+  })()
 
   useEffect(() => { loadCategories(); loadHero() }, [])
 
@@ -486,8 +508,21 @@ export default function NosAteliers() {
             {isAdmin && <p className="text-rose-400 mt-2 font-bold">Clique sur « + Ajouter un atelier » pour en créer un !</p>}
           </div>
         ) : (
-          <div className="flex flex-wrap justify-center gap-10 md:gap-14">
-            {ateliers.map((atelier, idx) => {
+          <div className="space-y-14">
+            {ateliersGroupes.map(group => (
+              <div key={group.key}>
+                {/* Séparateur mois / année */}
+                <div className="flex items-center gap-4 mb-9">
+                  <div className="flex-1 h-0.5 bg-[#1A1040]/15" />
+                  <span className="inline-flex items-center gap-2 bg-[#1A1040] text-citron-400 px-5 py-2 rounded-full text-base font-black border-2 border-[#1A1040] whitespace-nowrap"
+                    style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
+                    📅 {group.label}
+                  </span>
+                  <div className="flex-1 h-0.5 bg-[#1A1040]/15" />
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-10 md:gap-14">
+            {group.items.map((atelier, idx) => {
               const rotation  = ROTATIONS[idx % ROTATIONS.length]
               const tapeColor = TAPE_COLORS[idx % TAPE_COLORS.length]
               const isComplet = atelier.places_restantes === 0
@@ -636,6 +671,9 @@ export default function NosAteliers() {
                 </div>
               )
             })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
