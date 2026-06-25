@@ -149,6 +149,13 @@ export default function Accueil() {
   const [maxSlotAccueil, setMaxSlotAccueil] = useState(3)
   const [slotVisibility, setSlotVisibility] = useState<Record<number, boolean>>({})
   const [actuPolaroidSize, setActuPolaroidSize] = useState(208)
+  const [actuTitreFont,  setActuTitreFont]  = useState('cursive')
+  const [actuTitreSize,  setActuTitreSize]  = useState(18)
+  const [actuTitreColor, setActuTitreColor] = useState('#1A1040')
+  const [actuTexteFont,  setActuTexteFont]  = useState('sans')
+  const [actuTexteSize,  setActuTexteSize]  = useState(13)
+  const [actuTexteColor, setActuTexteColor] = useState('#4b5563')
+  const [expandedActu, setExpandedActu] = useState<Actu | null>(null)
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({})
   const [heroStyle, setHeroStyle]           = useState<HeroStyle>(DEFAULT_HERO_STYLE)
   const [showTitleEditor, setShowTitleEditor] = useState(false)
@@ -303,6 +310,12 @@ export default function Accueil() {
     ;(settData || []).forEach((s: { key: string; value: string }) => {
       if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
       else if (s.key === 'actu_polaroid_size')       { setActuPolaroidSize(parseInt(s.value) || 208) }
+      else if (s.key === 'actu_card_titre_font')     { setActuTitreFont(s.value) }
+      else if (s.key === 'actu_card_titre_size')     { setActuTitreSize(parseInt(s.value) || 18) }
+      else if (s.key === 'actu_card_titre_color')    { setActuTitreColor(s.value) }
+      else if (s.key === 'actu_card_texte_font')     { setActuTexteFont(s.value) }
+      else if (s.key === 'actu_card_texte_size')     { setActuTexteSize(parseInt(s.value) || 13) }
+      else if (s.key === 'actu_card_texte_color')    { setActuTexteColor(s.value) }
       else if (s.key === 'hero_bg_config')           { try { setHeroBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'actu_bg_config')           { try { setActuBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'actu_section_titre_style') { try { setActuTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
@@ -562,7 +575,8 @@ export default function Accueil() {
                       style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
                       {/* Scotch */}
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
-                      <div className="bg-white p-3 pb-10 border-2 border-[#1A1040] rounded-sm"
+                      <div onClick={() => setExpandedActu(actu)}
+                        className="bg-white p-3 pb-10 border-2 border-[#1A1040] rounded-sm cursor-pointer hover:-translate-y-1 hover:rotate-0 transition-transform"
                         style={{ width: `${actuPolaroidSize}px`, boxShadow: '5px 5px 0px 0px #1A1040' }}>
                         <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-4"
                           style={{ height: `${actuPolaroidSize * 0.85}px` }}>
@@ -573,13 +587,19 @@ export default function Accueil() {
                             : <div className="w-full h-full flex items-center justify-center text-4xl">🎨</div>}
                         </div>
                         {actu.titre && (
-                          <p className="font-brand font-bold text-[#1A1040] text-center leading-tight mb-1" style={{ fontSize: `${Math.max(14, actuPolaroidSize * 0.085)}px` }}>{actu.titre}</p>
+                          <p className="font-bold text-center leading-tight mb-1"
+                            style={{ fontSize: `${actuTitreSize}px`, fontFamily: BTN_FONT_MAP[actuTitreFont] || 'cursive', color: actuTitreColor }}>
+                            {actu.titre}
+                          </p>
                         )}
                         {actu.texte && (
-                          <p className="text-gray-600 text-center leading-relaxed line-clamp-3" style={{ fontSize: `${Math.max(11, actuPolaroidSize * 0.06)}px` }}>{actu.texte}</p>
+                          <p className="text-center leading-relaxed"
+                            style={{ fontSize: `${actuTexteSize}px`, fontFamily: BTN_FONT_MAP[actuTexteFont] || 'sans-serif', color: actuTexteColor }}>
+                            {actu.texte}
+                          </p>
                         )}
                         {isAdmin && (
-                          <Link to="/actu-moment"
+                          <Link to="/actu-moment" onClick={e => e.stopPropagation()}
                             className={`mt-3 block text-center px-2 py-1 ${actuBtn.radius} hover:opacity-75 transition-all`}
                             style={{ backgroundColor: actuBtn.bg, color: actuBtn.text, fontSize: `${actuBtn.fontSize}px`, fontWeight: actuBtn.bold ? 'bold' : 'normal' }}>
                             {actuBtn.label}
@@ -960,6 +980,38 @@ export default function Accueil() {
           }}
           onClose={() => setShowActuTitleEditor(false)}
         />
+      )}
+
+      {/* ===== LIGHTBOX — POLAROÏD ACTU AGRANDI ===== */}
+      {expandedActu && (
+        <div className="fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onClick={() => setExpandedActu(null)}>
+          <div className="bg-white p-5 pb-10 border-4 border-[#1A1040] rounded-sm max-w-md w-full max-h-[90vh] overflow-y-auto"
+            style={{ boxShadow: '8px 8px 0px 0px #1A1040' }} onClick={e => e.stopPropagation()}>
+            <div className="w-full bg-candy border-2 border-gray-200 overflow-hidden mb-5 max-h-[55vh]">
+              {expandedActu.photo_url
+                ? /\.(mp4|webm|mov)(\?|$)/i.test(expandedActu.photo_url)
+                  ? <video src={expandedActu.photo_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                  : <img src={expandedActu.photo_url} alt={expandedActu.titre} className="w-full h-full object-cover" />
+                : <div className="w-full h-64 flex items-center justify-center text-6xl">🎨</div>}
+            </div>
+            {expandedActu.titre && (
+              <p className="font-bold text-center leading-tight mb-2"
+                style={{ fontSize: `${actuTitreSize * 1.6}px`, fontFamily: BTN_FONT_MAP[actuTitreFont] || 'cursive', color: actuTitreColor }}>
+                {expandedActu.titre}
+              </p>
+            )}
+            {expandedActu.texte && (
+              <p className="text-center leading-relaxed"
+                style={{ fontSize: `${actuTexteSize * 1.3}px`, fontFamily: BTN_FONT_MAP[actuTexteFont] || 'sans-serif', color: actuTexteColor }}>
+                {expandedActu.texte}
+              </p>
+            )}
+            <button onClick={() => setExpandedActu(null)}
+              className="mt-5 mx-auto block bg-[#1A1040] text-citron-400 px-5 py-2 rounded-xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] transition-colors">
+              Fermer ✕
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ===== GESTIONNAIRE POLAROÏDS HERO ===== */}

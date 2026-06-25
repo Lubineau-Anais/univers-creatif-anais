@@ -24,6 +24,8 @@ const STATUT_STYLE: Record<StatutActu, { label: string; bg: string; text: string
   passe:  { label: '⚫ Passé',     bg: 'bg-gray-100',   text: 'text-gray-500' },
 }
 
+const FONT_OPTIONS = ['sans', 'serif', 'mono', 'cursive']
+
 const SLOT_COLORS = [
   'bg-rose-400', 'bg-citron-400', 'bg-turquoise-400',
   'bg-lime-400', 'bg-orange-400', 'bg-violet-400', 'bg-pink-400', 'bg-sky-400',
@@ -56,6 +58,14 @@ export default function ActuAdmin() {
   const [filterStatut, setFilterStatut] = useState<string>('tous')
   const [polaroidSize, setPolaroidSize] = useState(208)
 
+  // Style titre/texte des polaroïds (global, s'applique aux 4 cartes)
+  const [titreFont,  setTitreFont]  = useState('cursive')
+  const [titreSize,  setTitreSize]  = useState(18)
+  const [titreColor, setTitreColor] = useState('#1A1040')
+  const [texteFont,  setTexteFont]  = useState('sans')
+  const [texteSize,  setTexteSize]  = useState(13)
+  const [texteColor, setTexteColor] = useState('#4b5563')
+
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
@@ -73,6 +83,12 @@ export default function ActuAdmin() {
     ;(settData || []).forEach((s: { key: string; value: string }) => {
       if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
       else if (s.key === 'actu_polaroid_size') setPolaroidSize(parseInt(s.value) || 208)
+      else if (s.key === 'actu_card_titre_font')  setTitreFont(s.value)
+      else if (s.key === 'actu_card_titre_size')  setTitreSize(parseInt(s.value) || 18)
+      else if (s.key === 'actu_card_titre_color') setTitreColor(s.value)
+      else if (s.key === 'actu_card_texte_font')  setTexteFont(s.value)
+      else if (s.key === 'actu_card_texte_size')  setTexteSize(parseInt(s.value) || 13)
+      else if (s.key === 'actu_card_texte_color') setTexteColor(s.value)
       else if (s.key.startsWith('slot_visible_')) {
         const n = parseInt(s.key.replace('slot_visible_', ''))
         if (!isNaN(n)) vis[n] = s.value !== 'false'
@@ -87,6 +103,10 @@ export default function ActuAdmin() {
   async function changePolaroidSize(size: number) {
     setPolaroidSize(size)
     await supabase.from('settings').upsert({ key: 'actu_polaroid_size', value: String(size) }, { onConflict: 'key' })
+  }
+
+  async function saveSetting(key: string, value: string) {
+    await supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
   }
 
   const slots = useMemo(() => Array.from({ length: maxSlot }, (_, i) => i + 1), [maxSlot])
@@ -232,13 +252,54 @@ export default function ActuAdmin() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-5">
 
         {/* ── TAILLE DES POLAROÏDS ── */}
-        <div className="bg-white rounded-2xl border-2 border-[#1A1040] px-5 py-4 flex items-center gap-4"
+        <div className="bg-white rounded-2xl border-2 border-[#1A1040] px-5 py-4 space-y-4"
           style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-          <span className="text-sm font-black text-[#1A1040] shrink-0">📐 Taille des polaroïds</span>
-          <input type="range" min={160} max={420} step={10} value={polaroidSize}
-            onChange={e => changePolaroidSize(parseInt(e.target.value))}
-            className="flex-1" />
-          <span className="text-sm font-black text-[#1A1040] w-16 text-right shrink-0">{polaroidSize}px</span>
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-black text-[#1A1040] shrink-0">📐 Taille des polaroïds</span>
+            <input type="range" min={160} max={420} step={10} value={polaroidSize}
+              onChange={e => changePolaroidSize(parseInt(e.target.value))}
+              className="flex-1" />
+            <span className="text-sm font-black text-[#1A1040] w-16 text-right shrink-0">{polaroidSize}px</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t-2 border-dashed border-gray-200">
+            {/* Style Titre */}
+            <div>
+              <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide mb-2">✏️ Titre</p>
+              <div className="grid grid-cols-3 gap-2">
+                <select value={titreFont} onChange={e => { setTitreFont(e.target.value); saveSetting('actu_card_titre_font', e.target.value) }}
+                  className="border-2 border-[#1A1040] rounded-lg px-1 py-1.5 text-xs font-bold bg-white">
+                  {FONT_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input type="number" min={10} max={48} value={titreSize}
+                  onChange={e => { const v = parseInt(e.target.value) || 18; setTitreSize(v); saveSetting('actu_card_titre_size', String(v)) }}
+                  title="Taille (px)"
+                  className="border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold" />
+                <input type="color" value={titreColor}
+                  onChange={e => { setTitreColor(e.target.value); saveSetting('actu_card_titre_color', e.target.value) }}
+                  className="w-full h-8 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+
+            {/* Style Texte */}
+            <div>
+              <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide mb-2">📝 Texte</p>
+              <div className="grid grid-cols-3 gap-2">
+                <select value={texteFont} onChange={e => { setTexteFont(e.target.value); saveSetting('actu_card_texte_font', e.target.value) }}
+                  className="border-2 border-[#1A1040] rounded-lg px-1 py-1.5 text-xs font-bold bg-white">
+                  {FONT_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input type="number" min={8} max={32} value={texteSize}
+                  onChange={e => { const v = parseInt(e.target.value) || 13; setTexteSize(v); saveSetting('actu_card_texte_size', String(v)) }}
+                  title="Taille (px)"
+                  className="border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold" />
+                <input type="color" value={texteColor}
+                  onChange={e => { setTexteColor(e.target.value); saveSetting('actu_card_texte_color', e.target.value) }}
+                  className="w-full h-8 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── FILTRES ── */}
