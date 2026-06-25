@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, LogIn, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images } from 'lucide-react'
+import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { useCart } from '../context/CartContext'
@@ -263,16 +263,11 @@ export default function Navbar() {
               </>
             )}
 
-            {isAdmin ? (
+            {isAdmin && (
               <button onClick={signOut}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-[#1A1040] hover:bg-red-100 transition-colors border-2 border-transparent hover:border-red-300">
                 <LogOut className="w-4 h-4" /> Déconnexion
               </button>
-            ) : (
-              <Link to="/connexion"
-                className="flex items-center gap-1.5 ml-2 bg-citron-400 text-[#1A1040] px-4 py-2 rounded-xl text-sm font-bold shadow-pop hover:-translate-y-0.5 transition-all border-2 border-[#1A1040]">
-                <LogIn className="w-4 h-4" /> Connexion
-              </Link>
             )}
           </div>
 
@@ -362,16 +357,11 @@ export default function Navbar() {
             </>
           )}
 
-          {isAdmin ? (
+          {isAdmin && (
             <button onClick={() => { signOut(); setMenuOpen(false) }}
               className="flex items-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50">
               <LogOut className="w-4 h-4" /> Déconnexion
             </button>
-          ) : (
-            <Link to="/connexion" onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 bg-citron-400 text-[#1A1040] px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
-              <LogIn className="w-4 h-4" /> Connexion
-            </Link>
           )}
         </div>
       )}
