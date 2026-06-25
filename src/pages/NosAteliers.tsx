@@ -19,6 +19,10 @@ const DEFAULT_ATELIERS_SOUS_STYLE: HeroStyle = {
 const DEFAULT_ATELIERS_TITRE = 'Nos Ateliers <span style="color:#fb7185">✦</span>'
 const DEFAULT_ATELIERS_SOUS  = 'Choisis ta catégorie et découvre nos ateliers créatifs !'
 
+const DESC_FONT_MAP: Record<string, string> = { sans: 'sans-serif', serif: 'serif', mono: 'monospace', cursive: 'cursive' }
+interface DescStyle { font: string; size: number; color: string }
+const DEFAULT_DESC_STYLE: DescStyle = { font: 'sans', size: 13, color: '#4b5563' }
+
 // ─── Déco polaroïd ───────────────────────────────────────────────────────────
 const ROTATIONS  = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-3', 'rotate-1']
 const TAPE_COLORS = ['bg-citron-400/70', 'bg-rose-400/70', 'bg-turquoise-400/70', 'bg-lime-300/70', 'bg-rose-300/60']
@@ -192,6 +196,10 @@ export default function NosAteliers() {
   const [showTitreEditor, setShowTitreEditor] = useState(false)
   const [showSousEditor,  setShowSousEditor]  = useState(false)
 
+  // Style des descriptifs d'atelier
+  const [descStyle, setDescStyle] = useState<DescStyle>(DEFAULT_DESC_STYLE)
+  const [showDescEditor, setShowDescEditor] = useState(false)
+
   const today = new Date(); today.setHours(0, 0, 0, 0)
 
   useEffect(() => { loadCategories(); loadHero() }, [])
@@ -199,7 +207,7 @@ export default function NosAteliers() {
   async function loadHero() {
     const [{ data: settings }, { data: content }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
-        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style',
+        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style', 'ateliers_desc_style',
       ]),
       supabase.from('page_content').select('section, contenu').eq('page', 'ateliers')
         .in('section', ['ateliers_titre', 'ateliers_soustitre']),
@@ -209,6 +217,7 @@ export default function NosAteliers() {
         if (s.key === 'ateliers_badge_config')     setHeroBadge(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_titre_style')      setHeroTitreStyle(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_soustitre_style')  setHeroSousStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'ateliers_desc_style')       setDescStyle(p => ({ ...p, ...JSON.parse(s.value) }))
       } catch {}
     })
     ;(content || []).forEach((c: { section: string; contenu: string }) => {
@@ -220,6 +229,11 @@ export default function NosAteliers() {
   async function saveBadge() {
     await supabase.from('settings').upsert({ key: 'ateliers_badge_config', value: JSON.stringify(heroBadge) }, { onConflict: 'key' })
     setShowBadgeEditor(false)
+  }
+
+  async function saveDescStyle() {
+    await supabase.from('settings').upsert({ key: 'ateliers_desc_style', value: JSON.stringify(descStyle) }, { onConflict: 'key' })
+    setShowDescEditor(false)
   }
 
   async function loadCategories() {
@@ -353,6 +367,12 @@ export default function NosAteliers() {
                   className="flex items-center gap-2 bg-white text-[#1A1040] px-4 py-2.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-candy transition-all"
                   style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
                   <Pencil className="w-4 h-4" /> Modifier la catégorie
+                </button>
+                <button
+                  onClick={() => setShowDescEditor(true)}
+                  className="flex items-center gap-2 bg-white text-[#1A1040] px-4 py-2.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-candy transition-all"
+                  style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+                  <Pencil className="w-4 h-4" /> Style des descriptifs
                 </button>
                 <button
                   onClick={() => { setEditingAtelier(null); setShowAtelierModal(true) }}
@@ -522,9 +542,15 @@ export default function NosAteliers() {
 
                     {/* Bande info */}
                     <div className="px-4 pt-4 pb-5">
-                      <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-3 leading-tight">
+                      <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-2 leading-tight">
                         {atelier.titre}
                       </h3>
+                      {atelier.description && (
+                        <p className="text-center mb-3 leading-snug"
+                          style={{ fontFamily: DESC_FONT_MAP[descStyle.font] || 'sans-serif', fontSize: `${descStyle.size}px`, color: descStyle.color }}>
+                          {atelier.description}
+                        </p>
+                      )}
                       <div className="border-t border-dashed border-gray-200 mb-3" />
                       <div className="space-y-1.5">
                         <div className="flex items-start gap-2 text-xs text-gray-600 font-medium">
@@ -633,6 +659,44 @@ export default function NosAteliers() {
               <button onClick={() => setShowBadgeEditor(false)}
                 className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
               <button onClick={saveBadge} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ÉDITEUR STYLE DESCRIPTIFS ── */}
+      {showDescEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowDescEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #4dd9c0' }}>
+            <h3 className="font-black text-[#1A1040]">📝 Style des descriptifs d'atelier</h3>
+            <p className="text-center leading-snug border-2 border-dashed border-gray-200 rounded-xl p-3"
+              style={{ fontFamily: DESC_FONT_MAP[descStyle.font] || 'sans-serif', fontSize: `${descStyle.size}px`, color: descStyle.color }}>
+              Aperçu : un atelier créatif pour tous les niveaux !
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Police</label>
+                <select value={descStyle.font} onChange={e => setDescStyle(p => ({ ...p, font: e.target.value }))}
+                  className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs font-bold bg-white">
+                  {Object.keys(DESC_FONT_MAP).map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille</label>
+                <input type="number" min={8} max={32} value={descStyle.size}
+                  onChange={e => setDescStyle(p => ({ ...p, size: parseInt(e.target.value) || 13 }))}
+                  className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs font-bold" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Couleur</label>
+                <input type="color" value={descStyle.color} onChange={e => setDescStyle(p => ({ ...p, color: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowDescEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+              <button onClick={saveDescStyle} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
             </div>
           </div>
         </div>
