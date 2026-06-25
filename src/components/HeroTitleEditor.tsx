@@ -62,6 +62,7 @@ export function buildTitleStyle(style: HeroStyle): React.CSSProperties {
 interface Props {
   initialText:  string
   initialStyle: HeroStyle
+  page?:        string   // page dans page_content (ex: 'accueil', 'contact', 'boutique') — défaut 'accueil'
   sectionKey:   string   // clé dans page_content (ex: 'hero_titre', 'hero_sous_titre')
   styleKey:     string   // clé dans settings (ex: 'hero_titre_style', 'hero_sous_titre_style')
   label?:       string   // titre de la modale
@@ -70,7 +71,7 @@ interface Props {
 }
 
 // ─── Composant ──────────────────────────────────────────────────────────────
-export default function HeroTitleEditor({ initialText, initialStyle, sectionKey, styleKey, label, onSave, onClose }: Props) {
+export default function HeroTitleEditor({ initialText, initialStyle, page = 'accueil', sectionKey, styleKey, label, onSave, onClose }: Props) {
   const [style, setStyle]           = useState<HeroStyle>(initialStyle)
   const [previewHtml, setPreviewHtml] = useState(initialText)
   const [saving, setSaving]         = useState(false)
@@ -100,7 +101,7 @@ export default function HeroTitleEditor({ initialText, initialStyle, sectionKey,
     setSaving(true)
     await Promise.all([
       supabase.from('page_content').upsert(
-        { page: 'accueil', section: sectionKey, contenu: text },
+        { page, section: sectionKey, contenu: text },
         { onConflict: 'page,section' }
       ),
       supabase.from('settings').upsert(

@@ -276,6 +276,7 @@ export default function ContactAdmin() {
         <HeroTitleEditor
           initialText={titreText}
           initialStyle={titreStyle}
+          page="contact"
           sectionKey="contact_titre"
           styleKey="contact_titre_style"
           label="✏️ Titre — Page Contact"

@@ -260,6 +260,7 @@ export default function Contact() {
         <HeroTitleEditor
           initialText={content['contact_titre']}
           initialStyle={titreStyle}
+          page="contact"
           sectionKey="contact_titre"
           styleKey="contact_titre_style"
           label="✏️ Titre — Page Contact"

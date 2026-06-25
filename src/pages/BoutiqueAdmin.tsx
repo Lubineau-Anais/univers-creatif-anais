@@ -362,6 +362,7 @@ export default function BoutiqueAdmin() {
       {showTitreEditor && (
         <HeroTitleEditor
           initialText={titreText} initialStyle={titreStyle}
+          page="boutique"
           sectionKey="shop_titre" styleKey="shop_titre_style"
           label="✏️ Titre — Boutique"
           onSave={(t,s) => { setTitreText(t); setTitreStyle(s); setShowTitreEditor(false) }}
