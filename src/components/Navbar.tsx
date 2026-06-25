@@ -146,40 +146,45 @@ export default function Navbar() {
 
             {/* Liens publics dynamiques */}
             {navLinks.map((link) => {
-              if (link.href === '/ateliers' && !tabVisible.ateliers) return null
-              if (link.href === '/contact'  && !tabVisible.contact)  return null
+              const hiddenAteliers = link.href === '/ateliers' && !tabVisible.ateliers
+              const hiddenContact  = link.href === '/contact'  && !tabVisible.contact
+              if ((hiddenAteliers || hiddenContact) && !isAdmin) return null
+              const isHidden = hiddenAteliers || hiddenContact
               return (
                 <Link
                   key={link.href}
                   to={link.href}
-                  className="px-4 py-2 rounded-xl text-sm font-bold"
+                  className="px-4 py-2 rounded-xl text-sm font-bold relative"
                   style={publicLinkStyle(link.href)}
                   onMouseEnter={() => setHoveredHref(link.href)}
                   onMouseLeave={() => setHoveredHref(null)}
                 >
-                  {link.label}
+                  {isHidden && <span className="absolute -top-1.5 -right-1.5 text-[10px]" title="Masqué au public">🙈</span>}
+                  <span className={isHidden ? 'opacity-50' : ''}>{link.label}</span>
                 </Link>
               )
             })}
 
             {/* Lien galerie (fixe, conditionnel) */}
-            {tabVisible.galerie && (
+            {(tabVisible.galerie || isAdmin) && (
               <Link to="/galerie"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] relative ${
                   isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040] hover:bg-violet-300'
-                }`}
+                } ${!tabVisible.galerie ? 'opacity-50' : ''}`}
                 style={{ boxShadow: isActive('/galerie') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
+                {!tabVisible.galerie && <span className="absolute -top-1.5 -right-1.5 text-[10px]" title="Masqué au public">🙈</span>}
                 <Images className="w-4 h-4" /> Galerie
               </Link>
             )}
 
             {/* Lien boutique (fixe, conditionnel) */}
-            {tabVisible.boutique && (
+            {(tabVisible.boutique || isAdmin) && (
               <Link to="/boutique"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] relative ${
                   isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040] hover:bg-yellow-300'
-                }`}
+                } ${!tabVisible.boutique ? 'opacity-50' : ''}`}
                 style={{ boxShadow: isActive('/boutique') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
+                {!tabVisible.boutique && <span className="absolute -top-1.5 -right-1.5 text-[10px]" title="Masqué au public">🙈</span>}
                 <ShoppingBag className="w-4 h-4" /> Boutique
               </Link>
             )}
@@ -307,34 +312,39 @@ export default function Navbar() {
 
           {/* Liens publics dynamiques */}
           {navLinks.map((link) => {
-            if (link.href === '/ateliers' && !tabVisible.ateliers) return null
-            if (link.href === '/contact'  && !tabVisible.contact)  return null
+            const hiddenAteliers = link.href === '/ateliers' && !tabVisible.ateliers
+            const hiddenContact  = link.href === '/contact'  && !tabVisible.contact
+            if ((hiddenAteliers || hiddenContact) && !isAdmin) return null
+            const isHidden = hiddenAteliers || hiddenContact
             return (
               <Link key={link.href} to={link.href} onClick={() => setMenuOpen(false)}
-                className="block px-4 py-3 rounded-xl text-sm font-bold transition-colors"
+                className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isHidden ? 'opacity-50' : ''}`}
                 style={{
                   fontFamily:      FONT_MAP[nav.linkFont] || 'sans-serif',
                   backgroundColor: isActive(link.href) ? nav.activeBg : 'transparent',
                   color:           isActive(link.href) ? nav.activeText : nav.inactiveText,
                 }}>
                 {link.label}
+                {isHidden && <span className="text-xs" title="Masqué au public">🙈</span>}
               </Link>
             )
           })}
 
           {/* Galerie (fixe, conditionnel) */}
-          {tabVisible.galerie && (
+          {(tabVisible.galerie || isAdmin) && (
             <Link to="/galerie" onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'}`}>
-              <Images className="w-4 h-4" /> Galerie
+              className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'} ${!tabVisible.galerie ? 'opacity-50' : ''}`}>
+              <span className="flex items-center gap-2"><Images className="w-4 h-4" /> Galerie</span>
+              {!tabVisible.galerie && <span className="text-xs" title="Masqué au public">🙈</span>}
             </Link>
           )}
 
           {/* Boutique (fixe, conditionnel) */}
-          {tabVisible.boutique && (
+          {(tabVisible.boutique || isAdmin) && (
             <Link to="/boutique" onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'}`}>
-              <ShoppingBag className="w-4 h-4" /> Boutique
+              className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'} ${!tabVisible.boutique ? 'opacity-50' : ''}`}>
+              <span className="flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> Boutique</span>
+              {!tabVisible.boutique && <span className="text-xs" title="Masqué au public">🙈</span>}
             </Link>
           )}
 
