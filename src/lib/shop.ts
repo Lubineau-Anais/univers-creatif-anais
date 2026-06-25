@@ -20,6 +20,8 @@ export interface ShopProduct {
   category_id: string | null
   images: string[]
   stock: number
+  stock_illimite: boolean
+  montants_disponibles: number[] | null
   is_active: boolean
   sort_order: number
   created_at: string
@@ -30,6 +32,7 @@ export interface ShopCartItem {
   cart_id: string
   product_id: string
   quantity: number
+  chosen_price: number | null
   created_at: string
   product: ShopProduct
 }

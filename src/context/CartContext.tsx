@@ -23,8 +23,8 @@ interface CartContextType {
   appliedCode:  ShopPromoCode | null
   isOpen:       boolean
   loading:      boolean
-  addItem:      (productId: string, qty?: number) => Promise<{ success: boolean; error?: string }>
-  removeItem:   (productId: string, qty?: number) => Promise<void>
+  addItem:      (productId: string, qty?: number, chosenPrice?: number) => Promise<{ success: boolean; error?: string }>
+  removeItem:   (itemId: string, qty?: number) => Promise<void>
   clearCart:    () => Promise<void>
   applyPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>
   removePromoCode: () => void
@@ -123,29 +123,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   // ── Ajouter un article ────────────────────────────────────────────────────────
-  async function addItem(productId: string, qty = 1): Promise<{ success: boolean; error?: string }> {
+  async function addItem(productId: string, qty = 1, chosenPrice?: number): Promise<{ success: boolean; error?: string }> {
     const cId = cartIdRef.current
     if (!cId) return { success: false, error: 'Panier introuvable' }
 
-    // Vérification + décrémentation atomique du stock (WHERE stock >= qty)
     const { data: prod } = await supabase
-      .from('shop_products').select('stock').eq('id', productId).maybeSingle()
-    if (!prod || prod.stock < qty) return { success: false, error: 'Stock insuffisant' }
+      .from('shop_products').select('stock, stock_illimite').eq('id', productId).maybeSingle()
+    if (!prod) return { success: false, error: 'Article introuvable' }
 
-    const { data: decremented } = await supabase
-      .from('shop_products')
-      .update({ stock: prod.stock - qty })
-      .eq('id', productId).gte('stock', qty).select('id')
-    if (!decremented?.length) return { success: false, error: 'Stock insuffisant' }
+    if (!prod.stock_illimite) {
+      // Vérification + décrémentation atomique du stock (WHERE stock >= qty)
+      if (prod.stock < qty) return { success: false, error: 'Stock insuffisant' }
+      const { data: decremented } = await supabase
+        .from('shop_products')
+        .update({ stock: prod.stock - qty })
+        .eq('id', productId).gte('stock', qty).select('id')
+      if (!decremented?.length) return { success: false, error: 'Stock insuffisant' }
+    }
 
-    // Upsert dans cart_items
-    const { data: existing } = await supabase
-      .from('shop_cart_items').select('quantity').eq('cart_id', cId).eq('product_id', productId).maybeSingle()
+    // Upsert dans cart_items — les montants différents (carte cadeau) restent des lignes distinctes
+    let query = supabase.from('shop_cart_items').select('id, quantity').eq('cart_id', cId).eq('product_id', productId)
+    query = chosenPrice != null ? query.eq('chosen_price', chosenPrice) : query.is('chosen_price', null)
+    const { data: existing } = await query.maybeSingle()
+
     if (existing) {
       await supabase.from('shop_cart_items')
-        .update({ quantity: existing.quantity + qty }).eq('cart_id', cId).eq('product_id', productId)
+        .update({ quantity: existing.quantity + qty }).eq('id', existing.id)
     } else {
-      await supabase.from('shop_cart_items').insert({ cart_id: cId, product_id: productId, quantity: qty })
+      await supabase.from('shop_cart_items').insert({ cart_id: cId, product_id: productId, quantity: qty, chosen_price: chosenPrice ?? null })
     }
 
     // Rafraîchir l'expiration
@@ -160,23 +165,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   // ── Retirer un article ────────────────────────────────────────────────────────
-  async function removeItem(productId: string, qty = 1) {
+  async function removeItem(itemId: string, qty = 1) {
     const cId = cartIdRef.current
     if (!cId) return
-    const item = items.find(i => i.product_id === productId)
+    const item = items.find(i => i.id === itemId)
     if (!item) return
     const actualQty = Math.min(qty, item.quantity)
 
-    // Restauration stock
-    const { data: prod } = await supabase.from('shop_products').select('stock').eq('id', productId).maybeSingle()
-    if (prod !== null && prod !== undefined)
-      await supabase.from('shop_products').update({ stock: prod.stock + actualQty }).eq('id', productId)
+    // Restauration stock (sauf si stock illimité)
+    const { data: prod } = await supabase.from('shop_products').select('stock, stock_illimite').eq('id', item.product_id).maybeSingle()
+    if (prod && !prod.stock_illimite)
+      await supabase.from('shop_products').update({ stock: prod.stock + actualQty }).eq('id', item.product_id)
 
     if (item.quantity <= qty) {
-      await supabase.from('shop_cart_items').delete().eq('cart_id', cId).eq('product_id', productId)
+      await supabase.from('shop_cart_items').delete().eq('id', itemId)
     } else {
       await supabase.from('shop_cart_items')
-        .update({ quantity: item.quantity - qty }).eq('cart_id', cId).eq('product_id', productId)
+        .update({ quantity: item.quantity - qty }).eq('id', itemId)
     }
     await loadItems(cId)
   }
@@ -186,8 +191,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const cId = cartIdRef.current
     if (!cId) return
     for (const item of items) {
-      const { data: prod } = await supabase.from('shop_products').select('stock').eq('id', item.product_id).maybeSingle()
-      if (prod !== null && prod !== undefined)
+      const { data: prod } = await supabase.from('shop_products').select('stock, stock_illimite').eq('id', item.product_id).maybeSingle()
+      if (prod && !prod.stock_illimite)
         await supabase.from('shop_products').update({ stock: prod.stock + item.quantity }).eq('id', item.product_id)
     }
     await supabase.from('shop_cart_items').delete().eq('cart_id', cId)
@@ -219,7 +224,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ── Calculs ───────────────────────────────────────────────────────────────────
-  const subtotal  = items.reduce((s, i) => s + (i.product?.price ?? 0) * i.quantity, 0)
+  const subtotal  = items.reduce((s, i) => s + (i.chosen_price ?? i.product?.price ?? 0) * i.quantity, 0)
   const discount  = appliedCode ? calcPromoDiscount(subtotal, appliedCode) : 0
   const total     = Math.max(0, subtotal - discount)
   const itemCount = items.reduce((s, i) => s + i.quantity, 0)

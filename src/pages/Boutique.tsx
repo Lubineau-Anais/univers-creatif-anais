@@ -20,10 +20,11 @@ const DEFAULT_TITRE: HeroStyle = {
 }
 
 // ─── Composant : Carte produit ─────────────────────────────────────────────────
-function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDelete }: {
+function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit, onDelete }: {
   product: ShopProduct
   promotions: ShopPromotion[]
-  onAddToCart: (productId: string) => Promise<void>
+  onAddToCart: (productId: string, chosenPrice?: number) => Promise<void>
+  onOpen: (product: ShopProduct) => void
   isAdmin?: boolean
   onEdit?: (product: ShopProduct) => void
   onDelete?: (productId: string) => void
@@ -33,9 +34,11 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
   const [hovered, setHovered] = useState(false)
   const promo = getActivePromoForProduct(product, promotions)
   const discountedPrice = getDiscountedPrice(product, promotions)
-  const isOutOfStock = product.stock === 0
+  const isOutOfStock = !product.stock_illimite && product.stock === 0
+  const hasMontants = !!product.montants_disponibles?.length
 
   async function handleAdd() {
+    if (hasMontants) { onOpen(product); return }
     if (isOutOfStock || adding) return
     setAdding(true)
     await onAddToCart(product.id)
@@ -49,7 +52,7 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
       {/* Image */}
-      <div className="relative h-44 bg-candy border-b-2 border-[#1A1040] overflow-hidden">
+      <div className="relative h-44 bg-candy border-b-2 border-[#1A1040] overflow-hidden cursor-pointer" onClick={() => onOpen(product)}>
         {product.images?.[0]
           ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover"/>
           : <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>}
@@ -68,7 +71,7 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
             <span className="bg-amber-400 text-[#1A1040] text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500">PROMO</span>
           )}
         </div>
-        {product.stock > 0 && product.stock <= 5 && (
+        {!product.stock_illimite && product.stock > 0 && product.stock <= 5 && (
           <div className="absolute bottom-2 right-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-400">
             Plus que {product.stock} !
           </div>
@@ -91,7 +94,7 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
 
       {/* Infos */}
       <div className="flex flex-col flex-1 p-4 gap-3">
-        <div className="flex-1">
+        <div className="flex-1 cursor-pointer" onClick={() => onOpen(product)}>
           <h3 className="font-black text-[#1A1040] text-sm leading-tight">{product.name}</h3>
           {product.description && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
@@ -100,11 +103,17 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
 
         {/* Prix */}
         <div className="flex items-baseline gap-2">
-          <span className="text-xl font-black text-[#1A1040]">{formatPrice(discountedPrice)}</span>
-          {(promo || (product.compare_price && product.compare_price > product.price)) && (
-            <span className="text-sm text-gray-400 line-through">
-              {formatPrice(promo ? product.price : (product.compare_price ?? 0))}
-            </span>
+          {hasMontants ? (
+            <span className="text-sm font-black text-[#1A1040]">À partir de {formatPrice(Math.min(...(product.montants_disponibles || [0])))}</span>
+          ) : (
+            <>
+              <span className="text-xl font-black text-[#1A1040]">{formatPrice(discountedPrice)}</span>
+              {(promo || (product.compare_price && product.compare_price > product.price)) && (
+                <span className="text-sm text-gray-400 line-through">
+                  {formatPrice(promo ? product.price : (product.compare_price ?? 0))}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -123,8 +132,110 @@ function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDele
           {isOutOfStock ? 'Rupture de stock'
             : added ? '✓ Ajouté !'
             : adding ? '…'
+            : hasMontants ? <>🎁 Choisir un montant</>
             : <><ShoppingCart className="w-4 h-4"/> Ajouter au panier</>}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Composant : Lightbox produit (agrandi) ────────────────────────────────────
+function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
+  product: ShopProduct
+  promotions: ShopPromotion[]
+  onClose: () => void
+  onAddToCart: (productId: string, chosenPrice?: number) => Promise<void>
+}) {
+  const promo = getActivePromoForProduct(product, promotions)
+  const discountedPrice = getDiscountedPrice(product, promotions)
+  const isOutOfStock = !product.stock_illimite && product.stock === 0
+  const hasMontants = !!product.montants_disponibles?.length
+  const [selectedMontant, setSelectedMontant] = useState<number | null>(hasMontants ? product.montants_disponibles![0] : null)
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState(false)
+
+  async function handleAdd() {
+    if (isOutOfStock || adding) return
+    setAdding(true)
+    await onAddToCart(product.id, hasMontants ? (selectedMontant ?? undefined) : undefined)
+    setAdding(false); setAdded(true)
+    setTimeout(() => { setAdded(false); onClose() }, 1200)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+        <div className="flex items-center justify-end px-4 pt-4">
+          <button onClick={onClose} className="w-9 h-9 bg-candy rounded-xl flex items-center justify-center border-2 border-[#1A1040] hover:bg-rose-100">
+            <X className="w-4 h-4 text-[#1A1040]" />
+          </button>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-6 p-6 pt-2">
+          {/* Image grande */}
+          <div className="rounded-2xl border-4 border-[#1A1040] overflow-hidden bg-candy aspect-square">
+            {product.images?.[0]
+              ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+              : <div className="w-full h-full flex items-center justify-center text-7xl">🛍️</div>}
+          </div>
+
+          {/* Infos */}
+          <div className="flex flex-col">
+            <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2 leading-tight">{product.name}</h2>
+            {product.description && (
+              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap mb-4">{product.description}</p>
+            )}
+
+            {hasMontants ? (
+              <div className="mb-4">
+                <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide mb-2">🎁 Choisis le montant de la carte</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.montants_disponibles!.map(m => (
+                    <button key={m} onClick={() => setSelectedMontant(m)}
+                      className={`px-4 py-2 rounded-xl font-black text-sm border-2 transition-all ${
+                        selectedMontant === m ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'bg-candy text-[#1A1040] border-gray-300 hover:border-[#1A1040]'
+                      }`}>
+                      {formatPrice(m)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className="text-2xl font-black text-[#1A1040]">{formatPrice(discountedPrice)}</span>
+                {(promo || (product.compare_price && product.compare_price > product.price)) && (
+                  <span className="text-base text-gray-400 line-through">
+                    {formatPrice(promo ? product.price : (product.compare_price ?? 0))}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {!product.stock_illimite && (
+              isOutOfStock
+                ? <p className="text-red-500 text-xs font-black mb-3">Rupture de stock</p>
+                : product.stock <= 5 ? <p className="text-amber-700 text-xs font-black mb-3">Plus que {product.stock} en stock !</p> : null
+            )}
+
+            <button
+              onClick={handleAdd}
+              disabled={isOutOfStock || adding || (hasMontants && selectedMontant == null)}
+              className={`mt-auto w-full py-3 rounded-2xl font-black text-sm border-2 transition-all flex items-center justify-center gap-2 ${
+                isOutOfStock
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : added
+                  ? 'bg-green-400 text-white border-green-400'
+                  : 'bg-citron-400 text-[#1A1040] border-[#1A1040] hover:bg-yellow-300 active:translate-y-0.5'
+              }`}
+              style={!isOutOfStock && !added ? { boxShadow: '3px 3px 0px 0px #1A1040' } : {}}>
+              {isOutOfStock ? 'Rupture de stock'
+                : added ? '✓ Ajouté au panier !'
+                : adding ? '…'
+                : <><ShoppingCart className="w-4 h-4" /> Ajouter au panier{hasMontants && selectedMontant != null ? ` — ${formatPrice(selectedMontant)}` : ''}</>}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -211,10 +322,10 @@ function CartPanel() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-[#1A1040] text-sm truncate">{item.product?.name}</p>
-                  <p className="text-sm font-bold text-rose-500">{formatPrice(item.product?.price ?? 0)}</p>
+                  <p className="text-sm font-bold text-rose-500">{formatPrice(item.chosen_price ?? item.product?.price ?? 0)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => removeItem(item.product_id, 1)}
+                  <button onClick={() => removeItem(item.id, 1)}
                     className="w-7 h-7 rounded-lg border-2 border-[#1A1040] bg-white flex items-center justify-center hover:bg-red-50">
                     <Minus className="w-3 h-3"/>
                   </button>
@@ -308,6 +419,7 @@ export default function Boutique() {
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null)
   const [deleteCatId, setDeleteCatId] = useState<string | null>(null)
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+  const [openedProduct, setOpenedProduct] = useState<ShopProduct | null>(null)
 
   async function deleteCategory(id: string) {
     await supabase.from('shop_categories').delete().eq('id', id)
@@ -383,8 +495,8 @@ export default function Boutique() {
     return () => clearInterval(iv)
   }, [effectiveStatus, stockingDate])
 
-  const handleAddToCart = useCallback(async (productId: string) => {
-    const result = await addItem(productId)
+  const handleAddToCart = useCallback(async (productId: string, chosenPrice?: number) => {
+    const result = await addItem(productId, 1, chosenPrice)
     if (result.success) setIsOpen(true)
   }, [addItem, setIsOpen])
 
@@ -668,6 +780,7 @@ export default function Boutique() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {filteredProducts.map(prod => (
                   <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}
+                    onOpen={setOpenedProduct}
                     isAdmin={isAdmin}
                     onEdit={p => { setEditingProduct(p); setShowProductModal(true) }}
                     onDelete={id => setDeleteProductId(id)} />
@@ -694,6 +807,16 @@ export default function Boutique() {
 
       {/* Panneau panier */}
       <CartPanel/>
+
+      {/* ── Lightbox produit (agrandi) ── */}
+      {openedProduct && (
+        <ProductLightbox
+          product={openedProduct}
+          promotions={promotions}
+          onClose={() => setOpenedProduct(null)}
+          onAddToCart={handleAddToCart}
+        />
+      )}
 
       {/* ── Modales admin : catégories & produits ── */}
       {showCatModal && (

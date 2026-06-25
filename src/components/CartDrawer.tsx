@@ -212,12 +212,13 @@ export default function CartDrawer() {
                   <div className="bg-candy rounded-2xl border-2 border-[#1A1040] px-4 py-3 space-y-2"
                     style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
                     {shopItems.map(item => (
-                      <div key={item.product_id} className="flex items-center justify-between text-sm">
+                      <div key={item.id} className="flex items-center justify-between text-sm">
                         <div>
                           <span className="font-bold text-[#1A1040]">{item.product?.name}</span>
+                          {item.chosen_price != null && <span className="text-gray-400 ml-1.5">({item.chosen_price} €)</span>}
                           <span className="text-gray-400 ml-1.5">×{item.quantity}</span>
                         </div>
-                        <span className="font-black text-[#1A1040]">{((item.product?.price ?? 0) * item.quantity).toFixed(2)} €</span>
+                        <span className="font-black text-[#1A1040]">{((item.chosen_price ?? item.product?.price ?? 0) * item.quantity).toFixed(2)} €</span>
                       </div>
                     ))}
                     <div className="border-t border-dashed border-[#1A1040]/20 pt-2 flex justify-end">

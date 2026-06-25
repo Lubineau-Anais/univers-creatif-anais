@@ -15,11 +15,19 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
   const [comparePrice, setComparePrice] = useState(product?.compare_price?.toString() || '')
   const [catId, setCatId]         = useState(product?.category_id || '')
   const [stock, setStock]         = useState(product?.stock?.toString() || '0')
+  const [stockIllimite, setStockIllimite] = useState(product?.stock_illimite ?? false)
+  const [montants, setMontants]   = useState<string[]>(
+    product?.montants_disponibles?.length ? product.montants_disponibles.map(String) : []
+  )
   const [images, setImages]       = useState<string[]>(product?.images || [])
   const [isActive, setIsActive]   = useState(product?.is_active ?? true)
   const [saving, setSaving]       = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  function addMontant() { setMontants(p => [...p, '']) }
+  function updateMontant(i: number, v: string) { setMontants(p => p.map((m, j) => j === i ? v : m)) }
+  function removeMontant(i: number) { setMontants(p => p.filter((_, j) => j !== i)) }
 
   async function uploadImage(file: File) {
     setUploading(true)
@@ -36,6 +44,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
   async function save() {
     if (!name.trim() || !price) return
     setSaving(true)
+    const montantsValides = montants.map(m => parseFloat(m)).filter(n => !isNaN(n) && n > 0)
     const payload = {
       name: name.trim(),
       description: desc.trim(),
@@ -43,6 +52,8 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
       compare_price: comparePrice ? parseFloat(comparePrice) : null,
       category_id: catId || null,
       stock: parseInt(stock) || 0,
+      stock_illimite: stockIllimite,
+      montants_disponibles: montantsValides.length ? montantsValides : null,
       images,
       is_active: isActive,
     }
@@ -104,8 +115,41 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
             </div>
             <div>
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Stock disponible</label>
-              <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+              <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)} disabled={stockIllimite}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400 disabled:opacity-40 disabled:bg-gray-100" />
+            </div>
+          </div>
+          {/* Stock illimité */}
+          <div className="flex items-center gap-3">
+            <button onClick={()=>setStockIllimite(!stockIllimite)}
+              className={`w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors relative ${stockIllimite ? 'bg-turquoise-400' : 'bg-gray-200'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${stockIllimite ? 'translate-x-6' : 'translate-x-0'}`}/>
+            </button>
+            <span className="text-sm font-black text-[#1A1040]">♾️ Stock illimité {stockIllimite ? '(activé)' : ''}</span>
+          </div>
+          {/* Montants au choix (carte cadeau) */}
+          <div className="border-2 border-dashed border-turquoise-300 rounded-xl p-3 space-y-2 bg-turquoise-50/30">
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide block">
+              🎁 Montants au choix (carte cadeau — optionnel)
+            </label>
+            <p className="text-[10px] text-gray-400">
+              Si renseigné, le client choisira un montant parmi cette liste au lieu du prix fixe ci-dessus.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {montants.map((m, i) => (
+                <div key={i} className="flex items-center gap-1 bg-white border-2 border-[#1A1040] rounded-lg px-2 py-1">
+                  <input type="number" min="0" step="0.5" value={m} placeholder="€"
+                    onChange={e => updateMontant(i, e.target.value)}
+                    className="w-16 text-sm font-bold focus:outline-none" />
+                  <button onClick={() => removeMontant(i)} className="text-red-400 hover:text-red-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={addMontant}
+                className="flex items-center gap-1 border-2 border-dashed border-[#1A1040] rounded-lg px-3 py-1 text-xs font-bold text-[#1A1040] hover:bg-candy">
+                <Plus className="w-3.5 h-3.5" /> Montant
+              </button>
             </div>
           </div>
           {/* Actif */}
