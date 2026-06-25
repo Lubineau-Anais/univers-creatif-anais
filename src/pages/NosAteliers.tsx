@@ -549,14 +549,17 @@ export default function NosAteliers() {
                         const niveau = NIVEAUX.find(n => n.value === (atelier.niveau || 'debutant'))
                         if (!niveau) return null
                         return (
-                          <div className="flex items-center justify-center gap-1.5 mb-2" title={niveau.label}>
-                            <div className="flex gap-1">
-                              {Array.from({ length: 3 }).map((_, i) => (
-                                <span key={i} className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: i < niveau.dots ? niveau.color : '#e5e7eb' }} />
-                              ))}
+                          <div className="flex justify-center mb-3" title={niveau.label}>
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2"
+                              style={{ backgroundColor: `${niveau.color}22`, borderColor: niveau.color }}>
+                              <div className="flex gap-1">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                  <span key={i} className="w-3 h-3 rounded-full border"
+                                    style={{ backgroundColor: i < niveau.dots ? niveau.color : 'transparent', borderColor: niveau.color }} />
+                                ))}
+                              </div>
+                              <span className="text-xs font-black" style={{ color: niveau.color }}>{niveau.label}</span>
                             </div>
-                            <span className="text-[10px] font-bold text-gray-400">{niveau.label}</span>
                           </div>
                         )
                       })()}
