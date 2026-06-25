@@ -5,6 +5,19 @@ import { useAuth } from '../context/AuthContext'
 import type { Atelier, AtelierCategory } from '../types'
 import AtelierFormModal from '../components/AtelierFormModal'
 import ReservationModal from '../components/ReservationModal'
+import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
+
+// ─── Hero éditable ────────────────────────────────────────────────────────────
+interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
+const DEFAULT_ATELIERS_BADGE: BadgeConfig = { text: '📸 Nos ateliers créatifs', bg: '#ffe500', textColor: '#1A1040', radius: 'rounded-full' }
+const DEFAULT_ATELIERS_TITRE_STYLE: HeroStyle = {
+  ...DEFAULT_HERO_STYLE, font: 'serif', fontSize: 48, color: '#ffffff', bold: true, shadow: false,
+}
+const DEFAULT_ATELIERS_SOUS_STYLE: HeroStyle = {
+  ...DEFAULT_HERO_STYLE, font: 'sans', fontSize: 18, color: '#d1d5db', bold: false, shadow: false,
+}
+const DEFAULT_ATELIERS_TITRE = 'Nos Ateliers <span style="color:#fb7185">✦</span>'
+const DEFAULT_ATELIERS_SOUS  = 'Choisis ta catégorie et découvre nos ateliers créatifs !'
 
 // ─── Déco polaroïd ───────────────────────────────────────────────────────────
 const ROTATIONS  = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', '-rotate-3', 'rotate-1']
@@ -169,9 +182,45 @@ export default function NosAteliers() {
   const [editingCat,      setEditingCat]      = useState<AtelierCategory | null>(null)
   const [deleteCatConfirm, setDeleteCatConfirm] = useState<string | null>(null)
 
+  // Hero éditable (badge, titre, sous-titre)
+  const [heroBadge,      setHeroBadge]      = useState<BadgeConfig>(DEFAULT_ATELIERS_BADGE)
+  const [heroTitre,      setHeroTitre]      = useState(DEFAULT_ATELIERS_TITRE)
+  const [heroTitreStyle, setHeroTitreStyle] = useState<HeroStyle>(DEFAULT_ATELIERS_TITRE_STYLE)
+  const [heroSous,       setHeroSous]       = useState(DEFAULT_ATELIERS_SOUS)
+  const [heroSousStyle,  setHeroSousStyle]  = useState<HeroStyle>(DEFAULT_ATELIERS_SOUS_STYLE)
+  const [showBadgeEditor, setShowBadgeEditor] = useState(false)
+  const [showTitreEditor, setShowTitreEditor] = useState(false)
+  const [showSousEditor,  setShowSousEditor]  = useState(false)
+
   const today = new Date(); today.setHours(0, 0, 0, 0)
 
-  useEffect(() => { loadCategories() }, [])
+  useEffect(() => { loadCategories(); loadHero() }, [])
+
+  async function loadHero() {
+    const [{ data: settings }, { data: content }] = await Promise.all([
+      supabase.from('settings').select('key, value').in('key', [
+        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style',
+      ]),
+      supabase.from('page_content').select('section, contenu').eq('page', 'ateliers')
+        .in('section', ['ateliers_titre', 'ateliers_soustitre']),
+    ])
+    ;(settings || []).forEach((s: { key: string; value: string }) => {
+      try {
+        if (s.key === 'ateliers_badge_config')     setHeroBadge(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'ateliers_titre_style')      setHeroTitreStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'ateliers_soustitre_style')  setHeroSousStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+      } catch {}
+    })
+    ;(content || []).forEach((c: { section: string; contenu: string }) => {
+      if (c.section === 'ateliers_titre')     setHeroTitre(c.contenu)
+      if (c.section === 'ateliers_soustitre') setHeroSous(c.contenu)
+    })
+  }
+
+  async function saveBadge() {
+    await supabase.from('settings').upsert({ key: 'ateliers_badge_config', value: JSON.stringify(heroBadge) }, { onConflict: 'key' })
+    setShowBadgeEditor(false)
+  }
 
   async function loadCategories() {
     setLoading(true)
@@ -247,15 +296,38 @@ export default function NosAteliers() {
             </div>
           ) : (
             <>
-              <div className="inline-flex items-center gap-2 bg-citron-400 text-[#1A1040] px-4 py-1.5 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
-                📸 Nos ateliers créatifs
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 text-sm font-black border-2 border-[#1A1040] mb-2 ${heroBadge.radius}`}
+                style={{ backgroundColor: heroBadge.bg, color: heroBadge.textColor }}>
+                {heroBadge.text}
               </div>
-              <h1 className="font-serif text-5xl font-black text-white mb-3">
-                Nos Ateliers <span className="text-rose-400">✦</span>
-              </h1>
-              <p className="text-gray-300 text-lg max-w-xl mx-auto font-medium">
-                Choisis ta catégorie et découvre nos ateliers créatifs !
-              </p>
+              {isAdmin && (
+                <div className="flex justify-center mb-3">
+                  <button onClick={() => setShowBadgeEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Badge
+                  </button>
+                </div>
+              )}
+
+              <h1 className="leading-tight mb-1" style={buildTitleStyle(heroTitreStyle)} dangerouslySetInnerHTML={{ __html: heroTitre }} />
+              {isAdmin && (
+                <div className="flex justify-center mb-3">
+                  <button onClick={() => setShowTitreEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Titre
+                  </button>
+                </div>
+              )}
+
+              <p className="max-w-xl mx-auto" style={buildTitleStyle(heroSousStyle)} dangerouslySetInnerHTML={{ __html: heroSous }} />
+              {isAdmin && (
+                <div className="flex justify-center mt-2">
+                  <button onClick={() => setShowSousEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Sous-titre
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -523,6 +595,76 @@ export default function NosAteliers() {
           </div>
         )}
       </section>
+
+      {/* ── ÉDITEUR BADGE HERO ── */}
+      {showBadgeEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowBadgeEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <h3 className="font-black text-[#1A1040]">🏷️ Badge — Nos Ateliers</h3>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+              <input value={heroBadge.text} onChange={e => setHeroBadge(p => ({ ...p, text: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Fond</label>
+                <input type="color" value={heroBadge.bg} onChange={e => setHeroBadge(p => ({ ...p, bg: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+                <input type="color" value={heroBadge.textColor} onChange={e => setHeroBadge(p => ({ ...p, textColor: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Forme</label>
+              <div className="flex gap-2 flex-wrap">
+                {['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-full'].map(r => (
+                  <button key={r} onClick={() => setHeroBadge(p => ({ ...p, radius: r }))}
+                    className={`px-3 py-1.5 border-2 text-xs font-black ${r} ${heroBadge.radius === r ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-gray-300 text-gray-600 hover:border-[#1A1040]'}`}>
+                    Aa
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowBadgeEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+              <button onClick={saveBadge} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ÉDITEUR TITRE HERO ── */}
+      {showTitreEditor && (
+        <HeroTitleEditor
+          initialText={heroTitre}
+          initialStyle={heroTitreStyle}
+          page="ateliers"
+          sectionKey="ateliers_titre"
+          styleKey="ateliers_titre_style"
+          label="✏️ Titre — Nos Ateliers"
+          onSave={(text, style) => { setHeroTitre(text); setHeroTitreStyle(style); setShowTitreEditor(false) }}
+          onClose={() => setShowTitreEditor(false)}
+        />
+      )}
+
+      {/* ── ÉDITEUR SOUS-TITRE HERO ── */}
+      {showSousEditor && (
+        <HeroTitleEditor
+          initialText={heroSous}
+          initialStyle={heroSousStyle}
+          page="ateliers"
+          sectionKey="ateliers_soustitre"
+          styleKey="ateliers_soustitre_style"
+          label="✏️ Sous-titre — Nos Ateliers"
+          onSave={(text, style) => { setHeroSous(text); setHeroSousStyle(style); setShowSousEditor(false) }}
+          onClose={() => setShowSousEditor(false)}
+        />
+      )}
 
       {/* ── MODALES ── */}
       {showCatModal && (
