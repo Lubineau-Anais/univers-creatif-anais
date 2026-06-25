@@ -195,6 +195,7 @@ export default function AccueilAdmin() {
   const [aproposPhotoUploading, setAproposPhotoUploading] = useState(false)
   const [aproposPhotoError,     setAproposPhotoError]     = useState('')
   const [aproposPhotoSaved,     setAproposPhotoSaved]     = useState(false)
+  const [aproposPhotoSize,      setAproposPhotoSize]      = useState(288)
 
   const [aproposTitleText,  setAproposTitleText]  = useState('Une passion, plein de couleurs !')
   const [aproposTitleStyle, setAproposTitleStyle] = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
@@ -226,7 +227,7 @@ export default function AccueilAdmin() {
           'actu_section_titre_style', 'actu_badge_config', 'actu_btn_config',
           'hero_btn1_config', 'hero_btn2_config',
           'valeurs_bg_config', 'valeurs_titre_style', 'valeurs_carte_titre_style', 'valeurs_carte_desc_style', 'valeurs_cards',
-          'apropos_bg_config', 'apropos_photo_url', 'apropos_titre_style', 'apropos_texte_style',
+          'apropos_bg_config', 'apropos_photo_url', 'apropos_photo_size', 'apropos_titre_style', 'apropos_texte_style',
           'avis_bg_config', 'avis_titre_style', 'hero_logo_visible',
         ]),
         supabase.from('page_content').select('section, contenu')
@@ -259,6 +260,7 @@ export default function AccueilAdmin() {
           if (s.key === 'avis_bg_config')           { setAvisBg(p => ({ ...p, ...v })); setAvisBgTab(v.type || 'color') }
           if (s.key === 'avis_titre_style')         setAvisTitleStyle(p => ({ ...p, ...v }))
           if (s.key === 'hero_logo_visible')        setLogoVisible(v !== false)
+          if (s.key === 'apropos_photo_size')       setAproposPhotoSize(parseInt(s.value) || 288)
         } catch {}
         if (s.key === 'valeurs_cards' && s.value)      { try { setValeursCards(JSON.parse(s.value)) } catch {} }
         if (s.key === 'apropos_photo_url' && s.value)  setAproposPhoto(s.value)
@@ -374,6 +376,11 @@ export default function AccueilAdmin() {
     const url = urlData.publicUrl + '?t=' + Date.now()
     await supabase.from('settings').upsert({ key: 'apropos_photo_url', value: url }, { onConflict: 'key' })
     setAproposPhoto(url); setAproposPhotoUploading(false); setAproposPhotoSaved(true); setTimeout(() => setAproposPhotoSaved(false), 3000)
+  }
+
+  async function changeAproposPhotoSize(size: number) {
+    setAproposPhotoSize(size)
+    await supabase.from('settings').upsert({ key: 'apropos_photo_size', value: String(size) }, { onConflict: 'key' })
   }
 
   async function saveAvisBg() {
@@ -893,6 +900,14 @@ export default function AccueilAdmin() {
                   {aproposPhotoError && <p className="text-xs text-red-600 font-medium flex items-center gap-1"><X className="w-3 h-3" />{aproposPhotoError}</p>}
                   {aproposPhotoSaved && <p className="text-xs text-lime-700 font-black flex items-center gap-1"><Check className="w-3 h-3" />Photo mise à jour !</p>}
                 </div>
+              </div>
+              {/* Taille de la photo */}
+              <div className="flex items-center gap-4 pt-1">
+                <span className="text-xs font-black text-[#1A1040] shrink-0">📐 Taille</span>
+                <input type="range" min={120} max={480} step={10} value={aproposPhotoSize}
+                  onChange={e => changeAproposPhotoSize(parseInt(e.target.value))}
+                  className="flex-1" />
+                <span className="text-xs font-black text-[#1A1040] w-14 text-right shrink-0">{aproposPhotoSize}px</span>
               </div>
             </div>
 

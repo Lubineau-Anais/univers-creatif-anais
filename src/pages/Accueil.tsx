@@ -182,6 +182,7 @@ export default function Accueil() {
   // Section À Propos
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [aproposPhoto,         setAproposPhoto]         = useState(DEFAULT_APROPOS_PHOTO)
+  const [aproposPhotoSize,     setAproposPhotoSize]     = useState(288)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
   const [aproposBodyStyle,     setAproposBodyStyle]     = useState<HeroStyle>(DEFAULT_APROPOS_BODY_STYLE)
@@ -332,6 +333,7 @@ export default function Accueil() {
       else if (s.key === 'apropos_titre_style')      { try { setAproposTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'apropos_texte_style')      { try { setAproposBodyStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'apropos_photo_url')        { if (s.value) setAproposPhoto(s.value) }
+      else if (s.key === 'apropos_photo_size')       { setAproposPhotoSize(parseInt(s.value) || 288) }
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch {} }
@@ -705,7 +707,8 @@ export default function Accueil() {
 
           {/* Photo polaroïd */}
           <div className="flex-1 flex justify-center relative">
-            <div className="relative w-72 h-72 rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop">
+            <div className="relative rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop"
+              style={{ width: `${aproposPhotoSize}px`, height: `${aproposPhotoSize}px` }}>
               {aproposPhoto
                 ? <img src={aproposPhoto} alt="Atelier créatif" className="w-full h-full object-cover" />
                 : <div className="w-full h-full flex items-center justify-center bg-candy text-5xl">🎨</div>
