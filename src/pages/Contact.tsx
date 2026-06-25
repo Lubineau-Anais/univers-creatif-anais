@@ -190,7 +190,7 @@ export default function Contact() {
                     <Check className="w-8 h-8 text-[#1A1040]" />
                   </div>
                   <p className="font-black text-[#1A1040] text-lg">Message envoyé ! 🎉</p>
-                  <p className="text-gray-500 text-sm">Merci ! Je te revient très vite.</p>
+                  <p className="text-gray-500 text-sm">Merci ! Je te reviens très vite.</p>
                   <button onClick={() => setSent(false)}
                     className="btn-outline text-sm px-4 py-2">
                     Envoyer un autre message
