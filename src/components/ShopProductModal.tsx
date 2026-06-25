@@ -1,0 +1,153 @@
+import { useState, useRef } from 'react'
+import { X, Check, RefreshCw, Plus, Trash2 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import type { ShopCategory, ShopProduct } from '../lib/shop'
+
+export default function ShopProductModal({ product, categories, onSave, onClose }: {
+  product?: ShopProduct | null
+  categories: ShopCategory[]
+  onSave: () => void
+  onClose: () => void
+}) {
+  const [name, setName]           = useState(product?.name || '')
+  const [desc, setDesc]           = useState(product?.description || '')
+  const [price, setPrice]         = useState(product?.price?.toString() || '')
+  const [comparePrice, setComparePrice] = useState(product?.compare_price?.toString() || '')
+  const [catId, setCatId]         = useState(product?.category_id || '')
+  const [stock, setStock]         = useState(product?.stock?.toString() || '0')
+  const [images, setImages]       = useState<string[]>(product?.images || [])
+  const [isActive, setIsActive]   = useState(product?.is_active ?? true)
+  const [saving, setSaving]       = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function uploadImage(file: File) {
+    setUploading(true)
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const filename = `shop-product-${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('hero').upload(filename, file, { upsert: true, contentType: file.type })
+    if (!error) {
+      const { data } = supabase.storage.from('hero').getPublicUrl(filename)
+      setImages(p => [...p, data.publicUrl + '?t=' + Date.now()])
+    }
+    setUploading(false)
+  }
+
+  async function save() {
+    if (!name.trim() || !price) return
+    setSaving(true)
+    const payload = {
+      name: name.trim(),
+      description: desc.trim(),
+      price: parseFloat(price),
+      compare_price: comparePrice ? parseFloat(comparePrice) : null,
+      category_id: catId || null,
+      stock: parseInt(stock) || 0,
+      images,
+      is_active: isActive,
+    }
+    if (product) {
+      await supabase.from('shop_products').update(payload).eq('id', product.id)
+    } else {
+      await supabase.from('shop_products').insert(payload)
+    }
+    setSaving(false); onSave()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow:'6px 6px 0px 0px #c4b5fd' }}>
+        <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
+          <h3 className="font-black text-[#1A1040]">{product ? 'Modifier le produit' : 'Nouveau produit'}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+        </div>
+        <div className="p-6 space-y-4">
+          {/* Nom */}
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Nom du produit *</label>
+            <input value={name} onChange={e=>setName(e.target.value)}
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+          </div>
+          {/* Description */}
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Description</label>
+            <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3}
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400 resize-none" />
+          </div>
+          {/* Prix */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix (€) *</label>
+              <input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix barré (€)</label>
+              <input type="number" min="0" step="0.01" value={comparePrice} onChange={e=>setComparePrice(e.target.value)}
+                placeholder="ex: 25.00"
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+          </div>
+          {/* Catégorie + Stock */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Catégorie</label>
+              <select value={catId} onChange={e=>setCatId(e.target.value)}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none bg-white">
+                <option value="">— Aucune —</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.parent_id ? '  └ ' : ''}{c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Stock disponible</label>
+              <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+          </div>
+          {/* Actif */}
+          <div className="flex items-center gap-3">
+            <button onClick={()=>setIsActive(!isActive)}
+              className={`w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors relative ${isActive ? 'bg-green-400' : 'bg-gray-200'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${isActive ? 'translate-x-6' : 'translate-x-0'}`}/>
+            </button>
+            <span className="text-sm font-black text-[#1A1040]">{isActive ? 'Produit actif (visible)' : 'Produit inactif (masqué)'}</span>
+          </div>
+          {/* Images & Vidéos */}
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Images / Vidéos</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {images.map((img, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-xl border-2 border-[#1A1040] overflow-hidden group">
+                  {/\.(mp4|webm|mov)(\?|$)/i.test(img)
+                    ? <video src={img} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                    : <img src={img} alt="" className="w-full h-full object-cover"/>}
+                  <button onClick={() => setImages(p => p.filter((_,j)=>j!==i))}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <Trash2 className="w-4 h-4 text-white"/>
+                  </button>
+                </div>
+              ))}
+              <label className="w-20 h-20 rounded-xl border-4 border-dashed border-[#1A1040] flex items-center justify-center cursor-pointer hover:bg-candy transition-all"
+                onClick={() => fileRef.current?.click()}>
+                {uploading ? <RefreshCw className="w-5 h-5 animate-spin text-gray-400"/> : <Plus className="w-5 h-5 text-[#1A1040]"/>}
+              </label>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="hidden"
+              onChange={e=>{const f=e.target.files?.[0];if(f)uploadImage(f);e.target.value=''}}/>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
+            <button onClick={save} disabled={saving || !name.trim() || !price}
+              className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+              {saving ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>} {product ? 'Modifier' : 'Créer'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

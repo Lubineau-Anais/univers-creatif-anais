@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal } from 'lucide-react'
+import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buildHeroBgStyle, type HeroBg, DEFAULT_HERO_BG } from '../lib/heroBg'
 import { buildTitleStyle, type HeroStyle } from '../components/HeroTitleEditor'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 import type { ShopCategory, ShopProduct, ShopPromotion } from '../lib/shop'
 import { formatPrice, getActivePromoForProduct, getDiscountedPrice } from '../lib/shop'
 import type { ShopStatus } from '../lib/shop'
+import ShopCatModal from '../components/ShopCatModal'
+import ShopProductModal from '../components/ShopProductModal'
 
 // ─── Défauts ───────────────────────────────────────────────────────────────────
 const DEFAULT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#c4b5fd' }
@@ -17,10 +20,13 @@ const DEFAULT_TITRE: HeroStyle = {
 }
 
 // ─── Composant : Carte produit ─────────────────────────────────────────────────
-function ProductCard({ product, promotions, onAddToCart }: {
+function ProductCard({ product, promotions, onAddToCart, isAdmin, onEdit, onDelete }: {
   product: ShopProduct
   promotions: ShopPromotion[]
   onAddToCart: (productId: string) => Promise<void>
+  isAdmin?: boolean
+  onEdit?: (product: ShopProduct) => void
+  onDelete?: (productId: string) => void
 }) {
   const [adding, setAdding] = useState(false)
   const [added, setAdded]   = useState(false)
@@ -65,6 +71,20 @@ function ProductCard({ product, promotions, onAddToCart }: {
         {product.stock > 0 && product.stock <= 5 && (
           <div className="absolute bottom-2 right-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-400">
             Plus que {product.stock} !
+          </div>
+        )}
+
+        {/* Admin : modifier / supprimer */}
+        {isAdmin && (
+          <div className="absolute top-2 right-2 flex gap-1">
+            <button onClick={() => onEdit?.(product)}
+              className="w-7 h-7 bg-citron-400 rounded-lg flex items-center justify-center border-2 border-[#1A1040] hover:bg-yellow-300 transition-colors">
+              <Pencil className="w-3.5 h-3.5 text-[#1A1040]" />
+            </button>
+            <button onClick={() => onDelete?.(product.id)}
+              className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center border-2 border-red-400 hover:bg-red-200 transition-colors">
+              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+            </button>
           </div>
         )}
       </div>
@@ -257,6 +277,7 @@ function CartPanel() {
 // ─── Page principale ───────────────────────────────────────────────────────────
 export default function Boutique() {
   const { itemCount, setIsOpen, addItem } = useCart()
+  const { isAdmin } = useAuth()
 
   // Settings boutique
   const [status, setStatus]             = useState<ShopStatus>('active')
@@ -278,6 +299,26 @@ export default function Boutique() {
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Admin : gestion catégories & produits
+  const [showCatModal, setShowCatModal] = useState(false)
+  const [editingCat, setEditingCat] = useState<ShopCategory | null>(null)
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null)
+  const [deleteCatId, setDeleteCatId] = useState<string | null>(null)
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+
+  async function deleteCategory(id: string) {
+    await supabase.from('shop_categories').delete().eq('id', id)
+    setDeleteCatId(null)
+    loadShop()
+  }
+
+  async function deleteProduct(id: string) {
+    await supabase.from('shop_products').delete().eq('id', id)
+    setDeleteProductId(null)
+    loadShop()
+  }
 
   useEffect(() => { loadShop() }, [])
 
@@ -427,8 +468,8 @@ export default function Boutique() {
         <div className="flex gap-6 items-start">
 
           {/* ── Sidebar catégories (desktop + tablet) ── */}
-          {topCategories.length > 0 && (
-            <aside className="hidden sm:block w-48 shrink-0 sticky top-20">
+          {(topCategories.length > 0 || isAdmin) && (
+            <aside className="hidden sm:block w-56 shrink-0 sticky top-20">
               <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow:'4px 4px 0px 0px #1A1040' }}>
                 <div className="px-4 py-3 bg-[#1A1040] flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4 text-citron-400"/>
@@ -451,49 +492,92 @@ export default function Boutique() {
                     return (
                       <div key={cat.id} className="mb-1">
                         {/* Catégorie principale */}
-                        <button
-                          onClick={() => {
-                            if (subCats.length === 0) {
-                              setActiveCategory(isCatActive ? '' : cat.id)
-                            } else {
-                              setExpandedCats(prev => {
-                                const n = new Set(prev)
-                                if (n.has(cat.id)) n.delete(cat.id)
-                                else n.add(cat.id)
-                                return n
-                              })
-                              if (!isCatActive && !hasSubActive) setActiveCategory(cat.id)
-                            }
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-black text-sm transition-all ${isCatActive || hasSubActive ? 'bg-rose-100 text-rose-600' : 'text-[#1A1040] hover:bg-candy'}`}>
-                          <span>{cat.name}</span>
-                          {subCats.length > 0 && (
-                            isOpen
-                              ? <ChevronDown className="w-4 h-4 shrink-0"/>
-                              : <ChevronRight className="w-4 h-4 shrink-0"/>
+                        <div className={`flex items-center gap-0.5 rounded-xl transition-all ${isCatActive || hasSubActive ? 'bg-rose-100' : 'hover:bg-candy'}`}>
+                          <button
+                            onClick={() => {
+                              if (subCats.length === 0) {
+                                setActiveCategory(isCatActive ? '' : cat.id)
+                              } else {
+                                setExpandedCats(prev => {
+                                  const n = new Set(prev)
+                                  if (n.has(cat.id)) n.delete(cat.id)
+                                  else n.add(cat.id)
+                                  return n
+                                })
+                                if (!isCatActive && !hasSubActive) setActiveCategory(cat.id)
+                              }
+                            }}
+                            className={`flex-1 flex items-center justify-between px-3 py-2.5 font-black text-sm text-left ${isCatActive || hasSubActive ? 'text-rose-600' : 'text-[#1A1040]'}`}>
+                            <span>{cat.name}</span>
+                            {subCats.length > 0 && (
+                              isOpen
+                                ? <ChevronDown className="w-4 h-4 shrink-0"/>
+                                : <ChevronRight className="w-4 h-4 shrink-0"/>
+                            )}
+                          </button>
+                          {isAdmin && (
+                            <div className="flex gap-0.5 pr-1 shrink-0">
+                              <button onClick={() => { setEditingCat(cat); setShowCatModal(true) }}
+                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-citron-200 text-[#1A1040]">
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => setDeleteCatId(cat.id)}
+                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-200 text-red-500">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                           )}
-                        </button>
+                        </div>
 
                         {/* Sous-catégories */}
-                        {subCats.length > 0 && isOpen && (
+                        {(subCats.length > 0 || isAdmin) && isOpen && (
                           <div className="ml-3 mt-0.5 space-y-0.5 border-l-2 border-[#1A1040]/10 pl-2">
-                            <button
-                              onClick={() => setActiveCategory(cat.id)}
-                              className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === cat.id ? 'bg-[#1A1040] text-citron-400' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
-                              Tout ({cat.name})
-                            </button>
-                            {subCats.map(sub => (
-                              <button key={sub.id}
-                                onClick={() => setActiveCategory(activeCategory === sub.id ? cat.id : sub.id)}
-                                className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
-                                {sub.name}
+                            {subCats.length > 0 && (
+                              <button
+                                onClick={() => setActiveCategory(cat.id)}
+                                className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === cat.id ? 'bg-[#1A1040] text-citron-400' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
+                                Tout ({cat.name})
                               </button>
+                            )}
+                            {subCats.map(sub => (
+                              <div key={sub.id} className="flex items-center gap-0.5">
+                                <button
+                                  onClick={() => setActiveCategory(activeCategory === sub.id ? cat.id : sub.id)}
+                                  className={`flex-1 text-left px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${activeCategory === sub.id ? 'bg-rose-400 text-white' : 'text-gray-500 hover:text-[#1A1040] hover:bg-candy'}`}>
+                                  {sub.name}
+                                </button>
+                                {isAdmin && (
+                                  <div className="flex gap-0.5 shrink-0">
+                                    <button onClick={() => { setEditingCat(sub); setShowCatModal(true) }}
+                                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-citron-200 text-[#1A1040]">
+                                      <Pencil className="w-2.5 h-2.5" />
+                                    </button>
+                                    <button onClick={() => setDeleteCatId(sub.id)}
+                                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-200 text-red-500">
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             ))}
+                            {isAdmin && (
+                              <button onClick={() => { setEditingCat(null); setShowCatModal(true) }}
+                                className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold text-turquoise-600 hover:bg-candy flex items-center gap-1">
+                                <Plus className="w-3 h-3" /> Sous-catégorie
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
                     )
                   })}
+
+                  {isAdmin && (
+                    <button onClick={() => { setEditingCat(null); setShowCatModal(true) }}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 mt-1 rounded-xl font-black text-xs border-2 border-dashed border-[#1A1040] text-[#1A1040] hover:bg-candy transition-all">
+                      <Plus className="w-3.5 h-3.5" /> Nouvelle catégorie
+                    </button>
+                  )}
                 </div>
               </div>
             </aside>
@@ -540,23 +624,32 @@ export default function Boutique() {
                 )}
               </div>
             )}
-            {/* Label catégorie active */}
-            {activeCategory && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
-                  {(() => {
-                    const cat = categories.find(c => c.id === activeCategory)
-                    if (!cat) return ''
-                    const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null
-                    return parent ? `${parent.name} › ${cat.name}` : cat.name
-                  })()}
-                </span>
-                <button onClick={() => setActiveCategory('')}
-                  className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
-                  <X className="w-3 h-3"/> Effacer
+            {/* Label catégorie active + bouton admin ajouter */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+              {activeCategory ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
+                    {(() => {
+                      const cat = categories.find(c => c.id === activeCategory)
+                      if (!cat) return ''
+                      const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null
+                      return parent ? `${parent.name} › ${cat.name}` : cat.name
+                    })()}
+                  </span>
+                  <button onClick={() => setActiveCategory('')}
+                    className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
+                    <X className="w-3 h-3"/> Effacer
+                  </button>
+                </div>
+              ) : <div />}
+              {isAdmin && (
+                <button onClick={() => { setEditingProduct(null); setShowProductModal(true) }}
+                  className="flex items-center gap-1.5 bg-[#1A1040] text-citron-400 px-4 py-2 rounded-xl font-black text-xs border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
+                  style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
+                  <Plus className="w-3.5 h-3.5" /> Ajouter un article
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -573,7 +666,10 @@ export default function Boutique() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {filteredProducts.map(prod => (
-                  <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}/>
+                  <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}
+                    isAdmin={isAdmin}
+                    onEdit={p => { setEditingProduct(p); setShowProductModal(true) }}
+                    onDelete={id => setDeleteProductId(id)} />
                 ))}
               </div>
             )}
@@ -597,6 +693,58 @@ export default function Boutique() {
 
       {/* Panneau panier */}
       <CartPanel/>
+
+      {/* ── Modales admin : catégories & produits ── */}
+      {showCatModal && (
+        <ShopCatModal
+          cat={editingCat}
+          categories={categories}
+          onSave={() => { setShowCatModal(false); setEditingCat(null); loadShop() }}
+          onClose={() => { setShowCatModal(false); setEditingCat(null) }}
+        />
+      )}
+      {showProductModal && (
+        <ShopProductModal
+          product={editingProduct}
+          categories={categories}
+          onSave={() => { setShowProductModal(false); setEditingProduct(null); loadShop() }}
+          onClose={() => { setShowProductModal(false); setEditingProduct(null) }}
+        />
+      )}
+
+      {/* Confirmation suppression catégorie */}
+      {deleteCatId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 text-center" style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
+            <div className="text-5xl mb-3">🗑️</div>
+            <h3 className="font-black text-[#1A1040] mb-2">Supprimer cette catégorie ?</h3>
+            <p className="text-gray-500 text-sm mb-6">Les articles associés ne seront plus liés à cette catégorie.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteCatId(null)}
+                className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-2.5 rounded-2xl text-sm font-black hover:bg-gray-50">Annuler</button>
+              <button onClick={() => deleteCategory(deleteCatId)}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-2xl text-sm font-black border-2 border-red-700 hover:bg-red-600">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation suppression produit */}
+      {deleteProductId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 text-center" style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
+            <div className="text-5xl mb-3">🗑️</div>
+            <h3 className="font-black text-[#1A1040] mb-2">Supprimer cet article ?</h3>
+            <p className="text-gray-500 text-sm mb-6">Cette action est définitive.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteProductId(null)}
+                className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-2.5 rounded-2xl text-sm font-black hover:bg-gray-50">Annuler</button>
+              <button onClick={() => deleteProduct(deleteProductId)}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-2xl text-sm font-black border-2 border-red-700 hover:bg-red-600">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
