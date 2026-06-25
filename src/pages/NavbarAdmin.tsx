@@ -24,7 +24,7 @@ const DEFAULT_NAV: NavSettings = {
   inactiveText: '#1A1040',
   hoverBg:      '#ffe4e6',
   mobileBg:     '#ffb5c8',
-  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact'],
+  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique'],
 }
 
 const FONT_OPTIONS = [
@@ -161,7 +161,12 @@ export default function NavbarAdmin() {
       hoverBg:      map['navbar_hover_bg']         ?? prev.hoverBg,
       mobileBg:     map['navbar_mobile_bg']        ?? prev.mobileBg,
       labels:       map['navbar_public_labels']
-        ? (() => { try { return JSON.parse(map['navbar_public_labels']) } catch { return prev.labels } })()
+        ? (() => {
+            try {
+              const saved = JSON.parse(map['navbar_public_labels']) as string[]
+              return DEFAULT_NAV.labels.map((def, i) => saved[i] ?? def)
+            } catch { return prev.labels }
+          })()
         : prev.labels,
     }))
     setTabVisible({
@@ -344,7 +349,7 @@ export default function NavbarAdmin() {
             </div>
             <div className="rounded-xl border-2 border-[#1A1040] p-3 bg-gray-50 text-center text-sm font-bold"
               style={{ fontFamily: FONT_OPTIONS.find(f => f.value === nav.linkFont)?.style.fontFamily || 'sans-serif' }}>
-              Aperçu : Accueil · Nos Ateliers · Contact
+              Aperçu : Accueil · Nos Ateliers · Contact · Galerie · Boutique
             </div>
             <SaveBtn onClick={savePolice} saving={s2Saving} saved={s2Saved} label="Appliquer la police" shadow="#4dd9c0" />
           </div>
@@ -417,7 +422,7 @@ export default function NavbarAdmin() {
 
         {/* INTITULÉS DES LIENS */}
         <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow: '5px 5px 0px 0px #86efac' }}>
-          <SectionHeader icon={<span className="text-lg">🏷️</span>} title="Intitulés des liens" sub="Texte affiché dans les 3 onglets publics" />
+          <SectionHeader icon={<span className="text-lg">🏷️</span>} title="Intitulés des liens" sub="Texte affiché dans les 5 onglets publics" />
           <div className="p-6 space-y-4">
             {nav.labels.map((label, i) => (
               <div key={i}>

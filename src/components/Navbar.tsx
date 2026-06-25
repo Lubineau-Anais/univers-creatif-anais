@@ -29,7 +29,7 @@ const DEFAULT_NAV: NavSettings = {
   inactiveText: '#1A1040',
   hoverBg:      '#ffe4e6',
   mobileBg:     '#ffb5c8',
-  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact'],
+  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique'],
 }
 
 const FONT_MAP: Record<string, string> = {
@@ -39,7 +39,11 @@ const FONT_MAP: Record<string, string> = {
   cursive: 'cursive',
 }
 
-const NAV_HREFS = ['/', '/ateliers', '/contact']
+const NAV_HREFS = ['/', '/ateliers', '/contact', '/galerie', '/boutique']
+const DEFAULT_TAB_VISIBLE = { ateliers: true, contact: true, galerie: true, boutique: true }
+const TAB_KEY_BY_HREF: Record<string, keyof typeof DEFAULT_TAB_VISIBLE> = {
+  '/ateliers': 'ateliers', '/contact': 'contact', '/galerie': 'galerie', '/boutique': 'boutique',
+}
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -52,7 +56,7 @@ export default function Navbar() {
 
   const [nav, setNav]           = useState<NavSettings>(DEFAULT_NAV)
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
-  const [tabVisible, setTabVisible]   = useState({ ateliers: true, contact: true, galerie: true, boutique: true })
+  const [tabVisible, setTabVisible]   = useState(DEFAULT_TAB_VISIBLE)
 
   // ── Chargement des paramètres ─────────────────────────────────────────────────
   useEffect(() => {
@@ -89,7 +93,12 @@ export default function Navbar() {
       hoverBg:      map['navbar_hover_bg']         ?? prev.hoverBg,
       mobileBg:     map['navbar_mobile_bg']        ?? prev.mobileBg,
       labels: map['navbar_public_labels']
-        ? (() => { try { return JSON.parse(map['navbar_public_labels']) } catch { return prev.labels } })()
+        ? (() => {
+            try {
+              const saved = JSON.parse(map['navbar_public_labels']) as string[]
+              return DEFAULT_NAV.labels.map((def, i) => saved[i] ?? def)
+            } catch { return prev.labels }
+          })()
         : prev.labels,
     }))
     setTabVisible({
@@ -144,12 +153,11 @@ export default function Navbar() {
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-2 flex-wrap">
 
-            {/* Liens publics dynamiques */}
+            {/* Liens publics dynamiques (Accueil, Nos Ateliers, Contact, Galerie, Boutique) */}
             {navLinks.map((link) => {
-              const hiddenAteliers = link.href === '/ateliers' && !tabVisible.ateliers
-              const hiddenContact  = link.href === '/contact'  && !tabVisible.contact
-              if ((hiddenAteliers || hiddenContact) && !isAdmin) return null
-              const isHidden = hiddenAteliers || hiddenContact
+              const tabKey  = TAB_KEY_BY_HREF[link.href]
+              const isHidden = !!tabKey && !tabVisible[tabKey]
+              if (isHidden && !isAdmin) return null
               return (
                 <Link
                   key={link.href}
@@ -164,30 +172,6 @@ export default function Navbar() {
                 </Link>
               )
             })}
-
-            {/* Lien galerie (fixe, conditionnel) */}
-            {(tabVisible.galerie || isAdmin) && (
-              <Link to="/galerie"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] relative ${
-                  isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040] hover:bg-violet-300'
-                } ${!tabVisible.galerie ? 'opacity-50' : ''}`}
-                style={{ boxShadow: isActive('/galerie') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
-                {!tabVisible.galerie && <span className="absolute -top-1.5 -right-1.5 text-[10px]" title="Masqué au public">🙈</span>}
-                <Images className="w-4 h-4" /> Galerie
-              </Link>
-            )}
-
-            {/* Lien boutique (fixe, conditionnel) */}
-            {(tabVisible.boutique || isAdmin) && (
-              <Link to="/boutique"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 border-[#1A1040] relative ${
-                  isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040] hover:bg-yellow-300'
-                } ${!tabVisible.boutique ? 'opacity-50' : ''}`}
-                style={{ boxShadow: isActive('/boutique') ? 'none' : '2px 2px 0px 0px #1A1040' }}>
-                {!tabVisible.boutique && <span className="absolute -top-1.5 -right-1.5 text-[10px]" title="Masqué au public">🙈</span>}
-                <ShoppingBag className="w-4 h-4" /> Boutique
-              </Link>
-            )}
 
             {/* Bouton panier */}
             <button onClick={() => openCart(true)}
@@ -310,12 +294,11 @@ export default function Navbar() {
         <div className="md:hidden border-t-4 px-4 py-4 space-y-2"
           style={{ backgroundColor: nav.mobileBg, borderTopColor: nav.borderColor }}>
 
-          {/* Liens publics dynamiques */}
+          {/* Liens publics dynamiques (Accueil, Nos Ateliers, Contact, Galerie, Boutique) */}
           {navLinks.map((link) => {
-            const hiddenAteliers = link.href === '/ateliers' && !tabVisible.ateliers
-            const hiddenContact  = link.href === '/contact'  && !tabVisible.contact
-            if ((hiddenAteliers || hiddenContact) && !isAdmin) return null
-            const isHidden = hiddenAteliers || hiddenContact
+            const tabKey  = TAB_KEY_BY_HREF[link.href]
+            const isHidden = !!tabKey && !tabVisible[tabKey]
+            if (isHidden && !isAdmin) return null
             return (
               <Link key={link.href} to={link.href} onClick={() => setMenuOpen(false)}
                 className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isHidden ? 'opacity-50' : ''}`}
@@ -329,24 +312,6 @@ export default function Navbar() {
               </Link>
             )
           })}
-
-          {/* Galerie (fixe, conditionnel) */}
-          {(tabVisible.galerie || isAdmin) && (
-            <Link to="/galerie" onClick={() => setMenuOpen(false)}
-              className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/galerie') ? 'bg-rose-400 text-white' : 'bg-[#c4b5fd] text-[#1A1040]'} ${!tabVisible.galerie ? 'opacity-50' : ''}`}>
-              <span className="flex items-center gap-2"><Images className="w-4 h-4" /> Galerie</span>
-              {!tabVisible.galerie && <span className="text-xs" title="Masqué au public">🙈</span>}
-            </Link>
-          )}
-
-          {/* Boutique (fixe, conditionnel) */}
-          {(tabVisible.boutique || isAdmin) && (
-            <Link to="/boutique" onClick={() => setMenuOpen(false)}
-              className={`flex items-center justify-between gap-2 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040] ${isActive('/boutique') ? 'bg-rose-400 text-white' : 'bg-citron-400 text-[#1A1040]'} ${!tabVisible.boutique ? 'opacity-50' : ''}`}>
-              <span className="flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> Boutique</span>
-              {!tabVisible.boutique && <span className="text-xs" title="Masqué au public">🙈</span>}
-            </Link>
-          )}
 
           {/* Panier */}
           <button onClick={() => { openCart(true); setMenuOpen(false) }}
