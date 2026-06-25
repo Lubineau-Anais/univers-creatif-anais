@@ -180,6 +180,8 @@ export default function Accueil() {
   // Boutons CTA Hero
   const [heroBtn1, setHeroBtn1] = useState<HeroCtaBtn>(DEFAULT_HERO_BTN1)
   const [heroBtn2, setHeroBtn2] = useState<HeroCtaBtn>(DEFAULT_HERO_BTN2)
+  const [navAteliersVisible, setNavAteliersVisible] = useState(true)
+  const [navContactVisible,  setNavContactVisible]  = useState(true)
 
   // Section Valeurs
   const [valeursBg,            setValeursBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#fff5fb' })
@@ -359,6 +361,8 @@ export default function Accueil() {
       else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
       else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
+      else if (s.key === 'nav_ateliers_visible')     { setNavAteliersVisible(s.value !== 'false') }
+      else if (s.key === 'nav_contact_visible')      { setNavContactVisible(s.value !== 'false') }
       else if (s.key === 'hero_titre_style') {
         try { setHeroStyle({ ...DEFAULT_HERO_STYLE, ...JSON.parse(s.value) }) } catch {}
       } else if (s.key === 'hero_sous_titre_style') {
@@ -513,16 +517,22 @@ export default function Accueil() {
 
         {/* Boutons CTA — ancrés en bas du hero */}
         <div className="relative z-10 pb-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/ateliers"
-            className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn1.radius}`}
-            style={heroBtnStyle(heroBtn1)}>
-            {heroBtn1.label}
-          </Link>
-          <Link to="/contact"
-            className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all ${heroBtn2.radius}`}
-            style={heroBtnStyle(heroBtn2)}>
-            {heroBtn2.label}
-          </Link>
+          {(navAteliersVisible || isAdmin) && (
+            <Link to="/ateliers"
+              className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all relative ${heroBtn1.radius} ${!navAteliersVisible ? 'opacity-50' : ''}`}
+              style={heroBtnStyle(heroBtn1)}>
+              {!navAteliersVisible && <span className="absolute -top-2 -right-2 text-sm" title="Masqué au public (onglet Nos Ateliers masqué)">🙈</span>}
+              {heroBtn1.label}
+            </Link>
+          )}
+          {(navContactVisible || isAdmin) && (
+            <Link to="/contact"
+              className={`inline-flex items-center justify-center gap-2 px-8 py-3.5 border-2 shadow-pop hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_#1A1040] transition-all relative ${heroBtn2.radius} ${!navContactVisible ? 'opacity-50' : ''}`}
+              style={heroBtnStyle(heroBtn2)}>
+              {!navContactVisible && <span className="absolute -top-2 -right-2 text-sm" title="Masqué au public (onglet Contact masqué)">🙈</span>}
+              {heroBtn2.label}
+            </Link>
+          )}
         </div>
       </section>
 
