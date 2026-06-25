@@ -17,12 +17,19 @@ const MODES_PAIEMENT = [
   { value: 'especes',  label: 'Espèces',   icon: Banknote,   desc: 'Sur place' },
 ]
 
+export const NIVEAUX = [
+  { value: 'debutant',      label: 'Débutant',     dots: 1, color: '#4ade80' },
+  { value: 'intermediaire', label: 'Intermédiaire', dots: 2, color: '#facc15' },
+  { value: 'confirme',      label: 'Confirmé',     dots: 3, color: '#fb7185' },
+] as const
+
 const EMPTY_FORM = {
   titre: '', description: '', date: '', heure: '',
   duree: '', lieu: '', prix: '', places_max: '',
   prix_type: 'personne' as 'personne' | 'duo',
   modes_paiement: ['cheque', 'especes'] as string[],
   age_min: '0', age_min_duo_p1: '0', age_min_duo_p2: '0',
+  niveau: 'debutant' as 'debutant' | 'intermediaire' | 'confirme',
 }
 
 export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved }: Props) {
@@ -49,6 +56,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         age_min:         String(atelier.age_min ?? 0),
         age_min_duo_p1:  String(atelier.age_min_duo_p1 ?? 0),
         age_min_duo_p2:  String(atelier.age_min_duo_p2 ?? 0),
+        niveau:          atelier.niveau ?? 'debutant',
       })
       if (atelier.image_url) setImagePreview(atelier.image_url)
     }
@@ -101,6 +109,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         age_min:          parseInt(form.age_min) || 0,
         age_min_duo_p1:   parseInt(form.age_min_duo_p1) || 0,
         age_min_duo_p2:   parseInt(form.age_min_duo_p2) || 0,
+        niveau:           form.niveau,
       }
 
       if (isEdit && atelier) {
@@ -248,6 +257,30 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
               <p className="text-[10px] text-gray-400 mt-1">0 = aucune limite d'âge pour ce participant</p>
             </div>
           )}
+
+          {/* Niveau de difficulté */}
+          <div>
+            <label className="block text-sm font-black text-[#1A1040] mb-2">🎯 Niveau de difficulté</label>
+            <div className="grid grid-cols-3 gap-2">
+              {NIVEAUX.map(n => (
+                <button key={n.value} type="button"
+                  onClick={() => setForm(p => ({ ...p, niveau: n.value }))}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 font-bold text-xs transition-all ${
+                    form.niveau === n.value
+                      ? 'bg-[#1A1040] text-white border-[#1A1040]'
+                      : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                  }`}>
+                  <div className="flex gap-1">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <span key={i} className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: i < n.dots ? n.color : '#d1d5db' }} />
+                    ))}
+                  </div>
+                  {n.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Modes de paiement */}
           <div>

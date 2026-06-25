@@ -25,6 +25,7 @@ export interface Atelier {
   age_min: number
   age_min_duo_p1: number
   age_min_duo_p2: number
+  niveau: 'debutant' | 'intermediaire' | 'confirme'
   created_at: string
 }
 

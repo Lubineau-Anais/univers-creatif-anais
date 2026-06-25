@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Uplo
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Atelier, AtelierCategory } from '../types'
-import AtelierFormModal from '../components/AtelierFormModal'
+import AtelierFormModal, { NIVEAUX } from '../components/AtelierFormModal'
 import ReservationModal from '../components/ReservationModal'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
 
@@ -542,9 +542,24 @@ export default function NosAteliers() {
 
                     {/* Bande info */}
                     <div className="px-4 pt-4 pb-5">
-                      <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-2 leading-tight">
+                      <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-1.5 leading-tight">
                         {atelier.titre}
                       </h3>
+                      {(() => {
+                        const niveau = NIVEAUX.find(n => n.value === (atelier.niveau || 'debutant'))
+                        if (!niveau) return null
+                        return (
+                          <div className="flex items-center justify-center gap-1.5 mb-2" title={niveau.label}>
+                            <div className="flex gap-1">
+                              {Array.from({ length: 3 }).map((_, i) => (
+                                <span key={i} className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: i < niveau.dots ? niveau.color : '#e5e7eb' }} />
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400">{niveau.label}</span>
+                          </div>
+                        )
+                      })()}
                       {atelier.description && (
                         <p className="text-center mb-3 leading-snug whitespace-pre-wrap"
                           style={{ fontFamily: DESC_FONT_MAP[descStyle.font] || 'sans-serif', fontSize: `${descStyle.size}px`, color: descStyle.color }}>
