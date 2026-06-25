@@ -546,7 +546,7 @@ export default function NosAteliers() {
                         {atelier.titre}
                       </h3>
                       {atelier.description && (
-                        <p className="text-center mb-3 leading-snug"
+                        <p className="text-center mb-3 leading-snug whitespace-pre-wrap"
                           style={{ fontFamily: DESC_FONT_MAP[descStyle.font] || 'sans-serif', fontSize: `${descStyle.size}px`, color: descStyle.color }}>
                           {atelier.description}
                         </p>
