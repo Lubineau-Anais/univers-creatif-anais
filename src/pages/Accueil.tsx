@@ -234,6 +234,9 @@ export default function Accueil() {
   const [polaroids, setPolaroids] = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
 
+  // Évite d'afficher le fond/titre par défaut avant le chargement des vrais réglages
+  const [heroReady, setHeroReady] = useState(false)
+
   // Sync muted sur la vidéo (React ne propage pas l'attribut muted en re-render)
   useEffect(() => {
     if (heroVideoRef.current) heroVideoRef.current.muted = heroBg.videoMuted
@@ -256,8 +259,7 @@ export default function Accueil() {
   }, [googleApiKey, googlePlaceId])
 
   useEffect(() => {
-    loadContent()
-    loadActus()
+    Promise.all([loadContent(), loadActus()]).then(() => setHeroReady(true))
     loadSocialLinks()
     loadPolaroids()
 
@@ -401,7 +403,11 @@ export default function Accueil() {
       {/* ===== HERO ===== */}
       <section
         className="relative min-h-screen px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex flex-col"
-        style={buildHeroBgStyle(heroBg)}>
+        style={{
+          ...(heroReady ? buildHeroBgStyle(heroBg) : { backgroundColor: '#ffffff' }),
+          opacity: heroReady ? 1 : 0,
+          transition: 'opacity 0.25s ease-in',
+        }}>
 
         {/* Vidéo de fond */}
         {heroBg.type === 'video' && heroBg.videoUrl && (
