@@ -29,6 +29,7 @@
     @apply bg-rose-400 text-white font-bold px-6 py-3 rounded-2xl transition-all
            hover:-translate-y-0.5 active:translate-y-0;
     box-shadow: 4px 4px 0px 0px #1A1040;
+    -webkit-text-stroke: 0.6px #1A1040;
   }
 
   /* Bouton secondaire jaune */
@@ -58,6 +59,12 @@
 @layer utilities {
   .text-ink {
     color: #1A1040;
+  }
+
+  /* Accessibilité : contour bleu marine sur texte blanc fond rose */
+  .bg-rose-400.text-white,
+  .bg-rose-500.text-white {
+    -webkit-text-stroke: 0.6px #1A1040;
   }
 
   /* Décorations confettis SVG */
