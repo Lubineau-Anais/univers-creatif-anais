@@ -55,6 +55,37 @@ export default function CartDrawer() {
             .update({ places_restantes: item.atelier.places_restantes - item.nbPersonnes })
             .eq('id', item.atelier.id)
         }
+
+        // Email de confirmation (non bloquant — si l'Edge Function n'est pas encore déployée, on continue quand même)
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+          await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+            },
+            body: JSON.stringify({
+              atelier_titre:    item.atelier.titre,
+              atelier_date:     item.atelier.date,
+              atelier_heure:    item.atelier.heure,
+              atelier_duree:    item.atelier.duree,
+              atelier_lieu:     item.atelier.lieu,
+              category_id:      item.atelier.category_id,
+              client_prenom:    item.form.prenom,
+              client_nom:       item.form.nom,
+              client_email:     item.form.email,
+              client_telephone: item.form.telephone,
+              mode_paiement:    item.form.paiement || 'especes',
+              nb_personnes:     item.nbPersonnes,
+              personnes_sup:    item.personnesSup,
+              total:            item.total,
+            }),
+          })
+        } catch {
+          // Email non critique : on ne bloque pas la réservation si l'envoi échoue
+        }
       }
       clearItems()
       setChecked(true)
