@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const RESEND_KEY  = Deno.env.get('RESEND_API_KEY') ?? ''
 const IBAN        = Deno.env.get('VIREMENT_IBAN')  ?? 'À renseigner dans les secrets Supabase (VIREMENT_IBAN)'
 const BIC         = Deno.env.get('VIREMENT_BIC')   ?? 'À renseigner dans les secrets Supabase (VIREMENT_BIC)'
-const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL')    ?? 'gavardmarine22@gmail.com'
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL')    ?? 'univers.creatif.anais@outlook.com'
 const FROM        = "L'Univers Créatif d'Anaïs <reservations@luniverscreatifdanais.fr>"
 
 const CORS = {
