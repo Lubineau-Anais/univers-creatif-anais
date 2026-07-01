@@ -53,19 +53,20 @@ function buildEmailClient(params: {
   prenom: string; atelier_titre: string; dateFormatted: string
   heure: string; duree: string; lieu: string; mode_paiement: string
   nb_personnes: number; personnes_sup: { prenom: string; nom: string; age: string }[]
-  total: number; catInfo: CatInfo; iban: string; bic: string
+  total: number; catInfo: CatInfo; stripeUrl: string
 }) {
   const { prenom, atelier_titre, dateFormatted, heure, duree, lieu,
-    mode_paiement, nb_personnes, personnes_sup, total, catInfo, iban, bic } = params
+    mode_paiement, nb_personnes, personnes_sup, total, catInfo, stripeUrl } = params
 
   const paiementBlock = (() => {
     if (mode_paiement === 'virement') return `
-      <div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:12px;padding:16px;margin:20px 0;">
-        <p style="font-weight:900;color:#1e40af;margin:0 0 10px;font-size:15px;">🏦 Coordonnées pour le virement bancaire</p>
-        <p style="margin:0;color:#1e3a8a;font-size:14px;"><strong>IBAN :</strong> ${iban}</p>
-        <p style="margin:6px 0 0;color:#1e3a8a;font-size:14px;"><strong>BIC :</strong> ${bic}</p>
-        <p style="margin:10px 0 0;color:#3b82f6;font-size:13px;font-weight:700;">⚠️ Le règlement doit être effectué avant le début de l'atelier.</p>
-        <p style="margin:4px 0 0;color:#3b82f6;font-size:13px;">Merci d'indiquer ton nom et la date de l'atelier en référence du virement.</p>
+      <div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
+        <p style="font-weight:900;color:#1e40af;margin:0 0 10px;font-size:15px;">💳 Finalise ton paiement en ligne</p>
+        <p style="margin:0 0 16px;color:#3b82f6;font-size:14px;">Règle le montant de <strong>${total} €</strong> de façon sécurisée via Stripe.</p>
+        <a href="${stripeUrl}" style="display:inline-block;background:#635bff;color:white;font-weight:900;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none;">
+          💳 Payer ${total} € en ligne →
+        </a>
+        <p style="margin:14px 0 0;color:#6b7280;font-size:12px;">⚠️ Le règlement doit être effectué avant le début de l'atelier.</p>
       </div>`
     if (mode_paiement === 'cheque') return `
       <div style="background:#f5f3ff;border:2px solid #8b5cf6;border-radius:12px;padding:16px;margin:20px 0;">
@@ -166,8 +167,9 @@ function buildEmailAdmin(params: {
 
   const modeEmoji: Record<string, string> = { cb: '💳', virement: '🏦', cheque: '📝', especes: '💵' }
   const alerteVirement = mode_paiement === 'virement'
-    ? `<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:10px;padding:12px;margin:14px 0;">
-        <p style="font-weight:900;color:#dc2626;margin:0;font-size:14px;">⚠️ Virement attendu avant l'atelier — pensez à vérifier la réception.</p>
+    ? `<div style="background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;padding:12px;margin:14px 0;">
+        <p style="font-weight:900;color:#1e40af;margin:0;font-size:14px;">💳 Lien Stripe envoyé au client pour paiement en ligne.</p>
+        <p style="margin:6px 0 0;color:#3b82f6;font-size:13px;">La transaction apparaîtra dans Stripe et sera synchronisée avec Indy.</p>
        </div>`
     : ''
 
@@ -221,16 +223,15 @@ serve(async (req) => {
     const { data: rows } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['email_provider', 'email_expediteur', 'email_nom', 'smtp_password', 'virement_iban', 'virement_bic'])
+      .in('key', ['email_provider', 'email_expediteur', 'email_nom', 'smtp_password', 'stripe_secret_key'])
 
     const s: Record<string, string> = {}
     ;(rows ?? []).forEach((r: { key: string; value: string }) => { s[r.key] = r.value || '' })
 
-    const apiKey      = s['smtp_password']
-    const adminEmail  = s['email_expediteur']
-    const nomOrga     = s['email_nom'] || "L'Univers Créatif d'Anaïs"
-    const iban        = s['virement_iban'] || '(IBAN à configurer dans les Connecteurs)'
-    const bic         = s['virement_bic']  || '(BIC à configurer dans les Connecteurs)'
+    const apiKey        = s['smtp_password']
+    const adminEmail    = s['email_expediteur']
+    const nomOrga       = s['email_nom']         || "L'Univers Créatif d'Anaïs"
+    const stripeSecret  = s['stripe_secret_key'] || ''
 
     if (!apiKey || !adminEmail) {
       return new Response(
@@ -262,10 +263,44 @@ serve(async (req) => {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     })
 
+    // ── Créer un lien Stripe Checkout pour le paiement en ligne (mode virement)
+    let stripeUrl = 'https://luniverscreatifdanais.fr/ateliers'
+    if (mode_paiement === 'virement' && stripeSecret) {
+      try {
+        const params = new URLSearchParams({
+          mode: 'payment',
+          customer_email: client_email,
+          'line_items[0][quantity]': '1',
+          'line_items[0][price_data][currency]': 'eur',
+          'line_items[0][price_data][unit_amount]': String(Math.round(total * 100)),
+          'line_items[0][price_data][product_data][name]': atelier_titre,
+          'line_items[0][price_data][product_data][description]': `${dateFormatted} — ${atelier_heure} — ${atelier_lieu}`,
+          success_url: 'https://luniverscreatifdanais.fr/ateliers?paiement=confirme',
+          cancel_url: 'https://luniverscreatifdanais.fr/ateliers',
+        })
+        const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${stripeSecret}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString(),
+        })
+        if (stripeRes.ok) {
+          const session = await stripeRes.json()
+          if (session.url) stripeUrl = session.url
+        } else {
+          console.error('Stripe session error:', await stripeRes.text())
+        }
+      } catch (e) {
+        console.error('Stripe session creation failed:', e)
+      }
+    }
+
     const htmlClient = buildEmailClient({
       prenom: client_prenom, atelier_titre, dateFormatted,
       heure: atelier_heure, duree: atelier_duree, lieu: atelier_lieu,
-      mode_paiement, nb_personnes, personnes_sup: personnes_sup ?? [], total, catInfo, iban, bic,
+      mode_paiement, nb_personnes, personnes_sup: personnes_sup ?? [], total, catInfo, stripeUrl,
     })
 
     const htmlAdmin = buildEmailAdmin({
