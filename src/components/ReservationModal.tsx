@@ -250,7 +250,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
       <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600 font-medium">
         <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-rose-400" /><span className="capitalize">{dateFormatted}</span></div>
         <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-turquoise-500" />{atelier.heure} · {atelier.duree}</div>
-        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" />{atelier.lieu}</div>
+        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" /><a href={`https://maps.google.com/maps?q=${encodeURIComponent(atelier.lieu)}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-citron-600 transition-colors">{atelier.lieu}</a></div>
         <div className="flex items-center gap-1.5">
           <Euro className="w-3.5 h-3.5 text-lime-600" />
           <strong>{atelier.prix} €</strong>/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}

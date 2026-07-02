@@ -202,7 +202,7 @@ export default function CartDrawer() {
                             </div>
                             <div className="flex items-center gap-1.5 col-span-2">
                               <MapPin className="w-3 h-3 text-citron-500" />
-                              {item.atelier.lieu}
+                              <a href={`https://maps.google.com/maps?q=${encodeURIComponent(item.atelier.lieu)}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-citron-600 transition-colors">{item.atelier.lieu}</a>
                             </div>
                           </div>
 

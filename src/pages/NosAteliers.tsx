@@ -616,7 +616,11 @@ export default function NosAteliers() {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-citron-500 shrink-0" />
-                          {atelier.lieu}
+                          <a href={`https://maps.google.com/maps?q=${encodeURIComponent(atelier.lieu)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="hover:text-citron-600 hover:underline transition-colors">
+                            {atelier.lieu}
+                          </a>
                         </div>
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-1.5 text-xs font-medium">
