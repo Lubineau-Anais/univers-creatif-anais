@@ -145,7 +145,11 @@ export default function Contact() {
             {content['contact_adresse'] && (
               <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
                 <MapPin className="w-4 h-4 text-rose-300 shrink-0" />
-                <span>{content['contact_adresse']}</span>
+                <a href={`https://maps.google.com/maps?q=${encodeURIComponent(content['contact_adresse'])}`}
+                   target="_blank" rel="noopener noreferrer"
+                   className="hover:text-white hover:underline transition-colors">
+                  {content['contact_adresse']}
+                </a>
               </div>
             )}
             {content['contact_telephone'] && (
