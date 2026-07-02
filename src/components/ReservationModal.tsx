@@ -85,7 +85,7 @@ function StripeCardForm({
           <span className="text-citron-400 font-black text-xl">{total} €</span>
         </div>
       </div>
-      <button type="submit" disabled={processing || (!STRIPE_NOT_CONFIGURED && !stripe)}
+      <button type="submit" disabled={processing || (stripeConfigured && !stripe)}
         className="w-full flex items-center justify-center gap-2 bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
         style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
         <CreditCard className="w-4 h-4" />
