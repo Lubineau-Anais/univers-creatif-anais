@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -6,15 +6,7 @@ import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'
 import type { Atelier } from '../types'
 
-// supabase import removed — saving happens in CartDrawer at checkout
-
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
-)
-
-const STRIPE_NOT_CONFIGURED =
-  !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY === 'pk_test_placeholder'
+import { supabase } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ModePaiement = 'cb' | 'virement' | 'cheque' | 'especes' | ''
@@ -41,10 +33,10 @@ const MODES_INFO: Record<string, { label: string; icon: React.ReactNode; desc: s
 
 // ─── Stripe Card Form ─────────────────────────────────────────────────────────
 function StripeCardForm({
-  atelier, form, nbPersonnes, onSuccess, onError,
+  atelier, form, nbPersonnes, onSuccess, onError, stripeConfigured,
 }: {
   atelier: Atelier; form: FormData; nbPersonnes: number
-  onSuccess: () => void; onError: (msg: string) => void
+  onSuccess: () => void; onError: (msg: string) => void; stripeConfigured: boolean
 }) {
   const stripe   = useStripe()
   const elements = useElements()
@@ -53,7 +45,7 @@ function StripeCardForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (STRIPE_NOT_CONFIGURED) { onSuccess(); return }
+    if (!stripeConfigured) { onSuccess(); return }
     if (!stripe || !elements) return
     setProcessing(true)
     const card = elements.getElement(CardElement)
@@ -78,10 +70,10 @@ function StripeCardForm({
             ))}
           </div>
         </div>
-        {STRIPE_NOT_CONFIGURED ? (
+        {!stripeConfigured ? (
           <div className="bg-citron-400/20 border border-citron-400/40 rounded-xl p-4 text-center">
             <p className="text-citron-300 text-xs font-bold mb-1">⚙️ Mode démo</p>
-            <p className="text-white/70 text-xs">Ajoutez votre clé Stripe dans le fichier <code className="bg-white/10 px-1 rounded">.env</code> pour activer le paiement réel.</p>
+            <p className="text-white/70 text-xs">Configurez votre clé Stripe dans les Connecteurs pour activer le paiement réel.</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl px-4 py-3 border-2 border-white/20">
@@ -97,7 +89,7 @@ function StripeCardForm({
         className="w-full flex items-center justify-center gap-2 bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
         style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
         <CreditCard className="w-4 h-4" />
-        {processing ? '⏳ Traitement...' : STRIPE_NOT_CONFIGURED ? `🎉 Confirmer (démo) — ${total} €` : `🔒 Payer ${total} €`}
+        {processing ? '⏳ Traitement...' : !stripeConfigured ? `🎉 Confirmer (démo) — ${total} €` : `🔒 Payer ${total} €`}
       </button>
     </form>
   )
@@ -132,6 +124,18 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   const [loading]                     = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const [error, setError]             = useState('')
+  const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null)
+  const [stripeConfigured, setStripeConfigured] = useState(false)
+
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'stripe_public_key').single()
+      .then(({ data }) => {
+        if (data?.value) {
+          setStripePromise(loadStripe(data.value))
+          setStripeConfigured(true)
+        }
+      })
+  }, [])
 
   const dateFormatted = formatDate(atelier.date)
   const modesDispos   = atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes']
@@ -488,6 +492,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <StripeCardForm
                 atelier={atelier} form={form} nbPersonnes={nbPersonnes}
                 onSuccess={addToCart} onError={msg => setError(msg)}
+                stripeConfigured={stripeConfigured}
               />
             </Elements>
 
