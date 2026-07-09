@@ -196,6 +196,8 @@ export default function AccueilAdmin() {
   const [aproposPhotoError,     setAproposPhotoError]     = useState('')
   const [aproposPhotoSaved,     setAproposPhotoSaved]     = useState(false)
   const [aproposPhotoSize,      setAproposPhotoSize]      = useState(288)
+  const [aproposPhotoRotation,  setAproposPhotoRotation]  = useState(0)
+  const [aproposPhotoVisible,   setAproposPhotoVisible]   = useState(true)
 
   const [aproposTitleText,  setAproposTitleText]  = useState('Une passion, plein de couleurs !')
   const [aproposTitleStyle, setAproposTitleStyle] = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
@@ -227,7 +229,7 @@ export default function AccueilAdmin() {
           'actu_section_titre_style', 'actu_badge_config', 'actu_btn_config',
           'hero_btn1_config', 'hero_btn2_config',
           'valeurs_bg_config', 'valeurs_titre_style', 'valeurs_carte_titre_style', 'valeurs_carte_desc_style', 'valeurs_cards',
-          'apropos_bg_config', 'apropos_photo_url', 'apropos_photo_size', 'apropos_titre_style', 'apropos_texte_style',
+          'apropos_bg_config', 'apropos_photo_url', 'apropos_photo_size', 'apropos_photo_rotation', 'apropos_photo_visible', 'apropos_titre_style', 'apropos_texte_style',
           'avis_bg_config', 'avis_titre_style', 'hero_logo_visible',
         ]),
         supabase.from('page_content').select('section, contenu')
@@ -261,6 +263,8 @@ export default function AccueilAdmin() {
           if (s.key === 'avis_titre_style')         setAvisTitleStyle(p => ({ ...p, ...v }))
           if (s.key === 'hero_logo_visible')        setLogoVisible(v !== false)
           if (s.key === 'apropos_photo_size')       setAproposPhotoSize(parseInt(s.value) || 288)
+          if (s.key === 'apropos_photo_rotation')   setAproposPhotoRotation(parseFloat(s.value) || 0)
+          if (s.key === 'apropos_photo_visible')    setAproposPhotoVisible(s.value !== 'false')
         } catch {}
         if (s.key === 'valeurs_cards' && s.value)      { try { setValeursCards(JSON.parse(s.value)) } catch {} }
         if (s.key === 'apropos_photo_url' && s.value)  setAproposPhoto(s.value)
@@ -381,6 +385,17 @@ export default function AccueilAdmin() {
   async function changeAproposPhotoSize(size: number) {
     setAproposPhotoSize(size)
     await supabase.from('settings').upsert({ key: 'apropos_photo_size', value: String(size) }, { onConflict: 'key' })
+  }
+
+  async function changeAproposPhotoRotation(deg: number) {
+    setAproposPhotoRotation(deg)
+    await supabase.from('settings').upsert({ key: 'apropos_photo_rotation', value: String(deg) }, { onConflict: 'key' })
+  }
+
+  async function toggleAproposPhotoVisible() {
+    const next = !aproposPhotoVisible
+    setAproposPhotoVisible(next)
+    await supabase.from('settings').upsert({ key: 'apropos_photo_visible', value: String(next) }, { onConflict: 'key' })
   }
 
   async function saveAvisBg() {
@@ -901,13 +916,45 @@ export default function AccueilAdmin() {
                   {aproposPhotoSaved && <p className="text-xs text-lime-700 font-black flex items-center gap-1"><Check className="w-3 h-3" />Photo mise à jour !</p>}
                 </div>
               </div>
-              {/* Taille de la photo */}
-              <div className="flex items-center gap-4 pt-1">
+              {/* Aperçu de la photo */}
+              <div className="flex justify-center py-3 bg-candy rounded-2xl border-2 border-dashed border-[#1A1040]/20">
+                {aproposPhotoVisible
+                  ? <img src={aproposPhoto} alt="Aperçu" className="object-cover rounded-2xl border-4 border-[#1A1040]"
+                      style={{ width: 120, height: 120, transform: `rotate(${aproposPhotoRotation}deg)` }} />
+                  : <div className="w-[120px] h-[120px] rounded-2xl border-4 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs font-black">Masquée</div>
+                }
+              </div>
+
+              {/* Taille */}
+              <div className="flex items-center gap-4">
                 <span className="text-xs font-black text-[#1A1040] shrink-0">📐 Taille</span>
                 <input type="range" min={120} max={480} step={10} value={aproposPhotoSize}
                   onChange={e => changeAproposPhotoSize(parseInt(e.target.value))}
-                  className="flex-1" />
+                  className="flex-1 accent-rose-400" />
                 <span className="text-xs font-black text-[#1A1040] w-14 text-right shrink-0">{aproposPhotoSize}px</span>
+              </div>
+
+              {/* Inclinaison */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-black text-[#1A1040] shrink-0">🔄 Inclinaison</span>
+                <input type="range" min={-30} max={30} step={1} value={aproposPhotoRotation}
+                  onChange={e => changeAproposPhotoRotation(parseFloat(e.target.value))}
+                  className="flex-1 accent-turquoise-500" />
+                <span className="text-xs font-black text-[#1A1040] w-14 text-right shrink-0">{aproposPhotoRotation}°</span>
+              </div>
+
+              {/* Visibilité */}
+              <div className="flex items-center justify-between bg-candy rounded-xl px-4 py-3 border-2 border-[#1A1040]/20">
+                <div>
+                  <p className="text-xs font-black text-[#1A1040]">👁️ Visibilité publique</p>
+                  <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    {aproposPhotoVisible ? 'La photo est visible sur le site' : 'La photo est masquée du public'}
+                  </p>
+                </div>
+                <button onClick={toggleAproposPhotoVisible}
+                  className={`relative w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors shrink-0 ${aproposPhotoVisible ? 'bg-lime-400' : 'bg-gray-200'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[#1A1040] transition-all ${aproposPhotoVisible ? 'left-6' : 'left-0.5'}`} />
+                </button>
               </div>
             </div>
 

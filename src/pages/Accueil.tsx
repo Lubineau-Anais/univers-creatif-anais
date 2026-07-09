@@ -195,6 +195,8 @@ export default function Accueil() {
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [aproposPhoto,         setAproposPhoto]         = useState(DEFAULT_APROPOS_PHOTO)
   const [aproposPhotoSize,     setAproposPhotoSize]     = useState(288)
+  const [aproposPhotoRotation, setAproposPhotoRotation] = useState(0)
+  const [aproposPhotoVisible,  setAproposPhotoVisible]  = useState(true)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
   const [aproposBodyStyle,     setAproposBodyStyle]     = useState<HeroStyle>(DEFAULT_APROPOS_BODY_STYLE)
@@ -354,6 +356,8 @@ export default function Accueil() {
       else if (s.key === 'apropos_texte_style')      { try { setAproposBodyStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'apropos_photo_url')        { if (s.value) setAproposPhoto(s.value) }
       else if (s.key === 'apropos_photo_size')       { setAproposPhotoSize(parseInt(s.value) || 288) }
+      else if (s.key === 'apropos_photo_rotation')   { setAproposPhotoRotation(parseFloat(s.value) || 0) }
+      else if (s.key === 'apropos_photo_visible')    { setAproposPhotoVisible(s.value !== 'false') }
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
@@ -740,15 +744,17 @@ export default function Accueil() {
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
           {/* Photo polaroïd */}
-          <div className="flex-1 flex justify-center relative">
-            <div className="relative rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop"
-              style={{ width: `${aproposPhotoSize}px`, height: `${aproposPhotoSize}px` }}>
-              {aproposPhoto
-                ? <img src={aproposPhoto} alt="Atelier créatif" className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center bg-candy text-5xl">🎨</div>
-              }
+          {aproposPhotoVisible && (
+            <div className="flex-1 flex justify-center relative">
+              <div className="relative rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop transition-transform duration-300"
+                style={{ width: `${aproposPhotoSize}px`, height: `${aproposPhotoSize}px`, transform: `rotate(${aproposPhotoRotation}deg)` }}>
+                {aproposPhoto
+                  ? <img src={aproposPhoto} alt="Atelier créatif" className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center bg-candy text-5xl">🎨</div>
+                }
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Texte */}
           <div className="flex-1">
