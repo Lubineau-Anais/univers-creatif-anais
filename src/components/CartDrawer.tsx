@@ -34,9 +34,11 @@ export default function CartDrawer() {
   async function confirmAtelierReservations() {
     setCheckingOut(true)
     setCheckError('')
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+    const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
     try {
       for (const item of atelierItems) {
-        const { error: insertError } = await supabase.from('reservations').insert([{
+        const { data: inserted, error: insertError } = await supabase.from('reservations').insert([{
           atelier_id:      item.atelier.id,
           nom:             item.form.nom,
           prenom:          item.form.prenom,
@@ -47,7 +49,7 @@ export default function CartDrawer() {
           statut_paiement: item.form.paiement === 'cb' ? 'paye' : 'en_attente',
           nb_personnes:    item.nbPersonnes,
           personnes_sup:   item.personnesSup,
-        }])
+        }]).select().single()
         if (insertError) throw insertError
 
         if (!item.atelier.id.startsWith('demo-')) {
@@ -56,36 +58,56 @@ export default function CartDrawer() {
             .eq('id', item.atelier.id)
         }
 
-        // Email de confirmation (non bloquant — si l'Edge Function n'est pas encore déployée, on continue quand même)
-        try {
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-          await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
-            },
-            body: JSON.stringify({
-              atelier_titre:    item.atelier.titre,
-              atelier_date:     item.atelier.date,
-              atelier_heure:    item.atelier.heure,
-              atelier_duree:    item.atelier.duree,
-              atelier_lieu:     item.atelier.lieu,
-              category_id:      item.atelier.category_id,
-              client_prenom:    item.form.prenom,
-              client_nom:       item.form.nom,
-              client_email:     item.form.email,
-              client_telephone: item.form.telephone,
-              mode_paiement:    item.form.paiement || 'especes',
-              nb_personnes:     item.nbPersonnes,
-              personnes_sup:    item.personnesSup,
-              total:            item.total,
-            }),
-          })
-        } catch {
-          // Email non critique : on ne bloque pas la réservation si l'envoi échoue
-        }
+        // Email de confirmation (non bloquant)
+        fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({
+            atelier_titre:    item.atelier.titre,
+            atelier_date:     item.atelier.date,
+            atelier_heure:    item.atelier.heure,
+            atelier_duree:    item.atelier.duree,
+            atelier_lieu:     item.atelier.lieu,
+            category_id:      item.atelier.category_id,
+            client_prenom:    item.form.prenom,
+            client_nom:       item.form.nom,
+            client_email:     item.form.email,
+            client_telephone: item.form.telephone,
+            mode_paiement:    item.form.paiement || 'especes',
+            nb_personnes:     item.nbPersonnes,
+            personnes_sup:    item.personnesSup,
+            total:            item.total,
+          }),
+        }).catch(() => {})
+
+        // Facture automatique (non bloquant) — pour tous modes de paiement
+        fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({
+            type:             'facture',
+            reservation_id:   inserted?.id,
+            atelier_titre:    item.atelier.titre,
+            atelier_date:     item.atelier.date,
+            client_nom:       item.form.nom,
+            client_prenom:    item.form.prenom,
+            client_email:     item.form.email,
+            client_telephone: item.form.telephone,
+            description:      `Atelier créatif — ${item.atelier.titre}${item.nbPersonnes > 1 ? ` (${item.nbPersonnes} participants)` : ''}`,
+            quantite:         item.nbPersonnes,
+            prix_unitaire:    item.atelier.prix,
+            montant_total:    item.total,
+            mode_paiement:    item.form.paiement || 'especes',
+          }),
+        }).catch(() => {})
       }
       clearItems()
       setChecked(true)

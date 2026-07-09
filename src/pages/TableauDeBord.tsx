@@ -213,6 +213,46 @@ export default function TableauDeBord() {
             : r
         ),
       })))
+
+      // Avoir automatique lors d'une annulation
+      if (newStatut === 'annule' && oldStatut !== 'annule') {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+        const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+        const montant     = nbPersonnes * concernedAtelier.prix
+
+        // Chercher la facture originale liée à cette réservation
+        supabase.from('factures')
+          .select('numero')
+          .eq('reservation_id', reservationId)
+          .eq('type', 'facture')
+          .maybeSingle()
+          .then(({ data: facture }) => {
+            fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: anonKey,
+                Authorization: `Bearer ${anonKey}`,
+              },
+              body: JSON.stringify({
+                type:              'avoir',
+                reference_facture: facture?.numero || null,
+                reservation_id:    reservationId,
+                atelier_titre:     concernedAtelier!.titre,
+                atelier_date:      concernedAtelier!.date,
+                client_nom:        currentReservation!.nom,
+                client_prenom:     currentReservation!.prenom,
+                client_email:      currentReservation!.email,
+                client_telephone:  currentReservation!.telephone,
+                description:       `Avoir — Annulation atelier « ${concernedAtelier!.titre} »${nbPersonnes > 1 ? ` (${nbPersonnes} participants)` : ''}`,
+                quantite:          nbPersonnes,
+                prix_unitaire:     concernedAtelier!.prix,
+                montant_total:     montant,
+                mode_paiement:     currentReservation!.mode_paiement,
+              }),
+            }).catch(() => {})
+          })
+      }
     }
     setUpdatingId(null)
   }

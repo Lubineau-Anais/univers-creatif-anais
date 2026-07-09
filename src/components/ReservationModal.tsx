@@ -215,21 +215,22 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     onReserved()
   }
 
-  // ── Après paiement CB réussi : enregistre + envoie l'email directement ──
+  // ── Après paiement CB réussi : enregistre + envoie l'email + génère la facture ──
   async function handleCbSuccess() {
     try {
-      const { error: insertError } = await supabase.from('reservations').insert([{
-        atelier_id:      atelier.id,
-        nom:             form.nom,
-        prenom:          form.prenom,
-        age:             form.age,
-        email:           form.email,
-        telephone:       form.telephone,
-        mode_paiement:   'cb',
-        statut_paiement: 'paye',
-        nb_personnes:    nbPersonnes,
-        personnes_sup:   personnesSup,
-      }])
+      const { data: inserted, error: insertError } = await supabase
+        .from('reservations').insert([{
+          atelier_id:      atelier.id,
+          nom:             form.nom,
+          prenom:          form.prenom,
+          age:             form.age,
+          email:           form.email,
+          telephone:       form.telephone,
+          mode_paiement:   'cb',
+          statut_paiement: 'paye',
+          nb_personnes:    nbPersonnes,
+          personnes_sup:   personnesSup,
+        }]).select().single()
       if (insertError) throw insertError
 
       if (!atelier.id.startsWith('demo-')) {
@@ -240,7 +241,9 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
       const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-      await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+
+      // Email de confirmation (non bloquant)
+      fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
         body: JSON.stringify({
@@ -259,7 +262,28 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           personnes_sup:    personnesSup,
           total,
         }),
-      })
+      }).catch(() => {})
+
+      // Facture automatique (non bloquant)
+      fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+        body: JSON.stringify({
+          type:             'facture',
+          reservation_id:   inserted?.id,
+          atelier_titre:    atelier.titre,
+          atelier_date:     atelier.date,
+          client_nom:       form.nom,
+          client_prenom:    form.prenom,
+          client_email:     form.email,
+          client_telephone: form.telephone,
+          description:      `Atelier créatif — ${atelier.titre}${nbPersonnes > 1 ? ` (${nbPersonnes} participants)` : ''}`,
+          quantite:         nbPersonnes,
+          prix_unitaire:    atelier.prix,
+          montant_total:    total,
+          mode_paiement:    'cb',
+        }),
+      }).catch(() => {})
 
       setCbPaymentSuccess(true)
       onReserved()
