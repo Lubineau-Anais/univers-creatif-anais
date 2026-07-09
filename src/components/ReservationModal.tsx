@@ -36,7 +36,7 @@ function StripeCardForm({
   atelier, form, nbPersonnes, onSuccess, onError, stripeConfigured,
 }: {
   atelier: Atelier; form: FormData; nbPersonnes: number
-  onSuccess: () => void; onError: (msg: string) => void; stripeConfigured: boolean
+  onSuccess: (paymentIntentId: string) => void; onError: (msg: string) => void; stripeConfigured: boolean
 }) {
   const stripe   = useStripe()
   const elements = useElements()
@@ -45,7 +45,7 @@ function StripeCardForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!stripeConfigured) { onSuccess(); return }
+    if (!stripeConfigured) { onSuccess(''); return }
     if (!stripe || !elements) return
     setProcessing(true)
     const card = elements.getElement(CardElement)
@@ -87,7 +87,7 @@ function StripeCardForm({
         onError(error.message || 'Erreur lors du paiement.')
         setProcessing(false)
       } else if (paymentIntent?.status === 'succeeded') {
-        onSuccess()
+        onSuccess(paymentIntent.id)
       } else {
         onError('Le paiement n\'a pas abouti. Veuillez réessayer.')
         setProcessing(false)
@@ -216,20 +216,21 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   }
 
   // ── Après paiement CB réussi : enregistre + envoie l'email + génère la facture ──
-  async function handleCbSuccess() {
+  async function handleCbSuccess(paymentIntentId: string) {
     try {
       const { data: inserted, error: insertError } = await supabase
         .from('reservations').insert([{
-          atelier_id:      atelier.id,
-          nom:             form.nom,
-          prenom:          form.prenom,
-          age:             form.age,
-          email:           form.email,
-          telephone:       form.telephone,
-          mode_paiement:   'cb',
-          statut_paiement: 'paye',
-          nb_personnes:    nbPersonnes,
-          personnes_sup:   personnesSup,
+          atelier_id:                atelier.id,
+          nom:                       form.nom,
+          prenom:                    form.prenom,
+          age:                       form.age,
+          email:                     form.email,
+          telephone:                 form.telephone,
+          mode_paiement:             'cb',
+          statut_paiement:           'paye',
+          nb_personnes:              nbPersonnes,
+          personnes_sup:             personnesSup,
+          stripe_payment_intent_id:  paymentIntentId || null,
         }]).select().single()
       if (insertError) throw insertError
 
@@ -282,6 +283,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           prix_unitaire:    atelier.prix,
           montant_total:    total,
           mode_paiement:    'cb',
+          stripe_payment_id: paymentIntentId || null,
         }),
       }).catch(() => {})
 

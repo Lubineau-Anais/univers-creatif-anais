@@ -17,9 +17,10 @@ interface Reservation {
   age: string | null
   email: string
   telephone: string | null
-  mode_paiement: 'carte' | 'cheque' | 'especes'
+  mode_paiement: string
   statut_paiement: 'en_attente' | 'paye' | 'annule'
   nb_personnes: number
+  stripe_payment_intent_id: string | null
   created_at: string
 }
 
@@ -213,6 +214,19 @@ export default function TableauDeBord() {
             : r
         ),
       })))
+
+      // Remboursement Stripe si paiement CB et statut était "payé"
+      if (newStatut === 'annule' && oldStatut === 'paye'
+        && (currentReservation.mode_paiement === 'cb' || currentReservation.mode_paiement === 'carte')
+        && currentReservation.stripe_payment_intent_id) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+        const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+        fetch(`${supabaseUrl}/functions/v1/refund-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+          body: JSON.stringify({ payment_intent_id: currentReservation.stripe_payment_intent_id }),
+        }).catch(() => {})
+      }
 
       // Avoir automatique lors d'une annulation
       if (newStatut === 'annule' && oldStatut !== 'annule') {
