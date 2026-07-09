@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag } from 'lucide-react'
+import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag, Check } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useAtelierCart } from '../context/AtelierCartContext'
@@ -163,6 +163,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   )
   const [loading]                     = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [cbPaymentSuccess, setCbPaymentSuccess] = useState(false)
   const [error, setError]             = useState('')
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null)
   const [stripeConfigured, setStripeConfigured] = useState(false)
@@ -197,7 +198,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     setPersonnesSup(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p))
   }
 
-  // ── Ajouter au panier ────────────────────────────────────────────────────
+  // ── Ajouter au panier (modes non-CB) ─────────────────────────────────────
   function addToCart() {
     addAtelierItem({
       atelier,
@@ -212,6 +213,59 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     })
     setAddedToCart(true)
     onReserved()
+  }
+
+  // ── Après paiement CB réussi : enregistre + envoie l'email directement ──
+  async function handleCbSuccess() {
+    try {
+      const { error: insertError } = await supabase.from('reservations').insert([{
+        atelier_id:      atelier.id,
+        nom:             form.nom,
+        prenom:          form.prenom,
+        age:             form.age,
+        email:           form.email,
+        telephone:       form.telephone,
+        mode_paiement:   'cb',
+        statut_paiement: 'paye',
+        nb_personnes:    nbPersonnes,
+        personnes_sup:   personnesSup,
+      }])
+      if (insertError) throw insertError
+
+      if (!atelier.id.startsWith('demo-')) {
+        await supabase.from('ateliers')
+          .update({ places_restantes: Math.max(0, atelier.places_restantes - nbPersonnes) })
+          .eq('id', atelier.id)
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+      await fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+        body: JSON.stringify({
+          atelier_titre:    atelier.titre,
+          atelier_date:     atelier.date,
+          atelier_heure:    atelier.heure,
+          atelier_duree:    atelier.duree,
+          atelier_lieu:     atelier.lieu,
+          category_id:      atelier.category_id,
+          client_prenom:    form.prenom,
+          client_nom:       form.nom,
+          client_email:     form.email,
+          client_telephone: form.telephone,
+          mode_paiement:    'cb',
+          nb_personnes:     nbPersonnes,
+          personnes_sup:    personnesSup,
+          total,
+        }),
+      })
+
+      setCbPaymentSuccess(true)
+      onReserved()
+    } catch {
+      setError('Votre paiement a été accepté mais une erreur est survenue lors de l\'enregistrement. Merci de nous contacter.')
+    }
   }
 
   // ── Âge minimum requis selon la position du participant ────────────────────
@@ -245,6 +299,38 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     setError('')
     if (form.paiement === 'cb') setStep('paiement')
     else addToCart()
+  }
+
+  // ── Écran succès paiement CB ──────────────────────────────────────────────
+  if (cbPaymentSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
+          style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
+          <div className="w-20 h-20 bg-lime-300 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#1A1040]"
+            style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+            <Check className="w-10 h-10 text-[#1A1040]" />
+          </div>
+          <div className="inline-block bg-citron-400 text-[#1A1040] px-4 py-1 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
+            ✅ Paiement accepté !
+          </div>
+          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">
+            Réservation confirmée {form.prenom} ! 🎊
+          </h2>
+          <p className="text-gray-500 font-medium mb-1">
+            {nbPersonnes > 1 ? `${nbPersonnes} places` : '1 place'} pour{' '}
+            <span className="text-rose-400 font-black">« {atelier.titre} »</span>
+          </p>
+          <p className="text-[#1A1040] font-black text-lg mb-2">{total} € — Payé par carte bancaire ✅</p>
+          <p className="text-gray-400 text-sm mb-6">Un email de confirmation vient de vous être envoyé.</p>
+          <button onClick={onClose}
+            className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
+            style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
+            Fermer 👋
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ── Écran "Ajouté au panier" ──────────────────────────────────────────────
@@ -531,7 +617,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             <Elements stripe={stripePromise}>
               <StripeCardForm
                 atelier={atelier} form={form} nbPersonnes={nbPersonnes}
-                onSuccess={addToCart} onError={msg => setError(msg)}
+                onSuccess={handleCbSuccess} onError={msg => setError(msg)}
                 stripeConfigured={stripeConfigured}
               />
             </Elements>
