@@ -19,6 +19,7 @@ interface Reservation {
   telephone: string | null
   mode_paiement: 'carte' | 'cheque' | 'especes'
   statut_paiement: 'en_attente' | 'paye' | 'annule'
+  nb_personnes: number
   created_at: string
 }
 
@@ -167,11 +168,45 @@ export default function TableauDeBord() {
   // ── Modifier statut paiement ─────────────────────────────────────────────
   async function updateStatut(reservationId: string, newStatut: string) {
     setUpdatingId(reservationId)
+
+    // Trouver la réservation et l'atelier dans l'état courant
+    let currentReservation: Reservation | undefined
+    let concernedAtelier: AtelierAvecReservations | undefined
+    for (const a of ateliers) {
+      const r = a.reservations.find(r => r.id === reservationId)
+      if (r) { currentReservation = r; concernedAtelier = a; break }
+    }
+
     const { error } = await supabase
       .from('reservations').update({ statut_paiement: newStatut }).eq('id', reservationId)
-    if (!error) {
+
+    if (!error && currentReservation && concernedAtelier) {
+      const oldStatut   = currentReservation.statut_paiement
+      const nbPersonnes = currentReservation.nb_personnes ?? 1
+
+      // Calculer le delta de places à remettre à jour
+      let placeDelta = 0
+      if (newStatut === 'annule' && oldStatut !== 'annule') {
+        placeDelta = nbPersonnes   // annulation → on libère les places
+      } else if (oldStatut === 'annule' && newStatut !== 'annule') {
+        placeDelta = -nbPersonnes  // réactivation → on reprend les places
+      }
+
+      let newPlaces = concernedAtelier.places_restantes
+      if (placeDelta !== 0) {
+        newPlaces = Math.min(
+          concernedAtelier.places_max,
+          Math.max(0, concernedAtelier.places_restantes + placeDelta)
+        )
+        await supabase
+          .from('ateliers')
+          .update({ places_restantes: newPlaces })
+          .eq('id', concernedAtelier.id)
+      }
+
       setAteliers(prev => prev.map(a => ({
         ...a,
+        places_restantes: a.id === concernedAtelier!.id ? newPlaces : a.places_restantes,
         reservations: a.reservations.map(r =>
           r.id === reservationId
             ? { ...r, statut_paiement: newStatut as Reservation['statut_paiement'] }
