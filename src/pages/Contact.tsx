@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Check, X, MapPin, Phone, Mail, Star } from 'lucide-react'
+import { Pencil, Check, X, MapPin, Phone, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
 import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 
 interface ContentBlock { section: string; contenu: string }
+interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
 
 const DEFAULT_CONTACT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#1A1040' }
+const DEFAULT_BADGE: BadgeConfig = { text: '⭐ On est là pour toi !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full', font: 'sans-serif', fontSize: 14 }
 
 const DEFAULT_TITRE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 36, color: '#ffffff', bold: true, italic: false, underline: false,
@@ -30,6 +32,7 @@ export default function Contact() {
   const [content, setContent]     = useState<Record<string, string>>(DEFAULT_CONTENT)
   const [contactBg, setContactBg] = useState<HeroBg>(DEFAULT_CONTACT_BG)
   const [titreStyle, setTitreStyle] = useState<HeroStyle>(DEFAULT_TITRE_STYLE)
+  const [badge, setBadge]         = useState<BadgeConfig>(DEFAULT_BADGE)
   const [showTitreEditor, setShowTitreEditor] = useState(false)
 
   const [form,    setForm]    = useState<FormData>(EMPTY_FORM)
@@ -67,11 +70,12 @@ export default function Contact() {
     const { data } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['contact_bg_config', 'contact_titre_style'])
+      .in('key', ['contact_bg_config', 'contact_titre_style', 'contact_badge_config'])
     if (!data) return
     data.forEach((s: { key: string; value: string }) => {
-      if (s.key === 'contact_bg_config')   { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_bg_config')    { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_titre_style')  { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_badge_config') { try { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
     })
   }
 
@@ -119,9 +123,9 @@ export default function Contact() {
         <div className="max-w-3xl mx-auto relative z-10">
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-rose-400 text-white px-4 py-1.5
-                          rounded-full text-sm font-bold border-2 border-rose-300 mb-6">
-            <Star className="w-4 h-4 fill-white" /> On est là pour toi !
+          <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 font-bold border-2 border-white/20 mb-6 ${badge.radius}`}
+            style={{ backgroundColor: badge.bg, color: badge.textColor, fontFamily: badge.font, fontSize: badge.fontSize }}>
+            {badge.text}
           </div>
 
           {/* Titre */}

@@ -5,10 +5,17 @@ import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
 import BgEditor from '../components/BgEditor'
 
-interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
+interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
 
 const DEFAULT_CONTACT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#1A1040' }
-const DEFAULT_BADGE: BadgeConfig = { text: '⭐ On est là pour toi !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full' }
+const DEFAULT_BADGE: BadgeConfig = { text: '⭐ On est là pour toi !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full', font: 'sans-serif', fontSize: 14 }
+
+const FONT_OPTIONS = [
+  { value: 'sans-serif',           label: 'Sans-serif' },
+  { value: 'Georgia, serif',       label: 'Serif' },
+  { value: 'system-ui, sans-serif',label: 'Système' },
+  { value: 'monospace',            label: 'Mono' },
+]
 const DEFAULT_TITRE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 36, color: '#ffffff', bold: true, italic: false, underline: false,
   outline: false, outlineColor: '#1A1040', outlineWidth: 2,
@@ -166,20 +173,42 @@ export default function ContactAdmin() {
         <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow: '5px 5px 0px 0px #ffe500' }}>
           <SectionHeader icon={<span className="text-lg">🏷️</span>} title="Badge" sub="Le petit badge au-dessus du titre" />
           <div className="p-6 space-y-5">
-            <div className="flex justify-center">
-              <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-gray-300 ${badge.radius}`}
-                style={{ backgroundColor: badge.bg, color: badge.textColor }}>
+            {/* Aperçu */}
+            <div className="flex justify-center py-2 bg-[#1A1040] rounded-2xl">
+              <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 font-bold border-2 border-white/20 ${badge.radius}`}
+                style={{ backgroundColor: badge.bg, color: badge.textColor, fontFamily: badge.font, fontSize: badge.fontSize }}>
                 {badge.text}
               </div>
             </div>
+
+            {/* Texte */}
             <div>
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
               <input type="text" value={badge.text} onChange={e => setBadge(p => ({ ...p, text: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400" />
             </div>
+
+            {/* Police + Taille */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Fond</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Police</label>
+                <select value={badge.font} onChange={e => setBadge(p => ({ ...p, font: e.target.value }))}
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white">
+                  {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille — {badge.fontSize}px</label>
+                <input type="range" min={10} max={28} value={badge.fontSize}
+                  onChange={e => setBadge(p => ({ ...p, fontSize: Number(e.target.value) }))}
+                  className="w-full accent-rose-400 mt-2" />
+              </div>
+            </div>
+
+            {/* Couleurs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Couleur de fond</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={badge.bg} onChange={e => setBadge(p => ({ ...p, bg: e.target.value }))} className="w-9 h-9 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5" />
                   <input type="text" value={badge.bg} maxLength={7} onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setBadge(p => ({ ...p, bg: e.target.value })) }}
@@ -187,7 +216,7 @@ export default function ContactAdmin() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Couleur du texte</label>
                 <div className="flex items-center gap-2">
                   <input type="color" value={badge.textColor} onChange={e => setBadge(p => ({ ...p, textColor: e.target.value }))} className="w-9 h-9 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5" />
                   <input type="text" value={badge.textColor} maxLength={7} onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setBadge(p => ({ ...p, textColor: e.target.value })) }}
@@ -195,6 +224,8 @@ export default function ContactAdmin() {
                 </div>
               </div>
             </div>
+
+            {/* Forme */}
             <div>
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Forme</label>
               <div className="flex flex-wrap gap-1.5">
