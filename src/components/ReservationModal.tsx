@@ -50,12 +50,52 @@ function StripeCardForm({
     setProcessing(true)
     const card = elements.getElement(CardElement)
     if (!card) { setProcessing(false); return }
-    const { error } = await stripe.createPaymentMethod({
-      type: 'card', card,
-      billing_details: { name: `${form.prenom} ${form.nom}`, email: form.email, phone: form.telephone },
-    })
-    if (error) { onError(error.message || 'Erreur lors du paiement.'); setProcessing(false) }
-    else onSuccess()
+
+    try {
+      // 1. Créer le PaymentIntent côté serveur (débit réel)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+      const piRes = await fetch(`${supabaseUrl}/functions/v1/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({
+          amount: Math.round(total * 100),
+          currency: 'eur',
+          description: `Atelier — ${atelier.titre}`,
+        }),
+      })
+      const { client_secret, error: piError } = await piRes.json()
+      if (piError || !client_secret) {
+        onError(piError || 'Impossible de créer le paiement.')
+        setProcessing(false)
+        return
+      }
+
+      // 2. Confirmer le paiement avec la carte saisie
+      const { error, paymentIntent } = await stripe.confirmCardPayment(client_secret, {
+        payment_method: {
+          card,
+          billing_details: { name: `${form.prenom} ${form.nom}`, email: form.email, phone: form.telephone },
+        },
+      })
+
+      if (error) {
+        onError(error.message || 'Erreur lors du paiement.')
+        setProcessing(false)
+      } else if (paymentIntent?.status === 'succeeded') {
+        onSuccess()
+      } else {
+        onError('Le paiement n\'a pas abouti. Veuillez réessayer.')
+        setProcessing(false)
+      }
+    } catch {
+      onError('Erreur de connexion. Veuillez réessayer.')
+      setProcessing(false)
+    }
   }
 
   return (
