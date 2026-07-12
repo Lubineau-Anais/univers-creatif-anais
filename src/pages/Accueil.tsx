@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
 import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import AproposPhotoManager from '../components/AproposPhotoManager'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -197,6 +198,7 @@ export default function Accueil() {
   const [aproposPhotoSize,     setAproposPhotoSize]     = useState(288)
   const [aproposPhotoRotation, setAproposPhotoRotation] = useState(0)
   const [aproposPhotoVisible,  setAproposPhotoVisible]  = useState(true)
+  const [showAproposManager,   setShowAproposManager]   = useState(false)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
   const [aproposBodyStyle,     setAproposBodyStyle]     = useState<HeroStyle>(DEFAULT_APROPOS_BODY_STYLE)
@@ -744,8 +746,8 @@ export default function Accueil() {
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
           {/* Photo polaroïd */}
-          {aproposPhotoVisible && (
-            <div className="flex-1 flex justify-center relative">
+          <div className="flex-1 flex justify-center relative">
+            {aproposPhotoVisible && (
               <div className="relative rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop transition-transform duration-300"
                 style={{ width: `${aproposPhotoSize}px`, height: `${aproposPhotoSize}px`, transform: `rotate(${aproposPhotoRotation}deg)` }}>
                 {aproposPhoto
@@ -753,8 +755,16 @@ export default function Accueil() {
                   : <div className="w-full h-full flex items-center justify-center bg-candy text-5xl">🎨</div>
                 }
               </div>
-            </div>
-          )}
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAproposManager(true)}
+                className="absolute -bottom-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap"
+                style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                📷 Gérer la photo
+              </button>
+            )}
+          </div>
 
           {/* Texte */}
           <div className="flex-1">
@@ -1139,6 +1149,23 @@ export default function Accueil() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ===== GESTIONNAIRE PHOTO À PROPOS ===== */}
+      {showAproposManager && (
+        <AproposPhotoManager
+          photo={aproposPhoto}
+          size={aproposPhotoSize}
+          rotation={aproposPhotoRotation}
+          visible={aproposPhotoVisible}
+          onClose={() => setShowAproposManager(false)}
+          onChange={patch => {
+            if (patch.photo    !== undefined) setAproposPhoto(patch.photo)
+            if (patch.size     !== undefined) setAproposPhotoSize(patch.size)
+            if (patch.rotation !== undefined) setAproposPhotoRotation(patch.rotation)
+            if (patch.visible  !== undefined) setAproposPhotoVisible(patch.visible)
+          }}
+        />
       )}
 
       {/* ===== GESTIONNAIRE POLAROÏDS HERO ===== */}
