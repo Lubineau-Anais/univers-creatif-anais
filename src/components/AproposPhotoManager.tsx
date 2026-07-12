@@ -228,13 +228,13 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide">📐 Taille</label>
                   <span className="text-xs font-black text-[#1A1040]">{editing.size} px</span>
                 </div>
-                <input type="range" min={80} max={480} step={10} value={editing.size}
+                <input type="range" min={80} max={700} step={10} value={editing.size}
                   onChange={e => patch(editingId, { size: parseInt(e.target.value) })}
                   onMouseUp={e => savePatch(editingId, { size: parseInt((e.target as HTMLInputElement).value) })}
                   onTouchEnd={e => savePatch(editingId, { size: parseInt((e.target as HTMLInputElement).value) })}
                   className="w-full accent-rose-400" />
                 <div className="flex justify-between text-[10px] text-gray-400 font-medium mt-1">
-                  <span>80 px</span><span>480 px</span>
+                  <span>80 px</span><span>700 px</span>
                 </div>
               </div>
 
