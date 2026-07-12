@@ -8,6 +8,7 @@ import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } 
 import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import AproposPhotoManager from '../components/AproposPhotoManager'
+import AproposPhotoDisplay, { type AproposPhoto } from '../components/AproposPhotoDisplay'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -46,8 +47,6 @@ const DEFAULT_APROPOS_TITLE_STYLE: HeroStyle = {
   shadow: false,  shadowColor: '#00000033', shadowBlur: 4, shadowX: 2, shadowY: 2,
   bold: true, italic: false, underline: false,
 }
-
-const DEFAULT_APROPOS_PHOTO = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop'
 
 // ─── Section Avis Google ─────────────────────────────────────────────────────
 interface GoogleReview {
@@ -194,10 +193,7 @@ export default function Accueil() {
 
   // Section À Propos
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
-  const [aproposPhoto,         setAproposPhoto]         = useState(DEFAULT_APROPOS_PHOTO)
-  const [aproposPhotoSize,     setAproposPhotoSize]     = useState(288)
-  const [aproposPhotoRotation, setAproposPhotoRotation] = useState(0)
-  const [aproposPhotoVisible,  setAproposPhotoVisible]  = useState(true)
+  const [aproposPhotos,        setAproposPhotos]        = useState<AproposPhoto[]>([])
   const [showAproposManager,   setShowAproposManager]   = useState(false)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
@@ -266,6 +262,7 @@ export default function Accueil() {
     Promise.all([loadContent(), loadActus()]).then(() => setHeroReady(true))
     loadSocialLinks()
     loadPolaroids()
+    loadAproposPhotos()
 
     // ── Realtime : mise à jour instantanée dès qu'un admin modifie quelque chose ──
     const channelSettings = supabase
@@ -297,11 +294,19 @@ export default function Accueil() {
       })
       .subscribe()
 
+    const channelAproposPhotos = supabase
+      .channel('realtime-apropos-photos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'apropos_photos' }, () => {
+        loadAproposPhotos()
+      })
+      .subscribe()
+
     return () => {
       supabase.removeChannel(channelSettings)
       supabase.removeChannel(channelContent)
       supabase.removeChannel(channelActus)
       supabase.removeChannel(channelPolaroids)
+      supabase.removeChannel(channelAproposPhotos)
     }
   }, [])
 
@@ -310,8 +315,17 @@ export default function Accueil() {
     setPolaroids((data as HeroPolaroid[]) || [])
   }
 
+  async function loadAproposPhotos() {
+    const { data } = await supabase.from('apropos_photos').select('*').order('sort_order')
+    setAproposPhotos((data as AproposPhoto[]) || [])
+  }
+
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
     setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
+  function handleAproposPhotoMoved(id: string, offset_x: number, offset_y: number) {
+    setAproposPhotos(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
   }
 
   async function loadContent() {
@@ -356,10 +370,6 @@ export default function Accueil() {
       else if (s.key === 'apropos_bg_config')          { try { setAproposBg(p              => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'apropos_titre_style')      { try { setAproposTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'apropos_texte_style')      { try { setAproposBodyStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'apropos_photo_url')        { if (s.value) setAproposPhoto(s.value) }
-      else if (s.key === 'apropos_photo_size')       { setAproposPhotoSize(parseInt(s.value) || 288) }
-      else if (s.key === 'apropos_photo_rotation')   { setAproposPhotoRotation(parseFloat(s.value) || 0) }
-      else if (s.key === 'apropos_photo_visible')    { setAproposPhotoVisible(s.value !== 'false') }
       else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
@@ -745,23 +755,32 @@ export default function Accueil() {
         )}
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
-          {/* Photo polaroïd */}
-          <div className="flex-1 flex justify-center relative">
-            {aproposPhotoVisible && (
-              <div className="relative rounded-3xl overflow-hidden border-4 border-[#1A1040] shadow-pop transition-transform duration-300"
-                style={{ width: `${aproposPhotoSize}px`, height: `${aproposPhotoSize}px`, transform: `rotate(${aproposPhotoRotation}deg)` }}>
-                {aproposPhoto
-                  ? <img src={aproposPhoto} alt="Atelier créatif" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center bg-candy text-5xl">🎨</div>
-                }
+          {/* Zone photos — draggable pour l'admin */}
+          <div className="flex-1 relative" style={{ minHeight: '300px' }}>
+            {aproposPhotos.length === 0 && isAdmin && (
+              <div className="absolute inset-0 flex items-center justify-center border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
+                <div className="text-center text-gray-400">
+                  <div className="text-4xl mb-2">🖼️</div>
+                  <p className="text-sm font-black">Aucune photo</p>
+                  <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
+                </div>
               </div>
             )}
+            {aproposPhotos.map((p, i) => (
+              <AproposPhotoDisplay
+                key={p.id}
+                photo={p}
+                isAdmin={isAdmin}
+                onMoved={handleAproposPhotoMoved}
+                zIndex={10 + i}
+              />
+            ))}
             {isAdmin && (
               <button
                 onClick={() => setShowAproposManager(true)}
-                className="absolute -bottom-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap"
+                className="absolute -bottom-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap z-20"
                 style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
-                📷 Gérer la photo
+                📷 Gérer les photos
               </button>
             )}
           </div>
@@ -1151,20 +1170,12 @@ export default function Accueil() {
         </div>
       )}
 
-      {/* ===== GESTIONNAIRE PHOTO À PROPOS ===== */}
+      {/* ===== GESTIONNAIRE PHOTOS À PROPOS ===== */}
       {showAproposManager && (
         <AproposPhotoManager
-          photo={aproposPhoto}
-          size={aproposPhotoSize}
-          rotation={aproposPhotoRotation}
-          visible={aproposPhotoVisible}
+          photos={aproposPhotos}
           onClose={() => setShowAproposManager(false)}
-          onChange={patch => {
-            if (patch.photo    !== undefined) setAproposPhoto(patch.photo)
-            if (patch.size     !== undefined) setAproposPhotoSize(patch.size)
-            if (patch.rotation !== undefined) setAproposPhotoRotation(patch.rotation)
-            if (patch.visible  !== undefined) setAproposPhotoVisible(patch.visible)
-          }}
+          onRefresh={loadAproposPhotos}
         />
       )}
 
