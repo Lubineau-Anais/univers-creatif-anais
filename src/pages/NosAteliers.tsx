@@ -272,9 +272,11 @@ export default function NosAteliers() {
     setSelectedCat(cat)
     setLoadingAteliers(true)
     const today = new Date().toISOString().split('T')[0]
-    let query = supabase.from('ateliers').select('*').eq('category_id', cat.id)
-    if (!isAdmin) query = query.gte('date', today)
-    const { data } = await query.order('date', { ascending: true })
+    const { data } = await supabase
+      .from('ateliers').select('*')
+      .eq('category_id', cat.id)
+      .gte('date', isAdmin ? '1970-01-01' : today)
+      .order('date', { ascending: true })
     setAteliers((data as Atelier[]) || [])
     setLoadingAteliers(false)
   }
