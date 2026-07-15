@@ -271,10 +271,10 @@ export default function NosAteliers() {
   async function openCategory(cat: AtelierCategory) {
     setSelectedCat(cat)
     setLoadingAteliers(true)
-    const { data } = await supabase
-      .from('ateliers').select('*')
-      .eq('category_id', cat.id)
-      .order('date', { ascending: true })
+    const today = new Date().toISOString().split('T')[0]
+    let query = supabase.from('ateliers').select('*').eq('category_id', cat.id)
+    if (!isAdmin) query = query.gte('date', today)
+    const { data } = await query.order('date', { ascending: true })
     setAteliers((data as Atelier[]) || [])
     setLoadingAteliers(false)
   }
