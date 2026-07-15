@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Star, Image as ImageIcon } from 'lucide-react'
+import { Pencil, Star, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { supabase } from '../lib/supabase'
@@ -194,6 +194,7 @@ export default function Accueil() {
   // Section À Propos
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [aproposPhotos,        setAproposPhotos]        = useState<AproposPhoto[]>([])
+  const [aproposCarouselIdx,   setAproposCarouselIdx]   = useState(0)
   const [showAproposManager,   setShowAproposManager]   = useState(false)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
@@ -324,11 +325,7 @@ export default function Accueil() {
     setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
   }
 
-  function handleAproposPhotoMoved(id: string, offset_x: number, offset_y: number) {
-    setAproposPhotos(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
-  }
-
-  async function loadContent() {
+async function loadContent() {
     const { data } = await supabase.from('page_content').select('section, contenu').eq('page', 'accueil')
     if (data?.length) {
       const map = { ...DEFAULT_CONTENT }
@@ -755,35 +752,83 @@ export default function Accueil() {
         )}
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
-          {/* Zone photos — draggable pour l'admin */}
-          <div className="flex-1 relative" style={{ minHeight: '300px' }}>
-            {aproposPhotos.length === 0 && isAdmin && (
-              <div className="absolute inset-0 flex items-center justify-center border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
-                <div className="text-center text-gray-400">
-                  <div className="text-4xl mb-2">🖼️</div>
-                  <p className="text-sm font-black">Aucune photo</p>
-                  <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
+          {/* Zone photos — carousel */}
+          {(() => {
+            const visibles = aproposPhotos.filter(p => p.is_visible || isAdmin)
+            const idx      = Math.min(aproposCarouselIdx, Math.max(0, visibles.length - 1))
+            const current  = visibles[idx]
+            const prev     = () => setAproposCarouselIdx(i => (i - 1 + visibles.length) % visibles.length)
+            const next     = () => setAproposCarouselIdx(i => (i + 1) % visibles.length)
+            return (
+              <div className="flex-1 flex flex-col items-center gap-4">
+                {/* Photo + flèches */}
+                <div className="relative w-full flex items-center justify-center" style={{ minHeight: '240px' }}>
+                  {current
+                    ? <AproposPhotoDisplay photo={current} isAdmin={isAdmin} />
+                    : isAdmin && (
+                      <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
+                        <div className="text-center text-gray-400">
+                          <div className="text-4xl mb-2">🖼️</div>
+                          <p className="text-sm font-black">Aucune photo</p>
+                          <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  {/* Flèche gauche */}
+                  {visibles.length > 1 && (
+                    <button
+                      onClick={prev}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border-2 border-[#1A1040] rounded-full flex items-center justify-center hover:bg-citron-400 transition-all z-10"
+                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                      <ChevronLeft className="w-5 h-5 text-[#1A1040]" />
+                    </button>
+                  )}
+
+                  {/* Flèche droite */}
+                  {visibles.length > 1 && (
+                    <button
+                      onClick={next}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border-2 border-[#1A1040] rounded-full flex items-center justify-center hover:bg-citron-400 transition-all z-10"
+                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                      <ChevronRight className="w-5 h-5 text-[#1A1040]" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Caption */}
+                {current?.caption && (
+                  <p className="text-sm text-center italic text-gray-500 font-medium px-4">
+                    {current.caption}
+                  </p>
+                )}
+
+                {/* Pastilles de navigation */}
+                {visibles.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {visibles.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setAproposCarouselIdx(i)}
+                        className={`rounded-full border-2 border-[#1A1040] transition-all ${i === idx ? 'w-5 h-2.5 bg-rose-400' : 'w-2.5 h-2.5 bg-white hover:bg-rose-200'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Bouton admin */}
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowAproposManager(true)}
+                    className="inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap"
+                    style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                    📷 Gérer les photos
+                  </button>
+                )}
               </div>
-            )}
-            {aproposPhotos.map((p, i) => (
-              <AproposPhotoDisplay
-                key={p.id}
-                photo={p}
-                isAdmin={isAdmin}
-                onMoved={handleAproposPhotoMoved}
-                zIndex={10 + i}
-              />
-            ))}
-            {isAdmin && (
-              <button
-                onClick={() => setShowAproposManager(true)}
-                className="absolute -bottom-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap z-20"
-                style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
-                📷 Gérer les photos
-              </button>
-            )}
-          </div>
+            )
+          })()}
 
           {/* Texte */}
           <div className="flex-1">

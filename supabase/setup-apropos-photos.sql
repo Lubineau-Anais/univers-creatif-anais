@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS apropos_photos (
   shape       TEXT    DEFAULT 'rounded-2xl',
   is_visible  BOOLEAN DEFAULT true,
   sort_order  INTEGER DEFAULT 0,
+  caption     TEXT    DEFAULT '',
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 

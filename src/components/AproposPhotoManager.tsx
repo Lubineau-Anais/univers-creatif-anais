@@ -222,6 +222,20 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
                   onChange={e => { const f = e.target.files?.[0]; if (f) changePhoto(editingId, f); e.target.value = '' }} />
               </div>
 
+              {/* Légende / Texte de présentation */}
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-2 block">💬 Texte de présentation (optionnel)</label>
+                <textarea
+                  rows={2}
+                  value={editing.caption}
+                  onChange={e => patch(editingId, { caption: e.target.value })}
+                  onBlur={e => savePatch(editingId, { caption: e.target.value })}
+                  placeholder="Ex : En plein atelier macramé, été 2024…"
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy resize-none"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Affiché sous la photo sur le site · Laisse vide pour ne rien afficher</p>
+              </div>
+
               {/* Taille */}
               <div>
                 <div className="flex items-center justify-between mb-2">
