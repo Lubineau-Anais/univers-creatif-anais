@@ -263,7 +263,7 @@ export default function Galerie() {
 
       {/* ── Lightbox ── */}
       {lightboxIdx !== null && photos[lightboxIdx] && (
-        <div className="fixed inset-0 bg-black/92 z-50 flex items-center justify-center p-4"
+        <div className="fixed inset-0 bg-black/92 z-[200] flex items-center justify-center p-4"
           onClick={closeLightbox}>
 
           {/* Fermer */}

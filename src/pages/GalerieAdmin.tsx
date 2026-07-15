@@ -115,6 +115,11 @@ export default function GalerieAdmin() {
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Édition photo
+  const [editingPhoto,   setEditingPhoto]   = useState<GaleriePhoto | null>(null)
+  const [editPhotoTitre, setEditPhotoTitre] = useState('')
+  const [savingTitre,    setSavingTitre]    = useState(false)
+
   useEffect(() => { loadCategories() }, [])
 
   // ── Chargement ──────────────────────────────────────────────────────────────
@@ -305,6 +310,27 @@ export default function GalerieAdmin() {
     const { error } = await supabase.from('galerie_photos').delete().eq('id', photo.id)
     if (!error) setPhotos(prev => prev.filter(p => p.id !== photo.id))
     setDeletingPhotoId(null)
+  }
+
+  function openEditPhoto(photo: GaleriePhoto) {
+    setEditingPhoto(photo)
+    setEditPhotoTitre(photo.titre || '')
+  }
+
+  async function savePhotoTitre() {
+    if (!editingPhoto) return
+    setSavingTitre(true)
+    const { error } = await supabase
+      .from('galerie_photos')
+      .update({ titre: editPhotoTitre.trim() || null })
+      .eq('id', editingPhoto.id)
+    if (!error) {
+      setPhotos(prev => prev.map(p =>
+        p.id === editingPhoto.id ? { ...p, titre: editPhotoTitre.trim() || null } : p
+      ))
+      setEditingPhoto(null)
+    }
+    setSavingTitre(false)
   }
 
   // ── Aperçu carte ────────────────────────────────────────────────────────────
@@ -611,7 +637,11 @@ export default function GalerieAdmin() {
                               style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
                               <img src={photo.url} alt={photo.titre || ''} className="w-full h-full object-cover" />
                             </div>
-                            <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center border-2 border-[#1A1040]">
+                            <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 border-2 border-[#1A1040]">
+                              <button onClick={() => openEditPhoto(photo)}
+                                className="flex items-center gap-1.5 bg-citron-400 text-[#1A1040] px-3 py-1.5 rounded-xl text-xs font-black border-2 border-[#1A1040] hover:bg-yellow-300">
+                                <Pencil className="w-3.5 h-3.5" /> Modifier
+                              </button>
                               <button onClick={() => deletePhoto(photo)} disabled={deletingPhotoId === photo.id}
                                 className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-black border-2 border-white hover:bg-red-600 disabled:opacity-60">
                                 {deletingPhotoId === photo.id
@@ -623,6 +653,11 @@ export default function GalerieAdmin() {
                             <p className="text-[10px] text-gray-400 font-bold mt-1 text-center">
                               {new Date(photo.created_at).toLocaleDateString('fr-FR')}
                             </p>
+                            {photo.titre && (
+                              <p className="text-[10px] text-[#1A1040] font-bold mt-0.5 text-center truncate px-1" title={photo.titre}>
+                                {photo.titre}
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -873,6 +908,66 @@ export default function GalerieAdmin() {
         </div>
 
       </div>
+
+      {/* ── Modal édition photo ── */}
+      {editingPhoto && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          onClick={() => setEditingPhoto(null)}>
+          <div
+            className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4"
+            style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-[#1A1040] text-lg">✏️ Modifier la photo</h3>
+              <button onClick={() => setEditingPhoto(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 font-black text-gray-500">
+                ✕
+              </button>
+            </div>
+
+            <img src={editingPhoto.url} alt=""
+              className="w-full h-40 object-cover rounded-2xl border-2 border-[#1A1040]"
+              style={{ boxShadow: '2px 2px 0px 0px #1A1040' }} />
+
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1.5 block">
+                Texte / Légende
+              </label>
+              <input
+                type="text"
+                value={editPhotoTitre}
+                onChange={e => setEditPhotoTitre(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') savePhotoTitre() }}
+                placeholder="Ex : Porte-clés macramé personnalisé…"
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-300 bg-[#fff5fb]"
+                autoFocus
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Ce texte s'affiche sous la photo dans la galerie.</p>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setEditingPhoto(null)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] text-sm hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={savePhotoTitre}
+                disabled={savingTitre}
+                className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black text-sm hover:bg-[#2d2060] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+                style={{ boxShadow: '3px 3px 0px 0px #ffe500' }}
+              >
+                {savingTitre
+                  ? <><RefreshCw className="w-4 h-4 animate-spin" /> Sauvegarde...</>
+                  : <><Check className="w-4 h-4" /> Enregistrer</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
