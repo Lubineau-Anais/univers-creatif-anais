@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { ChevronLeft, Images, ZoomIn } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, Images, ZoomIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ export default function Galerie() {
   const [photos, setPhotos]           = useState<GaleriePhoto[]>([])
   const [loading, setLoading]         = useState(true)
   const [loadingPhotos, setLoadingPhotos] = useState(false)
-  const [lightbox, setLightbox]       = useState<string | null>(null)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
   useEffect(() => { loadCategories() }, [])
 
@@ -72,6 +72,21 @@ export default function Galerie() {
     setSelectedCat(null)
     setPhotos([])
   }
+
+  const closeLightbox  = useCallback(() => setLightboxIdx(null), [])
+  const prevLightbox   = useCallback(() => setLightboxIdx(i => i !== null ? (i - 1 + photos.length) % photos.length : null), [photos.length])
+  const nextLightbox   = useCallback(() => setLightboxIdx(i => i !== null ? (i + 1) % photos.length : null), [photos.length])
+
+  useEffect(() => {
+    if (lightboxIdx === null) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowLeft')  prevLightbox()
+      if (e.key === 'ArrowRight') nextLightbox()
+      if (e.key === 'Escape')     closeLightbox()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxIdx, prevLightbox, nextLightbox, closeLightbox])
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center bg-candy">
@@ -219,7 +234,7 @@ export default function Galerie() {
                     <div
                       className="relative group rounded-2xl overflow-hidden border-2 border-[#1A1040] cursor-zoom-in"
                       style={{ boxShadow: '3px 3px 0px 0px #1A1040', userSelect: 'none' }}
-                      onClick={() => setLightbox(photo.url)}
+                      onClick={() => setLightboxIdx(photos.indexOf(photo))}
                     >
                       <img
                         src={photo.url}
@@ -247,31 +262,64 @@ export default function Galerie() {
       </div>
 
       {/* ── Lightbox ── */}
-      {lightbox && (
-        <div
-          className="fixed inset-0 bg-black/92 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}
-        >
+      {lightboxIdx !== null && photos[lightboxIdx] && (
+        <div className="fixed inset-0 bg-black/92 z-50 flex items-center justify-center p-4"
+          onClick={closeLightbox}>
+
+          {/* Fermer */}
           <button
-            className="absolute top-4 right-4 w-11 h-11 bg-white rounded-xl flex items-center justify-center font-black text-[#1A1040] text-lg border-2 border-white hover:bg-rose-100 transition-colors z-10"
-            onClick={() => setLightbox(null)}
-          >
+            className="absolute top-4 right-4 w-11 h-11 bg-white rounded-xl flex items-center justify-center font-black text-[#1A1040] text-lg border-2 border-white hover:bg-rose-100 transition-colors z-20"
+            onClick={e => { e.stopPropagation(); closeLightbox() }}>
             ✕
           </button>
-          <div className="relative max-w-5xl w-full flex items-center justify-center">
+
+          {/* Compteur */}
+          {photos.length > 1 && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs font-black px-3 py-1 rounded-full z-20">
+              {lightboxIdx + 1} / {photos.length}
+            </div>
+          )}
+
+          {/* Flèche gauche */}
+          {photos.length > 1 && (
+            <button
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center border-2 border-[#1A1040] transition-all z-20"
+              style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}
+              onClick={e => { e.stopPropagation(); prevLightbox() }}>
+              <ChevronLeft className="w-6 h-6 text-[#1A1040]" />
+            </button>
+          )}
+
+          {/* Photo */}
+          <div className="relative max-w-5xl w-full flex items-center justify-center"
+            onClick={e => e.stopPropagation()}>
             <img
-              src={lightbox}
-              alt=""
+              key={lightboxIdx}
+              src={photos[lightboxIdx].url}
+              alt={photos[lightboxIdx].titre || ''}
               draggable={false}
               onContextMenu={e => e.preventDefault()}
-              className="max-w-full max-h-[88vh] rounded-2xl object-contain select-none pointer-events-none"
+              className="max-w-full max-h-[85vh] rounded-2xl object-contain select-none pointer-events-none"
             />
-            <div
-              className="absolute inset-0 z-10 rounded-2xl"
-              onContextMenu={e => e.preventDefault()}
-              onClick={() => setLightbox(null)}
-            />
+            <div className="absolute inset-0 z-10 rounded-2xl" onContextMenu={e => e.preventDefault()} />
           </div>
+
+          {/* Titre */}
+          {photos[lightboxIdx].titre && (
+            <p className="absolute bottom-5 left-1/2 -translate-x-1/2 text-white text-sm font-bold bg-black/50 px-4 py-1.5 rounded-full z-20 whitespace-nowrap">
+              {photos[lightboxIdx].titre}
+            </p>
+          )}
+
+          {/* Flèche droite */}
+          {photos.length > 1 && (
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full flex items-center justify-center border-2 border-[#1A1040] transition-all z-20"
+              style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}
+              onClick={e => { e.stopPropagation(); nextLightbox() }}>
+              <ChevronRight className="w-6 h-6 text-[#1A1040]" />
+            </button>
+          )}
         </div>
       )}
     </main>
