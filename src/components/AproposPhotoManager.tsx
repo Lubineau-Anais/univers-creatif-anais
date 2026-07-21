@@ -25,6 +25,42 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
   const [editingId,  setEditingId]  = useState<string | null>(null)
   const [saving,     setSaving]     = useState<string | null>(null)
 
+  // Drag pour repositionner l'image
+  const isDragging      = useRef(false)
+  const dragStart       = useRef({ x: 0, y: 0, ox: 0, oy: 0 })
+  const dragFinalOffset = useRef({ x: 0, y: 0 })
+
+  function getClient(e: React.MouseEvent | React.TouchEvent) {
+    return 'touches' in e
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX, y: e.clientY }
+  }
+
+  function onDragStart(e: React.MouseEvent | React.TouchEvent) {
+    if (!editingId || !editing) return
+    e.preventDefault()
+    const { x, y } = getClient(e)
+    isDragging.current = true
+    dragStart.current  = { x, y, ox: editing.offset_x, oy: editing.offset_y }
+    dragFinalOffset.current = { x: editing.offset_x, y: editing.offset_y }
+  }
+
+  function onDragMove(e: React.MouseEvent | React.TouchEvent) {
+    if (!isDragging.current || !editingId) return
+    e.preventDefault()
+    const { x, y } = getClient(e)
+    const newOx = Math.max(-50, Math.min(50, dragStart.current.ox + (x - dragStart.current.x) * 0.4))
+    const newOy = Math.max(-50, Math.min(50, dragStart.current.oy + (y - dragStart.current.y) * 0.4))
+    dragFinalOffset.current = { x: newOx, y: newOy }
+    patch(editingId, { offset_x: newOx, offset_y: newOy })
+  }
+
+  function onDragEnd() {
+    if (!isDragging.current || !editingId) return
+    isDragging.current = false
+    savePatch(editingId, { offset_x: dragFinalOffset.current.x, offset_y: dragFinalOffset.current.y })
+  }
+
   // Copie locale pour édition live
   const [localPhotos, setLocalPhotos] = useState<AproposPhoto[]>(photos)
 
@@ -180,21 +216,37 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
           {/* ── Vue détail (édition d'une photo) ── */}
           {editingId && editing && (
             <>
-              {/* Aperçu */}
-              <div className="flex justify-center py-5 bg-candy rounded-2xl border-2 border-dashed border-[#1A1040]/20">
-                <div className="relative" style={{
-                  width: 140, height: 140,
-                  borderRadius: { 'rounded-none': '0', 'rounded-xl': '12px', 'rounded-2xl': '16px', 'rounded-3xl': '24px', 'rounded-full': '9999px' }[editing.shape] ?? '16px',
-                  overflow: 'hidden',
-                  border:   editing.show_cadre   ? `${editing.cadre_width}px solid ${editing.cadre_color}` : 'none',
-                  outline:  editing.show_contour ? `3px solid ${editing.contour_color}` : 'none',
-                  outlineOffset: '3px',
-                  backgroundColor: editing.show_fond ? editing.fond_color : 'transparent',
-                  transform: `rotate(${editing.rotation}deg)`,
-                  boxShadow: editing.show_cadre ? `4px 4px 0 0 ${editing.cadre_color}` : undefined,
-                }}>
+              {/* Aperçu draggable */}
+              <div className="flex flex-col items-center gap-2 py-5 bg-candy rounded-2xl border-2 border-dashed border-[#1A1040]/20">
+                <div
+                  className="relative select-none"
+                  style={{
+                    width: 140, height: 140,
+                    borderRadius: { 'rounded-none': '0', 'rounded-xl': '12px', 'rounded-2xl': '16px', 'rounded-3xl': '24px', 'rounded-full': '9999px' }[editing.shape] ?? '16px',
+                    overflow: 'hidden',
+                    border:   editing.show_cadre   ? `${editing.cadre_width}px solid ${editing.cadre_color}` : 'none',
+                    outline:  editing.show_contour ? `3px solid ${editing.contour_color}` : 'none',
+                    outlineOffset: '3px',
+                    backgroundColor: editing.show_fond ? editing.fond_color : 'transparent',
+                    transform: `rotate(${editing.rotation}deg)`,
+                    boxShadow: editing.show_cadre ? `4px 4px 0 0 ${editing.cadre_color}` : undefined,
+                    cursor: editing.image_url ? 'grab' : 'default',
+                  }}
+                  onMouseDown={onDragStart}
+                  onMouseMove={onDragMove}
+                  onMouseUp={onDragEnd}
+                  onMouseLeave={onDragEnd}
+                  onTouchStart={onDragStart}
+                  onTouchMove={onDragMove}
+                  onTouchEnd={onDragEnd}
+                >
                   {editing.image_url
-                    ? <img src={editing.image_url} alt="" className="w-full h-full object-cover" />
+                    ? <img
+                        src={editing.image_url} alt=""
+                        className="w-full h-full object-cover pointer-events-none"
+                        style={{ objectPosition: `${50 + editing.offset_x}% ${50 + editing.offset_y}%` }}
+                        draggable={false}
+                      />
                     : <div className="w-full h-full flex items-center justify-center text-4xl bg-rose-50">📷</div>
                   }
                   {saving === editingId && (
@@ -203,6 +255,19 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
                     </div>
                   )}
                 </div>
+                {editing.image_url && (
+                  <div className="flex items-center gap-3">
+                    <p className="text-[10px] text-gray-400 font-medium">✋ Glisse pour recadrer</p>
+                    {(editing.offset_x !== 0 || editing.offset_y !== 0) && (
+                      <button
+                        onClick={() => savePatch(editingId, { offset_x: 0, offset_y: 0 })}
+                        className="text-[10px] font-black text-rose-400 hover:text-rose-600 transition-colors"
+                      >
+                        ↺ Centrer
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Changer la photo */}

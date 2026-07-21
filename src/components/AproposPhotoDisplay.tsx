@@ -54,6 +54,7 @@ export default function AproposPhotoDisplay({ photo, isAdmin }: {
               src={photo.image_url}
               alt={photo.caption || ''}
               className="w-full h-full object-cover"
+              style={{ objectPosition: `${50 + (photo.offset_x || 0)}% ${50 + (photo.offset_y || 0)}%` }}
               draggable={false}
             />
           : <div className="w-full h-full flex items-center justify-center text-5xl bg-rose-50">📷</div>
