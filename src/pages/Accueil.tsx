@@ -764,7 +764,14 @@ async function loadContent() {
                 {/* Photo + flèches */}
                 <div className="relative w-full flex items-center justify-center" style={{ minHeight: '240px' }}>
                   {current
-                    ? <AproposPhotoDisplay photo={current} isAdmin={isAdmin} />
+                    ? <AproposPhotoDisplay
+                        photo={current}
+                        isAdmin={isAdmin}
+                        onSaveOffset={isAdmin ? async (ox, oy) => {
+                          await supabase.from('apropos_photos').update({ offset_x: ox, offset_y: oy }).eq('id', current.id)
+                          setAproposPhotos(prev => prev.map(p => p.id === current.id ? { ...p, offset_x: ox, offset_y: oy } : p))
+                        } : undefined}
+                      />
                     : isAdmin && (
                       <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
                         <div className="text-center text-gray-400">
