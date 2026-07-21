@@ -577,18 +577,6 @@ export default function Boutique() {
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
-        {/* Polaroïds flottants (positionnés sur l'ensemble hero+contenu) */}
-        {boutiquePolaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
-        ))}
-
-        {isAdmin && (
-          <button onClick={() => setShowPolaroidManager(true)}
-            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
-          </button>
-        )}
-
         {/* HERO */}
         <section className="relative overflow-hidden" style={bgStyle}>
           {heroBgTab === 'video' && heroBg.videoUrl && (
@@ -820,6 +808,18 @@ export default function Boutique() {
 
         </div>
         </section>
+
+        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
+        {boutiquePolaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
+        ))}
+
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
+        )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
 
