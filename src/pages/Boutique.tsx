@@ -574,26 +574,13 @@ export default function Boutique() {
   return (
     <main className="flex-1 bg-candy">
 
-      {/* HERO */}
-      <section className="relative overflow-hidden" style={bgStyle}>
-        {heroBgTab === 'video' && heroBg.videoUrl && (
-          <video ref={videoRef} src={heroBg.videoUrl} autoPlay muted={heroBg.videoMuted} loop={heroBg.videoLoop} playsInline
-            className="absolute inset-0 w-full h-full object-cover" style={{ zIndex:0 }}/>
-        )}
-        {heroBgTab === 'video' && heroBg.videoOverlay !== 'transparent' && (
-          <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay, zIndex:1 }}/>
-        )}
+      {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
+      <div className="relative">
 
-        {/* Polaroïds décoratifs */}
+        {/* Polaroïds flottants (positionnés sur l'ensemble hero+contenu) */}
         {boutiquePolaroids.map((p, i) => (
           <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
         ))}
-
-        <div className="relative z-10 max-w-4xl mx-auto px-4 py-16 text-center">
-          <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-gray-300 mb-4 ${badge.radius}`}
-            style={{ backgroundColor:badge.bg, color:badge.textColor }}>{badge.text}</div>
-          <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="leading-tight"/>
-        </div>
 
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
@@ -601,10 +588,25 @@ export default function Boutique() {
             <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
           </button>
         )}
-      </section>
 
-      {/* CONTENU : SIDEBAR + GRILLE */}
-      <section className="max-w-6xl mx-auto px-4 py-8">
+        {/* HERO */}
+        <section className="relative overflow-hidden" style={bgStyle}>
+          {heroBgTab === 'video' && heroBg.videoUrl && (
+            <video ref={videoRef} src={heroBg.videoUrl} autoPlay muted={heroBg.videoMuted} loop={heroBg.videoLoop} playsInline
+              className="absolute inset-0 w-full h-full object-cover" style={{ zIndex:0 }}/>
+          )}
+          {heroBgTab === 'video' && heroBg.videoOverlay !== 'transparent' && (
+            <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay, zIndex:1 }}/>
+          )}
+          <div className="relative z-10 max-w-4xl mx-auto px-4 py-16 text-center">
+            <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-gray-300 mb-4 ${badge.radius}`}
+              style={{ backgroundColor:badge.bg, color:badge.textColor }}>{badge.text}</div>
+            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="leading-tight"/>
+          </div>
+        </section>
+
+        {/* CONTENU : SIDEBAR + GRILLE */}
+        <section className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex gap-6 items-start">
 
           {/* ── Sidebar catégories (desktop + tablet) ── */}
@@ -817,7 +819,9 @@ export default function Boutique() {
           </div>
 
         </div>
-      </section>
+        </section>
+
+      </div>{/* fin wrapper hero+contenu polaroïds */}
 
       {/* BOUTON PANIER FLOTTANT */}
       <button
