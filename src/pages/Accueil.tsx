@@ -196,6 +196,33 @@ export default function Accueil() {
   const [aproposPhotos,        setAproposPhotos]        = useState<AproposPhoto[]>([])
   const [aproposCarouselIdx,   setAproposCarouselIdx]   = useState(0)
   const [showAproposManager,   setShowAproposManager]   = useState(false)
+
+  // Drag position photo À Propos (admin)
+  const isDraggingApropos  = useRef(false)
+  const dragStartApropos   = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
+  const dragFinalApropos   = useRef({ x: 0, y: 0 })
+
+  function onAproposDragStart(e: React.MouseEvent, photo: AproposPhoto) {
+    e.preventDefault()
+    isDraggingApropos.current = true
+    dragStartApropos.current  = { mx: e.clientX, my: e.clientY, ox: photo.offset_x || 0, oy: photo.offset_y || 0 }
+    dragFinalApropos.current  = { x: photo.offset_x || 0, y: photo.offset_y || 0 }
+  }
+
+  function onAproposDragMove(e: React.MouseEvent, photoId: string) {
+    if (!isDraggingApropos.current) return
+    const nx = dragStartApropos.current.ox + (e.clientX - dragStartApropos.current.mx)
+    const ny = dragStartApropos.current.oy + (e.clientY - dragStartApropos.current.my)
+    dragFinalApropos.current = { x: nx, y: ny }
+    setAproposPhotos(prev => prev.map(p => p.id === photoId ? { ...p, offset_x: nx, offset_y: ny } : p))
+  }
+
+  async function onAproposDragEnd(photoId: string) {
+    if (!isDraggingApropos.current) return
+    isDraggingApropos.current = false
+    const { x, y } = dragFinalApropos.current
+    await supabase.from('apropos_photos').update({ offset_x: x, offset_y: y }).eq('id', photoId)
+  }
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
   const [aproposBodyStyle,     setAproposBodyStyle]     = useState<HeroStyle>(DEFAULT_APROPOS_BODY_STYLE)
@@ -764,14 +791,36 @@ async function loadContent() {
                 {/* Photo + flèches */}
                 <div className="relative w-full flex items-center justify-center" style={{ minHeight: '240px' }}>
                   {current
-                    ? <AproposPhotoDisplay
-                        photo={current}
-                        isAdmin={isAdmin}
-                        onSaveOffset={isAdmin ? async (ox, oy) => {
-                          await supabase.from('apropos_photos').update({ offset_x: ox, offset_y: oy }).eq('id', current.id)
-                          setAproposPhotos(prev => prev.map(p => p.id === current.id ? { ...p, offset_x: ox, offset_y: oy } : p))
-                        } : undefined}
-                      />
+                    ? (
+                      <div
+                        className={`select-none ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                        style={{ transform: `translate(${current.offset_x || 0}px, ${current.offset_y || 0}px)`, display: 'inline-block' }}
+                        onMouseDown={isAdmin ? e => onAproposDragStart(e, current) : undefined}
+                        onMouseMove={isAdmin ? e => onAproposDragMove(e, current.id) : undefined}
+                        onMouseUp={isAdmin ? () => onAproposDragEnd(current.id) : undefined}
+                        onMouseLeave={isAdmin ? () => onAproposDragEnd(current.id) : undefined}
+                        title={isAdmin ? 'Glisse pour déplacer' : undefined}
+                      >
+                        <AproposPhotoDisplay photo={current} isAdmin={isAdmin} />
+                        {isAdmin && (
+                          <div className="mt-1 flex justify-center gap-2">
+                            <span className="text-[10px] text-gray-400 font-medium">✋ Glisse pour déplacer</span>
+                            {(current.offset_x !== 0 || current.offset_y !== 0) && (
+                              <button
+                                onMouseDown={e => e.stopPropagation()}
+                                onClick={async () => {
+                                  await supabase.from('apropos_photos').update({ offset_x: 0, offset_y: 0 }).eq('id', current.id)
+                                  setAproposPhotos(prev => prev.map(p => p.id === current.id ? { ...p, offset_x: 0, offset_y: 0 } : p))
+                                }}
+                                className="text-[10px] font-black text-rose-400 hover:text-rose-600"
+                              >
+                                ↺ Réinitialiser
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
                     : isAdmin && (
                       <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
                         <div className="text-center text-gray-400">
