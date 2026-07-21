@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Star, Image as ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Star, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { supabase } from '../lib/supabase'
@@ -194,35 +194,11 @@ export default function Accueil() {
   // Section À Propos
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [aproposPhotos,        setAproposPhotos]        = useState<AproposPhoto[]>([])
-  const [aproposCarouselIdx,   setAproposCarouselIdx]   = useState(0)
   const [showAproposManager,   setShowAproposManager]   = useState(false)
 
-  // Drag position photo À Propos (admin)
-  const isDraggingApropos  = useRef(false)
-  const dragStartApropos   = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
-  const dragFinalApropos   = useRef({ x: 0, y: 0 })
-
-  function onAproposDragStart(e: React.MouseEvent, photo: AproposPhoto) {
-    e.preventDefault()
-    isDraggingApropos.current = true
-    dragStartApropos.current  = { mx: e.clientX, my: e.clientY, ox: photo.offset_x || 0, oy: photo.offset_y || 0 }
-    dragFinalApropos.current  = { x: photo.offset_x || 0, y: photo.offset_y || 0 }
-  }
-
-  function onAproposDragMove(e: React.MouseEvent, photoId: string) {
-    if (!isDraggingApropos.current) return
-    const nx = dragStartApropos.current.ox + (e.clientX - dragStartApropos.current.mx)
-    const ny = dragStartApropos.current.oy + (e.clientY - dragStartApropos.current.my)
-    dragFinalApropos.current = { x: nx, y: ny }
-    setAproposPhotos(prev => prev.map(p => p.id === photoId ? { ...p, offset_x: nx, offset_y: ny } : p))
-  }
-
-  async function onAproposDragEnd(photoId: string) {
-    if (!isDraggingApropos.current) return
-    isDraggingApropos.current = false
-    const { x, y } = dragFinalApropos.current
-    await supabase.from('apropos_photos').update({ offset_x: x, offset_y: y }).eq('id', photoId)
-  }
+  // Drag photo À Propos (admin) — collage libre
+  const aproposDrag = useRef({ active: false, id: '', mx: 0, my: 0, ox: 0, oy: 0, fx: 0, fy: 0 })
+  const [draggingAproposId, setDraggingAproposId] = useState<string | null>(null)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
   const [showAproposTitleEditor, setShowAproposTitleEditor] = useState(false)
   const [aproposBodyStyle,     setAproposBodyStyle]     = useState<HeroStyle>(DEFAULT_APROPOS_BODY_STYLE)
@@ -779,105 +755,94 @@ async function loadContent() {
         )}
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
-          {/* Zone photos — carousel */}
+          {/* Zone photos — collage libre */}
           {(() => {
             const visibles = aproposPhotos.filter(p => p.is_visible || isAdmin)
-            const idx      = Math.min(aproposCarouselIdx, Math.max(0, visibles.length - 1))
-            const current  = visibles[idx]
-            const prev     = () => setAproposCarouselIdx(i => (i - 1 + visibles.length) % visibles.length)
-            const next     = () => setAproposCarouselIdx(i => (i + 1) % visibles.length)
             return (
-              <div className="flex-1 flex flex-col items-center gap-4">
-                {/* Photo + flèches */}
-                <div className="relative w-full flex items-center justify-center" style={{ minHeight: '240px' }}>
-                  {current
-                    ? (
-                      <div
-                        className={`select-none ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                        style={{ transform: `translate(${current.offset_x || 0}px, ${current.offset_y || 0}px)`, display: 'inline-block' }}
-                        onMouseDown={isAdmin ? e => onAproposDragStart(e, current) : undefined}
-                        onMouseMove={isAdmin ? e => onAproposDragMove(e, current.id) : undefined}
-                        onMouseUp={isAdmin ? () => onAproposDragEnd(current.id) : undefined}
-                        onMouseLeave={isAdmin ? () => onAproposDragEnd(current.id) : undefined}
-                        title={isAdmin ? 'Glisse pour déplacer' : undefined}
-                      >
-                        <AproposPhotoDisplay photo={current} isAdmin={isAdmin} />
-                        {isAdmin && (
-                          <div className="mt-1 flex justify-center gap-2">
-                            <span className="text-[10px] text-gray-400 font-medium">✋ Glisse pour déplacer</span>
-                            {(current.offset_x !== 0 || current.offset_y !== 0) && (
-                              <button
-                                onMouseDown={e => e.stopPropagation()}
-                                onClick={async () => {
-                                  await supabase.from('apropos_photos').update({ offset_x: 0, offset_y: 0 }).eq('id', current.id)
-                                  setAproposPhotos(prev => prev.map(p => p.id === current.id ? { ...p, offset_x: 0, offset_y: 0 } : p))
-                                }}
-                                className="text-[10px] font-black text-rose-400 hover:text-rose-600"
-                              >
-                                ↺ Réinitialiser
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )
-                    : isAdmin && (
-                      <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
-                        <div className="text-center text-gray-400">
-                          <div className="text-4xl mb-2">🖼️</div>
-                          <p className="text-sm font-black">Aucune photo</p>
-                          <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  {/* Flèche gauche */}
-                  {visibles.length > 1 && (
-                    <button
-                      onClick={prev}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border-2 border-[#1A1040] rounded-full flex items-center justify-center hover:bg-citron-400 transition-all z-10"
-                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
-                      <ChevronLeft className="w-5 h-5 text-[#1A1040]" />
-                    </button>
-                  )}
-
-                  {/* Flèche droite */}
-                  {visibles.length > 1 && (
-                    <button
-                      onClick={next}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 bg-white border-2 border-[#1A1040] rounded-full flex items-center justify-center hover:bg-citron-400 transition-all z-10"
-                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
-                      <ChevronRight className="w-5 h-5 text-[#1A1040]" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Caption */}
-                {current?.caption && (
-                  <p className="text-sm text-center italic text-gray-500 font-medium px-4">
-                    {current.caption}
-                  </p>
-                )}
-
-                {/* Pastilles de navigation */}
-                {visibles.length > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    {visibles.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setAproposCarouselIdx(i)}
-                        className={`rounded-full border-2 border-[#1A1040] transition-all ${i === idx ? 'w-5 h-2.5 bg-rose-400' : 'w-2.5 h-2.5 bg-white hover:bg-rose-200'}`}
-                      />
-                    ))}
+              <div
+                className="flex-1 relative"
+                style={{ minHeight: '460px' }}
+                onMouseMove={isAdmin ? (e: React.MouseEvent) => {
+                  if (!aproposDrag.current.active) return
+                  const { id, mx, my, ox, oy } = aproposDrag.current
+                  const nx = ox + (e.clientX - mx)
+                  const ny = oy + (e.clientY - my)
+                  aproposDrag.current.fx = nx
+                  aproposDrag.current.fy = ny
+                  setAproposPhotos(prev => prev.map(p => p.id === id ? { ...p, offset_x: nx, offset_y: ny } : p))
+                } : undefined}
+                onMouseUp={isAdmin ? async () => {
+                  if (!aproposDrag.current.active) return
+                  aproposDrag.current.active = false
+                  const { id, fx, fy } = aproposDrag.current
+                  setDraggingAproposId(null)
+                  await supabase.from('apropos_photos').update({ offset_x: fx, offset_y: fy }).eq('id', id)
+                } : undefined}
+                onMouseLeave={isAdmin ? async () => {
+                  if (!aproposDrag.current.active) return
+                  aproposDrag.current.active = false
+                  const { id, fx, fy } = aproposDrag.current
+                  setDraggingAproposId(null)
+                  await supabase.from('apropos_photos').update({ offset_x: fx, offset_y: fy }).eq('id', id)
+                } : undefined}
+              >
+                {visibles.length === 0 && isAdmin && (
+                  <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
+                    <div className="text-center text-gray-400">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <p className="text-sm font-black">Aucune photo</p>
+                      <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
+                    </div>
                   </div>
                 )}
 
-                {/* Bouton admin */}
+                {visibles.map((photo, i) => {
+                  const DEFAULT_POSITIONS = [
+                    { x: 10,  y: 10  },
+                    { x: 220, y: 60  },
+                    { x: 80,  y: 220 },
+                    { x: 300, y: 200 },
+                    { x: 0,   y: 380 },
+                  ]
+                  const isUnpositioned = photo.offset_x === 0 && photo.offset_y === 0
+                  const def = DEFAULT_POSITIONS[i % DEFAULT_POSITIONS.length]
+                  const left = isUnpositioned ? (i === 0 ? 0 : def.x) : photo.offset_x
+                  const top  = isUnpositioned ? (i === 0 ? 0 : def.y) : photo.offset_y
+                  return (
+                  <div
+                    key={photo.id}
+                    className={`absolute select-none ${isAdmin ? (draggingAproposId === photo.id ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+                    style={{
+                      left:    `${left}px`,
+                      top:     `${top}px`,
+                      zIndex:  draggingAproposId === photo.id ? 50 : i + 1,
+                    }}
+                    onMouseDown={isAdmin ? (e: React.MouseEvent) => {
+                      e.preventDefault()
+                      aproposDrag.current = { active: true, id: photo.id, mx: e.clientX, my: e.clientY, ox: photo.offset_x, oy: photo.offset_y, fx: photo.offset_x, fy: photo.offset_y }
+                      setDraggingAproposId(photo.id)
+                    } : undefined}
+                  >
+                    <AproposPhotoDisplay photo={photo} isAdmin={isAdmin} />
+                    {photo.caption && (
+                      <p className="text-xs text-center italic text-gray-500 font-medium mt-1 px-1 max-w-[200px]">
+                        {photo.caption}
+                      </p>
+                    )}
+                  </div>
+                  )
+                })}
+
+                {isAdmin && visibles.length > 0 && (
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/40 text-white text-[10px] font-black px-3 py-1 rounded-full whitespace-nowrap pointer-events-none">
+                    ✋ Glisse chaque photo pour la repositionner
+                  </div>
+                )}
+
                 {isAdmin && (
                   <button
                     onClick={() => setShowAproposManager(true)}
-                    className="inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap"
+                    className="absolute top-2 left-2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap z-50"
                     style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
                     📷 Gérer les photos
                   </button>

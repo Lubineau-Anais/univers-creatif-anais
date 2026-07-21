@@ -38,15 +38,27 @@ function getCatInfo(categorie: string): CatInfo {
   if (n.includes('macrame') || n.includes('macramé')) return {
     emoji: '🪢',
     couleur: '#f97316',
-    message: "Prépare-toi à un atelier doux et zen où tu apprendras les nœuds de base du macramé pour créer ta propre pièce décorative. Un moment suspendu entre tes mains !",
-    apporter: `<p style="margin:0;color:#15803d;font-size:14px;line-height:1.6;">Tout le matériel (cordes, support, crochets) est fourni. Viens simplement avec de la bonne humeur et tes mains 🙌</p>`,
+    message: "Je me permets de vous contacter pour vous rappeler votre participation à l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    apporter: `
+      <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
+        <li>Une tenue confortable adaptée aux activités manuelles</li>
+        <li>Votre bonne humeur !</li>
+      </ul>
+      <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matériel pour l'atelier est fourni.</p>`,
+    stationnement: "Des places de stationnement sont prévues dans la cour à l'arrière de la maison, merci de vous stationner de manière à laisser la place à 6 voitures maximum.",
   }
 
   if (n.includes('resine') || n.includes('résine') || n.includes('bijou')) return {
     emoji: '💎',
     couleur: '#8b5cf6',
-    message: "Tu vas créer de magnifiques bijoux en résine, personnalisés avec les couleurs, paillettes et éléments de ton choix. Chaque création est unique, comme toi !",
-    apporter: `<p style="margin:0;color:#15803d;font-size:14px;line-height:1.6;">La résine et tous les matériaux sont fournis. Des vêtements que tu ne crains pas de tacher sont vivement conseillés — la résine ça pardonne peu ! 😄</p>`,
+    message: "Je me permets de vous contacter pour vous rappeler votre participation à l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    apporter: `
+      <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
+        <li>Une tenue confortable adaptée aux activités manuelles</li>
+        <li>Votre bonne humeur !</li>
+      </ul>
+      <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matériel pour l'atelier est fourni.</p>`,
+    stationnement: "Des places de stationnement sont prévues dans la cour à l'arrière de la maison, merci de vous stationner de manière à laisser la place à 6 voitures maximum.",
   }
 
   return {
@@ -66,13 +78,21 @@ function modeLabel(mode: string) {
 
 // ─── Email client (confirmation) ──────────────────────────────────────────────
 function buildEmailClient(params: {
-  prenom: string; atelier_titre: string; dateFormatted: string
+  prenom: string; nom: string; atelier_titre: string; dateFormatted: string
   heure: string; duree: string; lieu: string; mode_paiement: string
   nb_personnes: number; personnes_sup: { prenom: string; nom: string; age: string }[]
   total: number; catInfo: CatInfo; stripeUrl: string; reference: string
 }) {
-  const { prenom, atelier_titre, dateFormatted, heure, duree, lieu,
+  const { prenom, nom, atelier_titre, dateFormatted, heure, duree, lieu,
     mode_paiement, nb_personnes, personnes_sup, total, catInfo, stripeUrl, reference } = params
+
+  const allParticipants = [
+    `${prenom} ${nom}`,
+    ...(personnes_sup ?? []).map((p: { prenom: string; nom: string }) => `${p.prenom} ${p.nom}`),
+  ]
+  const participantsListHtml = allParticipants
+    .map(name => `<span style="display:block;color:#374151;font-size:13px;font-weight:600;">• ${name}</span>`)
+    .join('')
 
   // Résoudre le placeholder {ATELIER} dans le message d'intro
   const introHtml = catInfo.message.replace('{ATELIER}', atelier_titre)
@@ -103,13 +123,6 @@ function buildEmailClient(params: {
         <p style="margin:0;color:#15803d;font-size:14px;">Ton paiement par carte bancaire a bien été enregistré. Merci !</p>
       </div>`
   })()
-
-  const supBlock = personnes_sup?.length > 0
-    ? `<div style="margin:14px 0 0;">
-        <p style="font-weight:900;color:#1A1040;font-size:14px;margin:0 0 6px;">👥 Participants supplémentaires :</p>
-        ${personnes_sup.map(p => `<p style="margin:3px 0;color:#6b7280;font-size:13px;">• ${p.prenom} ${p.nom} (${p.age} ans)</p>`).join('')}
-       </div>`
-    : ''
 
   const stationnementBlock = catInfo.stationnement
     ? `<div style="background:#fefce8;border:2px solid #fde047;border-radius:12px;padding:18px;margin:20px 0;">
@@ -175,6 +188,10 @@ function buildEmailClient(params: {
               <td style="padding:6px 0;color:#1A1040;font-weight:700;font-size:14px;">${nb_personnes} personne${nb_personnes > 1 ? 's' : ''}</td>
             </tr>
             <tr>
+              <td style="padding:2px 0 6px;color:#9ca3af;font-size:13px;vertical-align:top;">👥 Inscrits</td>
+              <td style="padding:2px 0 6px;">${participantsListHtml}</td>
+            </tr>
+            <tr>
               <td style="padding:6px 0;color:#9ca3af;font-size:13px;vertical-align:top;">💳 Règlement</td>
               <td style="padding:6px 0;color:#1A1040;font-weight:700;font-size:14px;">${modeLabel(mode_paiement)}</td>
             </tr>
@@ -187,7 +204,6 @@ function buildEmailClient(params: {
               <td style="padding:10px 0 0;color:${catInfo.couleur};font-weight:900;font-size:22px;border-top:2px dashed #fbcfe8;">${total} €</td>
             </tr>
           </table>
-          ${supBlock}
         </div>
         ${paiementBlock}
         <div style="background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:18px;margin:20px 0;">
@@ -363,7 +379,7 @@ serve(async (req) => {
     }
 
     const htmlClient = buildEmailClient({
-      prenom: client_prenom, atelier_titre, dateFormatted,
+      prenom: client_prenom, nom: client_nom, atelier_titre, dateFormatted,
       heure: atelier_heure, duree: atelier_duree, lieu: atelier_lieu,
       mode_paiement, nb_personnes, personnes_sup: personnes_sup ?? [],
       total, catInfo, stripeUrl, reference,
@@ -379,7 +395,7 @@ serve(async (req) => {
     // Envoyer les deux emails
     async function sendEmail(to: string, subject: string, html: string, replyTo?: string) {
       const body: Record<string, unknown> = {
-        from: `${nomOrga} <onboarding@resend.dev>`,
+        from: `${nomOrga} <reservation@luniverscreatifdanais.fr>`,
         to: [to], subject, html,
       }
       if (replyTo) body['reply_to'] = replyTo
