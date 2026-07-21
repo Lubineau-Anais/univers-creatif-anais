@@ -185,90 +185,6 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Liens admin (style fixe néo-brut) */}
-            {isAdmin && (
-              <>
-                <Link to="/tableau-de-bord"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/tableau-de-bord')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <LayoutDashboard className="w-4 h-4" /> TDB
-                </Link>
-                <Link to="/accueil-admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/accueil-admin')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Home className="w-4 h-4" /> Accueil
-                </Link>
-                <Link to="/actu-moment"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/actu-moment')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Newspaper className="w-4 h-4" /> Actu
-                </Link>
-                <Link to="/contact-admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/contact-admin')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Phone className="w-4 h-4" /> Contact
-                </Link>
-                <Link to="/navbar-admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/navbar-admin')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Navigation className="w-4 h-4" /> Navbar
-                </Link>
-                <Link to="/boutique-admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/boutique-admin') || isActive('/produits-admin') || isActive('/promos-admin')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <ShoppingBag className="w-4 h-4" /> Boutique
-                </Link>
-                <Link to="/galerie-admin"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/galerie-admin')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Images className="w-4 h-4" /> Galerie
-                </Link>
-                <Link to="/archives"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/archives')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Archive className="w-4 h-4" /> Archives
-                </Link>
-                <Link to="/connecteurs"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isActive('/connecteurs')
-                      ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
-                      : 'bg-candy text-[#1A1040] border-[#1A1040] hover:bg-[#1A1040] hover:text-citron-400'
-                  }`}>
-                  <Settings className="w-4 h-4" /> Connecteurs
-                </Link>
-              </>
-            )}
-
-            {isAdmin && (
-              <button onClick={signOut}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-[#1A1040] hover:bg-red-100 transition-colors border-2 border-transparent hover:border-red-300">
-                <LogOut className="w-4 h-4" /> Déconnexion
-              </button>
-            )}
           </div>
 
           {/* Mobile burger */}
@@ -283,6 +199,40 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Barre admin secondaire (desktop uniquement) */}
+      {isAdmin && (
+        <div className="hidden md:block border-t-2 border-[#1A1040] bg-[#ffe500] overflow-x-auto">
+          <div className="flex items-center gap-1.5 px-4 py-1.5 w-max min-w-full">
+            {([
+              { to: '/tableau-de-bord', icon: <LayoutDashboard className="w-3.5 h-3.5" />, label: 'TDB', match: ['/tableau-de-bord'] },
+              { to: '/accueil-admin',   icon: <Home             className="w-3.5 h-3.5" />, label: 'Accueil', match: ['/accueil-admin'] },
+              { to: '/actu-moment',     icon: <Newspaper        className="w-3.5 h-3.5" />, label: 'Actu', match: ['/actu-moment'] },
+              { to: '/contact-admin',   icon: <Phone            className="w-3.5 h-3.5" />, label: 'Contact', match: ['/contact-admin'] },
+              { to: '/navbar-admin',    icon: <Navigation       className="w-3.5 h-3.5" />, label: 'Navbar', match: ['/navbar-admin'] },
+              { to: '/boutique-admin',  icon: <ShoppingBag      className="w-3.5 h-3.5" />, label: 'Boutique', match: ['/boutique-admin', '/produits-admin', '/promos-admin'] },
+              { to: '/galerie-admin',   icon: <Images           className="w-3.5 h-3.5" />, label: 'Galerie', match: ['/galerie-admin'] },
+              { to: '/archives',        icon: <Archive          className="w-3.5 h-3.5" />, label: 'Archives', match: ['/archives'] },
+              { to: '/connecteurs',     icon: <Settings         className="w-3.5 h-3.5" />, label: 'Connecteurs', match: ['/connecteurs'] },
+            ] as const).map(({ to, icon, label, match }) => (
+              <Link key={to} to={to}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border-2 whitespace-nowrap ${
+                  match.some(m => isActive(m))
+                    ? 'bg-[#1A1040] text-[#ffe500] border-[#1A1040]'
+                    : 'bg-white/60 text-[#1A1040] border-[#1A1040]/40 hover:bg-[#1A1040] hover:text-[#ffe500] hover:border-[#1A1040]'
+                }`}>
+                {icon} {label}
+              </Link>
+            ))}
+            <div className="ml-auto">
+              <button onClick={signOut}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-[#1A1040] hover:bg-red-100 transition-colors border-2 border-transparent hover:border-red-300 whitespace-nowrap">
+                <LogOut className="w-3.5 h-3.5" /> Déconnexion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile menu */}
       {menuOpen && (
