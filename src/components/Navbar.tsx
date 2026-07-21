@@ -202,7 +202,7 @@ export default function Navbar() {
 
       {/* Barre admin secondaire (desktop uniquement) */}
       {isAdmin && (
-        <div className="hidden md:block border-t-2 border-[#1A1040] bg-[#ffe500] overflow-x-auto">
+        <div className="hidden md:block border-t-2 border-[#1A1040] bg-white overflow-x-auto">
           <div className="flex items-center gap-1.5 px-4 py-1.5 w-max min-w-full">
             {([
               { to: '/tableau-de-bord', icon: <LayoutDashboard className="w-3.5 h-3.5" />, label: 'TDB', match: ['/tableau-de-bord'] },
