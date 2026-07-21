@@ -2,11 +2,12 @@ import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { POLAROID_FONTS, type HeroPolaroid } from './HeroPolaroidManager'
 
-export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved }: {
+export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved, tableName = 'hero_polaroids' }: {
   polaroid: HeroPolaroid
   index: number
   isAdmin: boolean
   onMoved: (id: string, offset_x: number, offset_y: number) => void
+  tableName?: string
 }) {
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null)
   const start = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null)
@@ -39,7 +40,7 @@ export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved 
     const { x, y } = drag
     setDrag(null)
     onMoved(polaroid.id, x, y)
-    await supabase.from('hero_polaroids').update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
+    await supabase.from(tableName).update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
   }
 
   const baseTop = `${15 + (index % 3) * 28}%`

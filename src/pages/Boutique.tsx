@@ -10,6 +10,9 @@ import { formatPrice, getActivePromoForProduct, getDiscountedPrice } from '../li
 import type { ShopStatus } from '../lib/shop'
 import ShopCatModal from '../components/ShopCatModal'
 import ShopProductModal from '../components/ShopProductModal'
+import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
+import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import { Image as ImageIcon } from 'lucide-react'
 
 // ─── Défauts ───────────────────────────────────────────────────────────────────
 const DEFAULT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#c4b5fd' }
@@ -398,6 +401,8 @@ export default function Boutique() {
   const [heroBg, setHeroBg]             = useState<HeroBg>(DEFAULT_BG)
   const [heroBgTab, setHeroBgTab]       = useState(DEFAULT_BG.type)
   const [titreText, setTitreText]       = useState('Notre boutique 🛍️')
+  const [boutiquePolaroids, setBoutiquePolaroids] = useState<HeroPolaroid[]>([])
+  const [showPolaroidManager, setShowPolaroidManager] = useState(false)
   const [titreStyle, setTitreStyle]     = useState<HeroStyle>(DEFAULT_TITRE)
   const [badge, setBadge]               = useState({ text:'🛍️ Notre boutique', bg:'#fb7185', textColor:'#ffffff', radius:'rounded-full' })
   const [loading, setLoading]           = useState(true)
@@ -433,7 +438,16 @@ export default function Boutique() {
     loadShop()
   }
 
-  useEffect(() => { loadShop() }, [])
+  async function loadBoutiquePolaroids() {
+    const { data } = await supabase.from('boutique_polaroids').select('*').order('sort_order')
+    setBoutiquePolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setBoutiquePolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
+  useEffect(() => { loadShop(); loadBoutiquePolaroids() }, [])
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = heroBg.videoMuted
@@ -569,11 +583,24 @@ export default function Boutique() {
         {heroBgTab === 'video' && heroBg.videoOverlay !== 'transparent' && (
           <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay, zIndex:1 }}/>
         )}
+
+        {/* Polaroïds décoratifs */}
+        {boutiquePolaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
+        ))}
+
         <div className="relative z-10 max-w-4xl mx-auto px-4 py-16 text-center">
           <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-gray-300 mb-4 ${badge.radius}`}
             style={{ backgroundColor:badge.bg, color:badge.textColor }}>{badge.text}</div>
           <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="leading-tight"/>
         </div>
+
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
+        )}
       </section>
 
       {/* CONTENU : SIDEBAR + GRILLE */}
@@ -869,6 +896,17 @@ export default function Boutique() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Gestionnaire polaroïds Boutique ── */}
+      {showPolaroidManager && (
+        <HeroPolaroidManager
+          polaroids={boutiquePolaroids}
+          onClose={() => setShowPolaroidManager(false)}
+          onRefresh={loadBoutiquePolaroids}
+          tableName="boutique_polaroids"
+          title="Polaroïds de la Boutique"
+        />
       )}
     </main>
   )

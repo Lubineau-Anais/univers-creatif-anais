@@ -151,16 +151,18 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
   )
 }
 
-export default function HeroPolaroidManager({ polaroids, onClose, onRefresh }: {
+export default function HeroPolaroidManager({ polaroids, onClose, onRefresh, tableName = 'hero_polaroids', title = 'Polaroïds du Hero' }: {
   polaroids: HeroPolaroid[]
   onClose: () => void
   onRefresh: () => void
+  tableName?: string
+  title?: string
 }) {
   const [saving, setSaving] = useState(false)
 
   async function addPolaroid() {
     setSaving(true)
-    await supabase.from('hero_polaroids').insert({
+    await supabase.from(tableName).insert({
       image_url: '', side: 'left', rotation: -6, offset_x: 0, offset_y: 0,
       size: 120, title: null, text: null,
       title_size: 13, title_font: 'sans', title_color: '#1A1040',
@@ -172,12 +174,12 @@ export default function HeroPolaroidManager({ polaroids, onClose, onRefresh }: {
   }
 
   async function patchPolaroid(id: string, patch: Partial<HeroPolaroid>) {
-    await supabase.from('hero_polaroids').update(patch).eq('id', id)
+    await supabase.from(tableName).update(patch).eq('id', id)
     onRefresh()
   }
 
   async function deletePolaroid(id: string) {
-    await supabase.from('hero_polaroids').delete().eq('id', id)
+    await supabase.from(tableName).delete().eq('id', id)
     onRefresh()
   }
 
@@ -188,7 +190,7 @@ export default function HeroPolaroidManager({ polaroids, onClose, onRefresh }: {
     <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg max-h-[85vh] flex flex-col" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
         <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy shrink-0">
-          <h3 className="font-black text-[#1A1040]">🖼️ Polaroïds du Hero</h3>
+          <h3 className="font-black text-[#1A1040]">🖼️ {title}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4" /></button>
         </div>
 
