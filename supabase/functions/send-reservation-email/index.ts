@@ -28,6 +28,7 @@ function getCatInfo(categorie: string): CatInfo {
     apporter: `
       <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
         <li>Votre machine à coudre et vos canettes !</li>
+        <li>Une paire de ciseaux</li>
         <li>Une tenue confortable adaptée aux activités manuelles</li>
         <li>Votre bonne humeur !</li>
       </ul>
