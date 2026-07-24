@@ -1,12 +1,8 @@
-import { useState, useEffect } from 'react'
-import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag, Check } from 'lucide-react'
-import { loadStripe } from '@stripe/stripe-js'
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { useState } from 'react'
+import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag } from 'lucide-react'
 import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'
 import type { Atelier } from '../types'
-
-import { supabase } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ModePaiement = 'cb' | 'virement' | 'cheque' | 'especes' | ''
@@ -31,110 +27,6 @@ const MODES_INFO: Record<string, { label: string; icon: React.ReactNode; desc: s
   especes:  { label: 'Espèces',  icon: <Banknote   className="w-5 h-5" />, desc: 'Sur place' },
 }
 
-// ─── Stripe Card Form ─────────────────────────────────────────────────────────
-function StripeCardForm({
-  atelier, form, nbPersonnes, onSuccess, onError, stripeConfigured,
-}: {
-  atelier: Atelier; form: FormData; nbPersonnes: number
-  onSuccess: (paymentIntentId: string) => void; onError: (msg: string) => void; stripeConfigured: boolean
-}) {
-  const stripe   = useStripe()
-  const elements = useElements()
-  const [processing, setProcessing] = useState(false)
-  const total = calcTotal(atelier, nbPersonnes)
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!stripeConfigured) { onSuccess(''); return }
-    if (!stripe || !elements) return
-    setProcessing(true)
-    const card = elements.getElement(CardElement)
-    if (!card) { setProcessing(false); return }
-
-    try {
-      // 1. Créer le PaymentIntent côté serveur (débit réel)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-      const piRes = await fetch(`${supabaseUrl}/functions/v1/create-payment-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify({
-          amount: Math.round(total * 100),
-          currency: 'eur',
-          description: `Atelier — ${atelier.titre}`,
-        }),
-      })
-      const { client_secret, error: piError } = await piRes.json()
-      if (piError || !client_secret) {
-        onError(piError || 'Impossible de créer le paiement.')
-        setProcessing(false)
-        return
-      }
-
-      // 2. Confirmer le paiement avec la carte saisie
-      const { error, paymentIntent } = await stripe.confirmCardPayment(client_secret, {
-        payment_method: {
-          card,
-          billing_details: { name: `${form.prenom} ${form.nom}`, email: form.email, phone: form.telephone },
-        },
-      })
-
-      if (error) {
-        onError(error.message || 'Erreur lors du paiement.')
-        setProcessing(false)
-      } else if (paymentIntent?.status === 'succeeded') {
-        onSuccess(paymentIntent.id)
-      } else {
-        onError('Le paiement n\'a pas abouti. Veuillez réessayer.')
-        setProcessing(false)
-      }
-    } catch {
-      onError('Erreur de connexion. Veuillez réessayer.')
-      setProcessing(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-[#1A1040] rounded-2xl p-5 border-2 border-[#1A1040]">
-        <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-citron-400" />
-          <span className="text-white font-black text-sm">Terminal de paiement sécurisé</span>
-          <div className="ml-auto flex gap-1">
-            {['VISA', 'MC', 'CB'].map(c => (
-              <span key={c} className="bg-white/10 text-white/70 text-[9px] font-black px-1.5 py-0.5 rounded border border-white/20">{c}</span>
-            ))}
-          </div>
-        </div>
-        {!stripeConfigured ? (
-          <div className="bg-citron-400/20 border border-citron-400/40 rounded-xl p-4 text-center">
-            <p className="text-citron-300 text-xs font-bold mb-1">⚙️ Mode démo</p>
-            <p className="text-white/70 text-xs">Configurez votre clé Stripe dans les Connecteurs pour activer le paiement réel.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl px-4 py-3 border-2 border-white/20">
-            <CardElement options={{ style: { base: { fontSize: '15px', color: '#1A1040', fontFamily: 'Inter, system-ui, sans-serif', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } }, hidePostalCode: true }} />
-          </div>
-        )}
-        <div className="flex items-center justify-between mt-4 bg-white/10 rounded-xl px-4 py-2">
-          <span className="text-white/70 text-sm">Total à régler</span>
-          <span className="text-citron-400 font-black text-xl">{total} €</span>
-        </div>
-      </div>
-      <button type="submit" disabled={processing || (stripeConfigured && !stripe)}
-        className="w-full flex items-center justify-center gap-2 bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
-        style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-        <CreditCard className="w-4 h-4" />
-        {processing ? '⏳ Traitement...' : !stripeConfigured ? `🎉 Confirmer (démo) — ${total} €` : `🔒 Payer ${total} €`}
-      </button>
-    </form>
-  )
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function calcTotal(atelier: Atelier, nb: number) {
   if (atelier.prix_type === 'duo') return atelier.prix * Math.ceil(nb / 2)
@@ -155,28 +47,13 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   const isDuo = atelier.prix_type === 'duo'
   const minPersonnes = isDuo ? 2 : 1
 
-  const [step, setStep]               = useState<'form' | 'paiement'>('form')
   const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
   const [nbPersonnes, setNbPersonnes] = useState(minPersonnes)
   const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>(
     Array(minPersonnes - 1).fill(null).map(() => ({ prenom: '', nom: '', age: '' }))
   )
-  const [loading]                     = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
-  const [cbPaymentSuccess, setCbPaymentSuccess] = useState(false)
   const [error, setError]             = useState('')
-  const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null)
-  const [stripeConfigured, setStripeConfigured] = useState(false)
-
-  useEffect(() => {
-    supabase.from('settings').select('value').eq('key', 'stripe_public_key').single()
-      .then(({ data }) => {
-        if (data?.value) {
-          setStripePromise(loadStripe(data.value))
-          setStripeConfigured(true)
-        }
-      })
-  }, [])
 
   const dateFormatted = formatDate(atelier.date)
   const modesDispos   = atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes']
@@ -198,7 +75,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     setPersonnesSup(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p))
   }
 
-  // ── Ajouter au panier (modes non-CB) ─────────────────────────────────────
+  // ── Ajouter au panier (tous les modes, y compris CB) ─────────────────────
   function addToCart() {
     addAtelierItem({
       atelier,
@@ -213,85 +90,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     })
     setAddedToCart(true)
     onReserved()
-  }
-
-  // ── Après paiement CB réussi : enregistre + envoie l'email + génère la facture ──
-  async function handleCbSuccess(paymentIntentId: string) {
-    try {
-      const { data: inserted, error: insertError } = await supabase
-        .from('reservations').insert([{
-          atelier_id:                atelier.id,
-          nom:                       form.nom,
-          prenom:                    form.prenom,
-          age:                       form.age,
-          email:                     form.email,
-          telephone:                 form.telephone,
-          mode_paiement:             'cb',
-          statut_paiement:           'paye',
-          nb_personnes:              nbPersonnes,
-          personnes_sup:             personnesSup,
-          stripe_payment_intent_id:  paymentIntentId || null,
-        }]).select().single()
-      if (insertError) throw insertError
-
-      if (!atelier.id.startsWith('demo-')) {
-        await supabase.from('ateliers')
-          .update({ places_restantes: Math.max(0, atelier.places_restantes - nbPersonnes) })
-          .eq('id', atelier.id)
-      }
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-      // Email de confirmation (non bloquant)
-      fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-        body: JSON.stringify({
-          atelier_titre:    atelier.titre,
-          atelier_date:     atelier.date,
-          atelier_heure:    atelier.heure,
-          atelier_duree:    atelier.duree,
-          atelier_lieu:     atelier.lieu,
-          category_id:      atelier.category_id,
-          client_prenom:    form.prenom,
-          client_nom:       form.nom,
-          client_email:     form.email,
-          client_telephone: form.telephone,
-          mode_paiement:    'cb',
-          nb_personnes:     nbPersonnes,
-          personnes_sup:    personnesSup,
-          total,
-        }),
-      }).catch(() => {})
-
-      // Facture automatique (non bloquant)
-      fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-        body: JSON.stringify({
-          type:             'facture',
-          reservation_id:   inserted?.id,
-          atelier_titre:    atelier.titre,
-          atelier_date:     atelier.date,
-          client_nom:       form.nom,
-          client_prenom:    form.prenom,
-          client_email:     form.email,
-          client_telephone: form.telephone,
-          description:      `Atelier créatif — ${atelier.titre}${nbPersonnes > 1 ? ` (${nbPersonnes} participants)` : ''}`,
-          quantite:         nbPersonnes,
-          prix_unitaire:    atelier.prix,
-          montant_total:    total,
-          mode_paiement:    'cb',
-          stripe_payment_id: paymentIntentId || null,
-        }),
-      }).catch(() => {})
-
-      setCbPaymentSuccess(true)
-      onReserved()
-    } catch {
-      setError('Votre paiement a été accepté mais une erreur est survenue lors de l\'enregistrement. Merci de nous contacter.')
-    }
   }
 
   // ── Âge minimum requis selon la position du participant ────────────────────
@@ -323,40 +121,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
       }
     }
     setError('')
-    if (form.paiement === 'cb') setStep('paiement')
-    else addToCart()
-  }
-
-  // ── Écran succès paiement CB ──────────────────────────────────────────────
-  if (cbPaymentSuccess) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-        <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
-          style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
-          <div className="w-20 h-20 bg-lime-300 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#1A1040]"
-            style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-            <Check className="w-10 h-10 text-[#1A1040]" />
-          </div>
-          <div className="inline-block bg-citron-400 text-[#1A1040] px-4 py-1 rounded-full text-sm font-black border-2 border-[#1A1040] mb-4">
-            ✅ Paiement accepté !
-          </div>
-          <h2 className="font-serif text-2xl font-black text-[#1A1040] mb-2">
-            Réservation confirmée {form.prenom} ! 🎊
-          </h2>
-          <p className="text-gray-500 font-medium mb-1">
-            {nbPersonnes > 1 ? `${nbPersonnes} places` : '1 place'} pour{' '}
-            <span className="text-rose-400 font-black">« {atelier.titre} »</span>
-          </p>
-          <p className="text-[#1A1040] font-black text-lg mb-2">{total} € — Payé par carte bancaire ✅</p>
-          <p className="text-gray-400 text-sm mb-6">Un email de confirmation vient de vous être envoyé.</p>
-          <button onClick={onClose}
-            className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
-            style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
-            Fermer 👋
-          </button>
-        </div>
-      </div>
-    )
+    addToCart()
   }
 
   // ── Écran "Ajouté au panier" ──────────────────────────────────────────────
@@ -379,7 +144,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             {nbPersonnes > 1 ? `${nbPersonnes} places` : '1 place'} pour{' '}
             <span className="text-rose-400 font-black">« {atelier.titre} »</span>
           </p>
-          <p className="text-[#1A1040] font-black text-lg mb-6">{total} €</p>
+          <p className="text-[#1A1040] font-black text-lg mb-2">{total} €</p>
+          {form.paiement === 'cb' && (
+            <p className="text-gray-400 text-xs mb-4">💳 Le paiement par carte sera demandé lors de la confirmation du panier.</p>
+          )}
 
           <div className="space-y-3">
             <button
@@ -421,239 +189,207 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
 
         {/* Header */}
-        <div className={`flex items-center justify-between px-6 py-4 border-b-4 border-[#1A1040] rounded-t-3xl ${step === 'paiement' ? 'bg-[#1A1040]' : 'bg-turquoise-400'}`}>
-          <div>
-            <h2 className={`font-serif text-xl font-black ${step === 'paiement' ? 'text-white' : 'text-[#1A1040]'}`}>
-              {step === 'form' ? '🎟️ Réserver ma place' : '💳 Paiement sécurisé'}
-            </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <div className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 ${step === 'form' ? 'bg-[#1A1040] text-white border-[#1A1040]' : 'bg-lime-300 text-[#1A1040] border-lime-400'}`}>1</div>
-              <div className="w-6 h-0.5 bg-white/40" />
-              <div className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-black border-2 ${step === 'paiement' ? 'bg-citron-400 text-[#1A1040] border-citron-400' : 'bg-white/20 text-white/60 border-white/30'}`}>2</div>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b-4 border-[#1A1040] rounded-t-3xl bg-turquoise-400">
+          <h2 className="font-serif text-xl font-black text-[#1A1040]">
+            🎟️ Réserver ma place
+          </h2>
           <button onClick={onClose} className="w-8 h-8 bg-black/10 rounded-xl flex items-center justify-center hover:bg-black/20">
-            <X className="w-5 h-5 text-white" />
+            <X className="w-5 h-5 text-[#1A1040]" />
           </button>
         </div>
 
         <RecapAtelier />
 
-        {/* ── ÉTAPE 1 : Formulaire ── */}
-        {step === 'form' && (
-          <form onSubmit={handleFormSubmit} className="px-6 py-5 space-y-4">
-            {error && (
-              <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm border-2 border-red-200 font-medium">
-                😬 {error}
+        {/* ── Formulaire ── */}
+        <form onSubmit={handleFormSubmit} className="px-6 py-5 space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm border-2 border-red-200 font-medium">
+              😬 {error}
+            </div>
+          )}
+
+          {/* Nom & Prénom */}
+          <div className="grid grid-cols-2 gap-3">
+            {([['Prénom *', 'prenom', 'Camille'], ['Nom *', 'nom', 'Dupont']] as const).map(([label, key, ph]) => (
+              <div key={key}>
+                <label className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
+                <input required value={form[key]} placeholder={ph}
+                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+                />
               </div>
-            )}
+            ))}
+          </div>
 
-            {/* Nom & Prénom */}
-            <div className="grid grid-cols-2 gap-3">
-              {([['Prénom *', 'prenom', 'Camille'], ['Nom *', 'nom', 'Dupont']] as const).map(([label, key, ph]) => (
-                <div key={key}>
-                  <label className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
-                  <input required value={form[key]} placeholder={ph}
-                    onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-                  />
-                </div>
-              ))}
-            </div>
+          {/* Âge */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1">
+              Âge *
+              {ageMinForPosition(1) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(1)} ans)</span>}
+            </label>
+            <input required type="number" min="5" max="120"
+              value={form.age} placeholder="Ex : 32"
+              onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+            />
+          </div>
 
-            {/* Âge */}
-            <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">
-                Âge *
-                {ageMinForPosition(1) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(1)} ans)</span>}
-              </label>
-              <input required type="number" min="5" max="120"
-                value={form.age} placeholder="Ex : 32"
-                onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-              />
-            </div>
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
+            <input required type="email"
+              value={form.email} placeholder="votre@email.fr"
+              onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+            />
+          </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
-              <input required type="email"
-                value={form.email} placeholder="votre@email.fr"
-                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-              />
-            </div>
+          {/* Téléphone */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
+            <input required type="tel"
+              value={form.telephone} placeholder="06 00 00 00 00"
+              onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+            />
+          </div>
 
-            {/* Téléphone */}
-            <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
-              <input required type="tel"
-                value={form.telephone} placeholder="06 00 00 00 00"
-                onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-              />
-            </div>
-
-            {/* ── Participants supplémentaires ── */}
-            <div className="border-2 border-dashed border-[#1A1040]/30 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-black text-[#1A1040]">
-                    <UserPlus className="w-3.5 h-3.5 inline mr-1" />Nombre de participants
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {isDuo
-                      ? `Atelier en duo — 2 personnes minimum · ${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`
-                      : `${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= minPersonnes}
-                    className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-8 text-center font-black text-[#1A1040] text-lg">{nbPersonnes}</span>
-                  <button type="button" onClick={() => changeNbPersonnes(1)} disabled={nbPersonnes >= maxPlaces}
-                    className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-lime-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {/* ── Participants supplémentaires ── */}
+          <div className="border-2 border-dashed border-[#1A1040]/30 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-[#1A1040]">
+                  <UserPlus className="w-3.5 h-3.5 inline mr-1" />Nombre de participants
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  {isDuo
+                    ? `Atelier en duo — 2 personnes minimum · ${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`
+                    : `${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`}
+                </p>
               </div>
-
-              {/* Prix total */}
-              <div className="bg-citron-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#1A1040]">
-                  {nbPersonnes} × {atelier.prix} €/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
-                  {atelier.prix_type === 'duo' && nbPersonnes > 1 && ` (${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''})`}
-                </span>
-                <span className="font-black text-[#1A1040] text-base">Total : {total} €</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= minPersonnes}
+                  className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-8 text-center font-black text-[#1A1040] text-lg">{nbPersonnes}</span>
+                <button type="button" onClick={() => changeNbPersonnes(1)} disabled={nbPersonnes >= maxPlaces}
+                  className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-lime-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
+            </div>
 
-              {/* Infos participants supplémentaires */}
-              {personnesSup.map((p, idx) => (
-                <div key={idx} className="bg-rose-50 border-2 border-rose-200 rounded-xl p-3 space-y-2">
-                  <p className="text-xs font-black text-rose-500">👤 Participant {idx + 2}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-black text-[#1A1040] mb-1">Prénom *</label>
-                      <input required value={p.prenom} placeholder="Marie"
-                        onChange={e => updatePersonneSup(idx, 'prenom', e.target.value)}
-                        className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-[#1A1040] mb-1">Nom *</label>
-                      <input required value={p.nom} placeholder="Martin"
-                        onChange={e => updatePersonneSup(idx, 'nom', e.target.value)}
-                        className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
-                      />
-                    </div>
+            {/* Prix total */}
+            <div className="bg-citron-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
+              <span className="text-xs font-bold text-[#1A1040]">
+                {nbPersonnes} × {atelier.prix} €/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+                {atelier.prix_type === 'duo' && nbPersonnes > 1 && ` (${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''})`}
+              </span>
+              <span className="font-black text-[#1A1040] text-base">Total : {total} €</span>
+            </div>
+
+            {/* Infos participants supplémentaires */}
+            {personnesSup.map((p, idx) => (
+              <div key={idx} className="bg-rose-50 border-2 border-rose-200 rounded-xl p-3 space-y-2">
+                <p className="text-xs font-black text-rose-500">👤 Participant {idx + 2}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Prénom *</label>
+                    <input required value={p.prenom} placeholder="Marie"
+                      onChange={e => updatePersonneSup(idx, 'prenom', e.target.value)}
+                      className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">
-                      Âge *
-                      {ageMinForPosition(idx + 2) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(idx + 2)} ans)</span>}
-                    </label>
-                    <input required type="number" min="5" max="120" value={p.age} placeholder="28"
-                      onChange={e => updatePersonneSup(idx, 'age', e.target.value)}
-                      className="w-32 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Nom *</label>
+                    <input required value={p.nom} placeholder="Martin"
+                      onChange={e => updatePersonneSup(idx, 'nom', e.target.value)}
+                      className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
                     />
                   </div>
                 </div>
-              ))}
+                <div>
+                  <label className="block text-[10px] font-black text-[#1A1040] mb-1">
+                    Âge *
+                    {ageMinForPosition(idx + 2) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(idx + 2)} ans)</span>}
+                  </label>
+                  <input required type="number" min="5" max="120" value={p.age} placeholder="28"
+                    onChange={e => updatePersonneSup(idx, 'age', e.target.value)}
+                    className="w-32 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Mode de règlement ── */}
+          <div>
+            <label className="block text-xs font-black text-[#1A1040] mb-2">Mode de règlement *</label>
+            <div className={`grid gap-2 ${modesDispos.length <= 2 ? 'grid-cols-2' : modesDispos.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              {modesDispos.map(mode => {
+                const info = MODES_INFO[mode]
+                if (!info) return null
+                return (
+                  <button key={mode} type="button"
+                    onClick={() => setForm(p => ({ ...p, paiement: mode as ModePaiement }))}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
+                      form.paiement === mode
+                        ? 'bg-[#1A1040] text-white border-[#1A1040]'
+                        : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                    }`}>
+                    {info.icon}
+                    <span className="font-black">{info.label}</span>
+                    <span className={`text-[10px] font-medium ${form.paiement === mode ? 'text-white/60' : 'text-gray-400'}`}>{info.desc}</span>
+                  </button>
+                )
+              })}
             </div>
+          </div>
 
-            {/* ── Mode de règlement ── */}
-            <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-2">Mode de règlement *</label>
-              <div className={`grid gap-2 ${modesDispos.length <= 2 ? 'grid-cols-2' : modesDispos.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                {modesDispos.map(mode => {
-                  const info = MODES_INFO[mode]
-                  if (!info) return null
-                  return (
-                    <button key={mode} type="button"
-                      onClick={() => setForm(p => ({ ...p, paiement: mode as ModePaiement }))}
-                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
-                        form.paiement === mode
-                          ? 'bg-[#1A1040] text-white border-[#1A1040]'
-                          : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
-                      }`}>
-                      {info.icon}
-                      <span className="font-black">{info.label}</span>
-                      <span className={`text-[10px] font-medium ${form.paiement === mode ? 'text-white/60' : 'text-gray-400'}`}>{info.desc}</span>
-                    </button>
-                  )
-                })}
-              </div>
+          {/* Messages spécifiques aux modes */}
+          {form.paiement === 'cb' && (
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3 text-xs text-blue-800 font-medium space-y-1">
+              <p className="font-black">💳 Paiement par carte bancaire</p>
+              <p>Vos coordonnées bancaires seront demandées lors de la confirmation du panier.</p>
             </div>
+          )}
 
-            {/* Messages spécifiques aux modes */}
-            {form.paiement === 'especes' && (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium space-y-1">
-                <p className="font-black">💵 Règlement en espèces sur place</p>
-                <p>⚠️ <strong>L'appoint est obligatoire.</strong></p>
-                <p>🎲 Les billets de Monopoli ne sont pas autorisés 😄</p>
-              </div>
-            )}
-
-            {form.paiement === 'virement' && (
-              <div className="bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3 text-xs text-blue-800 font-medium space-y-1">
-                <p className="font-black">🏦 Règlement par virement bancaire</p>
-                <p>⏰ <strong>Le règlement doit être arrivé avant le commencement de l'atelier.</strong></p>
-                <p>📧 Les coordonnées bancaires seront présentes sur le mail de confirmation de réservation.</p>
-              </div>
-            )}
-
-            {form.paiement === 'cheque' && (
-              <div className="bg-purple-50 border-2 border-purple-300 rounded-xl px-4 py-3 text-xs text-purple-800 font-medium">
-                <p className="font-black">📝 Règlement par chèque sur place</p>
-                <p className="mt-1">Chèque à l'ordre de <strong>L'univers créatif d'Anaïs</strong>, remis le jour de l'atelier.</p>
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-1">
-              <button type="button" onClick={onClose}
-                className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-3 rounded-2xl font-black text-sm hover:bg-gray-50">
-                Annuler
-              </button>
-              <button type="submit" disabled={loading}
-                className="flex-1 bg-turquoise-400 text-[#1A1040] py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
-                style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                {loading ? '⏳ Envoi...' : form.paiement === 'cb' ? '➡️ Passer au paiement' : `🎉 Confirmer — ${total} €`}
-              </button>
+          {form.paiement === 'especes' && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium space-y-1">
+              <p className="font-black">💵 Règlement en espèces sur place</p>
+              <p>⚠️ <strong>L'appoint est obligatoire.</strong></p>
+              <p>🎲 Les billets de Monopoli ne sont pas autorisés 😄</p>
             </div>
-          </form>
-        )}
+          )}
 
-        {/* ── ÉTAPE 2 : Paiement Stripe ── */}
-        {step === 'paiement' && (
-          <div className="px-6 py-5">
-            <div className="bg-candy rounded-2xl border-2 border-[#1A1040] px-4 py-3 mb-4 text-sm">
-              <p className="font-black text-[#1A1040] mb-0.5">👤 {form.prenom} {form.nom}</p>
-              <p className="text-gray-500 text-xs">{form.email} · {form.telephone}</p>
-              {nbPersonnes > 1 && <p className="text-xs text-rose-500 font-bold mt-0.5">+{nbPersonnes - 1} participant(s)</p>}
+          {form.paiement === 'virement' && (
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3 text-xs text-blue-800 font-medium space-y-1">
+              <p className="font-black">🏦 Règlement par virement bancaire</p>
+              <p>⏰ <strong>Le règlement doit être arrivé avant le commencement de l'atelier.</strong></p>
+              <p>📧 Les coordonnées bancaires seront présentes sur le mail de confirmation de réservation.</p>
             </div>
+          )}
 
-            {error && (
-              <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm border-2 border-red-200 font-medium mb-4">
-                😬 {error}
-              </div>
-            )}
+          {form.paiement === 'cheque' && (
+            <div className="bg-purple-50 border-2 border-purple-300 rounded-xl px-4 py-3 text-xs text-purple-800 font-medium">
+              <p className="font-black">📝 Règlement par chèque sur place</p>
+              <p className="mt-1">Chèque à l'ordre de <strong>L'univers créatif d'Anaïs</strong>, remis le jour de l'atelier.</p>
+            </div>
+          )}
 
-            <Elements stripe={stripePromise}>
-              <StripeCardForm
-                atelier={atelier} form={form} nbPersonnes={nbPersonnes}
-                onSuccess={handleCbSuccess} onError={msg => setError(msg)}
-                stripeConfigured={stripeConfigured}
-              />
-            </Elements>
-
-            <button onClick={() => { setStep('form'); setError('') }}
-              className="w-full mt-3 border-2 border-gray-200 text-gray-500 py-2.5 rounded-2xl font-bold text-sm hover:bg-gray-50">
-              ← Retour au formulaire
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 border-2 border-[#1A1040] text-[#1A1040] py-3 rounded-2xl font-black text-sm hover:bg-gray-50">
+              Annuler
+            </button>
+            <button type="submit"
+              className="flex-1 bg-turquoise-400 text-[#1A1040] py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
+              style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              🛒 Ajouter au panier — {total} €
             </button>
           </div>
-        )}
+        </form>
       </div>
     </div>
   )
