@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, ShoppingCart, Trash2, Calendar, Clock, MapPin, Users, Check, CreditCard, Landmark, BookCheck, Banknote, ShoppingBag, ChevronRight } from 'lucide-react'
+import { X, ShoppingCart, Trash2, Calendar, Clock, MapPin, Users, Check, CreditCard, Landmark, BookCheck, Banknote, ShoppingBag, ChevronRight, FileText, Download } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useCart } from '../context/CartContext'
@@ -140,14 +140,20 @@ export default function CartDrawer() {
   const [stripePromise,    setStripePromise]    = useState<ReturnType<typeof loadStripe> | null>(null)
   const [stripeConfigured, setStripeConfigured] = useState(false)
   const [cbPaymentError,   setCbPaymentError]   = useState('')
+  const [cgvUrl,           setCgvUrl]           = useState<string | null>(null)
+  const [cgvAccepted,      setCgvAccepted]      = useState(false)
 
   useEffect(() => {
-    supabase.from('settings').select('value').eq('key', 'stripe_public_key').single()
+    supabase.from('settings').select('key, value')
+      .in('key', ['stripe_public_key', 'cgv_url'])
       .then(({ data }) => {
-        if (data?.value) {
-          setStripePromise(loadStripe(data.value))
+        const map: Record<string, string> = {}
+        data?.forEach(r => { map[r.key] = r.value || '' })
+        if (map['stripe_public_key']) {
+          setStripePromise(loadStripe(map['stripe_public_key']))
           setStripeConfigured(true)
         }
+        if (map['cgv_url']) setCgvUrl(map['cgv_url'])
       })
   }, [])
 
@@ -528,10 +534,44 @@ export default function CartDrawer() {
               <span>Total ateliers ({atelierItems.length})</span>
               <span className="text-xl">{totalAteliers} €</span>
             </div>
+
+            {/* ── Acceptation CGV (uniquement si un fichier CGV est configuré) ── */}
+            {cgvUrl && (
+              <div className={`rounded-2xl border-2 px-3 py-3 space-y-2 transition-colors ${cgvAccepted ? 'bg-lime-50 border-lime-400' : 'bg-purple-50 border-purple-200'}`}>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <div
+                    onClick={() => setCgvAccepted(p => !p)}
+                    className={`w-5 h-5 rounded-lg border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors cursor-pointer ${cgvAccepted ? 'bg-lime-400 border-lime-500' : 'bg-white border-gray-300 hover:border-purple-400'}`}>
+                    {cgvAccepted && <Check className="w-3 h-3 text-[#1A1040]" />}
+                  </div>
+                  <span className="text-xs font-bold text-[#1A1040] leading-relaxed" onClick={() => setCgvAccepted(p => !p)}>
+                    J'ai lu et j'accepte les{' '}
+                    <a
+                      href={cgvUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="text-purple-600 underline hover:text-purple-800 font-black">
+                      Conditions Générales de Vente
+                    </a>
+                    {' '}*
+                  </span>
+                </label>
+                <a
+                  href={cgvUrl}
+                  download="CGV.pdf"
+                  className="flex items-center gap-1.5 text-[10px] font-black text-purple-500 hover:text-purple-700 transition-colors">
+                  <Download className="w-3 h-3" />
+                  <FileText className="w-3 h-3" />
+                  Télécharger les CGV (PDF)
+                </a>
+              </div>
+            )}
+
             <button
               onClick={confirmAtelierReservations}
-              disabled={checkingOut}
-              className="w-full bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              disabled={checkingOut || (cgvUrl !== null && !cgvAccepted)}
+              className="w-full bg-rose-400 text-white py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
               style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
               {checkingOut ? '⏳ Confirmation...' : '🎟️ Confirmer mes réservations'}
             </button>
