@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Atelier, AtelierCategory } from '../types'
 import AtelierFormModal, { NIVEAUX } from '../components/AtelierFormModal'
 import ReservationModal from '../components/ReservationModal'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
+import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
+import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 
 // ─── Hero éditable ────────────────────────────────────────────────────────────
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
@@ -196,6 +198,10 @@ export default function NosAteliers() {
   const [editingCat,      setEditingCat]      = useState<AtelierCategory | null>(null)
   const [deleteCatConfirm, setDeleteCatConfirm] = useState<string | null>(null)
 
+  // Polaroïds
+  const [atelierPolaroids,   setAtelierPolaroids]   = useState<HeroPolaroid[]>([])
+  const [showPolaroidManager, setShowPolaroidManager] = useState(false)
+
   // Hero éditable (badge, titre, sous-titre)
   const [heroBadge,      setHeroBadge]      = useState<BadgeConfig>(DEFAULT_ATELIERS_BADGE)
   const [heroTitre,      setHeroTitre]      = useState(DEFAULT_ATELIERS_TITRE)
@@ -224,7 +230,16 @@ export default function NosAteliers() {
     return groups
   })()
 
-  useEffect(() => { loadCategories(); loadHero() }, [])
+  async function loadAtelierPolaroids() {
+    const { data } = await supabase.from('atelier_polaroids').select('*').order('sort_order')
+    setAtelierPolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setAtelierPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
+  useEffect(() => { loadCategories(); loadHero(); loadAtelierPolaroids() }, [])
 
   async function loadHero() {
     const [{ data: settings }, { data: content }] = await Promise.all([
@@ -310,6 +325,9 @@ export default function NosAteliers() {
 
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
+
+      {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
+      <div className="relative">
 
       {/* ── HEADER ── */}
       <section className="relative bg-[#1A1040] py-16 px-4 text-center border-b-4 border-[#1A1040] overflow-hidden">
@@ -684,6 +702,20 @@ export default function NosAteliers() {
         )}
       </section>
 
+        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
+        {atelierPolaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="atelier_polaroids" />
+        ))}
+
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
+        )}
+
+      </div>{/* fin wrapper hero+contenu polaroïds */}
+
       {/* ── ÉDITEUR BADGE HERO ── */}
       {showBadgeEditor && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowBadgeEditor(false)}>
@@ -860,6 +892,16 @@ export default function NosAteliers() {
             </div>
           </div>
         </div>
+      )}
+
+      {showPolaroidManager && (
+        <HeroPolaroidManager
+          polaroids={atelierPolaroids}
+          onClose={() => setShowPolaroidManager(false)}
+          onRefresh={loadAtelierPolaroids}
+          tableName="atelier_polaroids"
+          title="Polaroïds — Nos Ateliers"
+        />
       )}
     </main>
   )

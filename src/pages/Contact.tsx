@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Check, X, MapPin, Phone, Mail } from 'lucide-react'
+import { Pencil, Check, X, MapPin, Phone, Mail, Image as ImageIcon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
 import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
+import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 
 interface ContentBlock { section: string; contenu: string }
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
@@ -34,6 +36,8 @@ export default function Contact() {
   const [titreStyle, setTitreStyle] = useState<HeroStyle>(DEFAULT_TITRE_STYLE)
   const [badge, setBadge]         = useState<BadgeConfig>(DEFAULT_BADGE)
   const [showTitreEditor, setShowTitreEditor] = useState(false)
+  const [contactPolaroids,    setContactPolaroids]    = useState<HeroPolaroid[]>([])
+  const [showPolaroidManager, setShowPolaroidManager] = useState(false)
 
   const [form,    setForm]    = useState<FormData>(EMPTY_FORM)
   const [sending, setSending] = useState(false)
@@ -41,8 +45,18 @@ export default function Contact() {
   const [error,   setError]   = useState('')
   const formRef = useRef<HTMLFormElement>(null)
 
+  async function loadContactPolaroids() {
+    const { data } = await supabase.from('contact_polaroids').select('*').order('sort_order')
+    setContactPolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setContactPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
   useEffect(() => {
     loadContent()
+    loadContactPolaroids()
 
     const ch = supabase
       .channel('realtime-contact')
@@ -115,6 +129,9 @@ export default function Contact() {
 
   return (
     <main className="flex-1">
+
+      {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
+      <div className="relative">
 
       {/* ===== HERO CONTACT ===== */}
       <section
@@ -263,6 +280,20 @@ export default function Contact() {
         </div>
       </section>
 
+        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
+        {contactPolaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="contact_polaroids" />
+        ))}
+
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
+        )}
+
+      </div>{/* fin wrapper hero+contenu polaroïds */}
+
       {/* ===== ÉDITEUR TITRE ===== */}
       {showTitreEditor && (
         <HeroTitleEditor
@@ -281,6 +312,15 @@ export default function Contact() {
         />
       )}
 
+      {showPolaroidManager && (
+        <HeroPolaroidManager
+          polaroids={contactPolaroids}
+          onClose={() => setShowPolaroidManager(false)}
+          onRefresh={loadContactPolaroids}
+          tableName="contact_polaroids"
+          title="Polaroïds — Page Infos"
+        />
+      )}
     </main>
   )
 }
