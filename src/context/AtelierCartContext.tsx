@@ -8,6 +8,9 @@ export interface PersonneSup { prenom: string; nom: string; age: string }
 export interface AtelierReservationForm {
   prenom: string; nom: string; age: string
   email: string; telephone: string; paiement: string
+  is_gift?: boolean
+  gift_from?: string
+  gift_to?: string
 }
 
 export interface AtelierCartItem {

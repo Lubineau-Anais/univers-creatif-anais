@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag } from 'lucide-react'
+import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag, Check } from 'lucide-react'
 import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'
 import type { Atelier } from '../types'
@@ -54,6 +54,9 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   )
   const [addedToCart, setAddedToCart] = useState(false)
   const [error, setError]             = useState('')
+  const [isGift,    setIsGift]    = useState(false)
+  const [giftFrom,  setGiftFrom]  = useState('')
+  const [giftTo,    setGiftTo]    = useState('')
 
   const dateFormatted = formatDate(atelier.date)
   const modesDispos   = atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes']
@@ -83,6 +86,9 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         prenom: form.prenom, nom: form.nom, age: form.age,
         email: form.email, telephone: form.telephone,
         paiement: form.paiement || 'especes',
+        is_gift: isGift,
+        gift_from: isGift ? giftFrom : undefined,
+        gift_to:   isGift ? giftTo   : undefined,
       },
       nbPersonnes,
       personnesSup,
@@ -119,6 +125,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         setError(`Âge minimum requis pour le participant ${i + 2} : ${min} ans.`)
         return
       }
+    }
+    if (isGift && (!giftFrom.trim() || !giftTo.trim())) {
+      setError('Merci de renseigner "De la part de" et "Pour" pour la carte cadeau.')
+      return
     }
     setError('')
     addToCart()
@@ -321,6 +331,46 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* ── Option cadeau ── */}
+          <div className="border-2 border-dashed border-rose-200 rounded-2xl overflow-hidden">
+            <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-rose-50 transition-colors">
+              <div
+                onClick={() => setIsGift(p => !p)}
+                className={`w-5 h-5 rounded-lg border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer ${isGift ? 'bg-rose-400 border-rose-500' : 'bg-white border-gray-300 hover:border-rose-400'}`}>
+                {isGift && <Check className="w-3 h-3 text-white" />}
+              </div>
+              <div className="flex-1" onClick={() => setIsGift(p => !p)}>
+                <p className="font-black text-[#1A1040] text-sm">🎁 Je souhaite offrir cet atelier à un proche</p>
+                <p className="text-[11px] text-gray-400 font-medium mt-0.5">Une carte cadeau personnalisée sera jointe à la confirmation</p>
+              </div>
+            </label>
+
+            {isGift && (
+              <div className="px-4 pb-4 pt-2 bg-rose-50 border-t-2 border-dashed border-rose-200 space-y-3">
+                <div>
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">De la part de *</label>
+                  <input
+                    required={isGift}
+                    value={giftFrom}
+                    onChange={e => setGiftFrom(e.target.value)}
+                    placeholder="Votre prénom ou signature"
+                    className="w-full border-2 border-rose-300 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">Pour *</label>
+                  <input
+                    required={isGift}
+                    value={giftTo}
+                    onChange={e => setGiftTo(e.target.value)}
+                    placeholder="Prénom du bénéficiaire"
+                    className="w-full border-2 border-rose-300 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Mode de règlement ── */}

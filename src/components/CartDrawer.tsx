@@ -201,6 +201,9 @@ export default function CartDrawer() {
           statut_paiement: 'en_attente',
           nb_personnes:    item.nbPersonnes,
           personnes_sup:   item.personnesSup,
+          is_gift:         item.form.is_gift  ?? false,
+          gift_from:       item.form.gift_from ?? null,
+          gift_to:         item.form.gift_to   ?? null,
         }]).select().single()
         if (insertError) throw insertError
 
@@ -287,6 +290,9 @@ export default function CartDrawer() {
           nb_personnes:             item.nbPersonnes,
           personnes_sup:            item.personnesSup,
           stripe_payment_intent_id: paymentIntentId || null,
+          is_gift:                  item.form.is_gift  ?? false,
+          gift_from:                item.form.gift_from ?? null,
+          gift_to:                  item.form.gift_to   ?? null,
         }]).select().single()
         if (insertError) throw insertError
 
@@ -459,12 +465,21 @@ export default function CartDrawer() {
                             </div>
                           </div>
 
-                          <div className="bg-white rounded-xl px-3 py-2 text-xs">
+                          <div className="bg-white rounded-xl px-3 py-2 text-xs space-y-1">
                             <div className="font-black text-[#1A1040]">👤 {item.form.prenom} {item.form.nom}</div>
                             <div className="text-gray-400">{item.form.email}</div>
                             {item.nbPersonnes > 1 && (
-                              <div className="flex items-center gap-1 text-rose-500 font-bold mt-0.5">
+                              <div className="flex items-center gap-1 text-rose-500 font-bold">
                                 <Users className="w-3 h-3" /> {item.nbPersonnes} participants
+                              </div>
+                            )}
+                            {item.form.is_gift && (
+                              <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1 mt-1">
+                                <span className="text-base">🎁</span>
+                                <div className="text-[10px] text-rose-700 font-bold">
+                                  De la part de <span className="font-black">{item.form.gift_from}</span>
+                                  {' · '}Pour <span className="font-black">{item.form.gift_to}</span>
+                                </div>
                               </div>
                             )}
                           </div>
