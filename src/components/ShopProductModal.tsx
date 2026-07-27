@@ -20,6 +20,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
     product?.montants_disponibles?.length ? product.montants_disponibles.map(String) : []
   )
   const [images, setImages]       = useState<string[]>(product?.images || [])
+  const [weightG, setWeightG]     = useState(product?.weight_g?.toString() || '')
   const [isActive, setIsActive]   = useState(product?.is_active ?? true)
   const [saving, setSaving]       = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -54,6 +55,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
       stock: parseInt(stock) || 0,
       stock_illimite: stockIllimite,
       montants_disponibles: montantsValides.length ? montantsValides : null,
+      weight_g: weightG ? parseInt(weightG) : null,
       images,
       is_active: isActive,
     }
@@ -118,6 +120,20 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
               <input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)} disabled={stockIllimite}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400 disabled:opacity-40 disabled:bg-gray-100" />
             </div>
+          </div>
+          {/* Poids */}
+          <div>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">
+              ⚖️ Poids du colis (grammes) — pour le calcul Mondial Relay
+            </label>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" step="1" value={weightG} onChange={e => setWeightG(e.target.value)}
+                placeholder="ex : 250"
+                className="w-40 border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-300" />
+              <span className="text-sm text-gray-400 font-bold">g</span>
+              {weightG && <span className="text-xs text-gray-400">= {(parseInt(weightG)/1000).toFixed(3)} kg</span>}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">Laissez vide si le produit n'est pas expédié (carte cadeau, etc.)</p>
           </div>
           {/* Stock illimité */}
           <div className="flex items-center gap-3">

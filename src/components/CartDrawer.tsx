@@ -142,10 +142,12 @@ export default function CartDrawer() {
   const [cbPaymentError,   setCbPaymentError]   = useState('')
   const [cgvUrl,           setCgvUrl]           = useState<string | null>(null)
   const [cgvAccepted,      setCgvAccepted]      = useState(false)
+  const [shippingCost,     setShippingCost]     = useState<number | null>(null)
+  const [shippingTranches, setShippingTranches] = useState<{ max_g: number; prix: number }[]>([])
 
   useEffect(() => {
     supabase.from('settings').select('key, value')
-      .in('key', ['stripe_public_key', 'cgv_url'])
+      .in('key', ['stripe_public_key', 'cgv_url', 'mondial_relay_tarifs'])
       .then(({ data }) => {
         const map: Record<string, string> = {}
         data?.forEach(r => { map[r.key] = r.value || '' })
@@ -154,8 +156,24 @@ export default function CartDrawer() {
           setStripeConfigured(true)
         }
         if (map['cgv_url']) setCgvUrl(map['cgv_url'])
+        if (map['mondial_relay_tarifs']) {
+          try { setShippingTranches(JSON.parse(map['mondial_relay_tarifs'])) } catch { /* ignore */ }
+        }
       })
   }, [])
+
+  // Recalcule les frais de port quand le panier boutique ou les tranches changent
+  useEffect(() => {
+    if (!shippingTranches.length || !shopItems.length) { setShippingCost(null); return }
+    const totalPoids = shopItems.reduce((sum, item) => {
+      const poids = item.product?.weight_g ?? 0
+      return sum + poids * item.quantity
+    }, 0)
+    if (totalPoids === 0) { setShippingCost(null); return }
+    const sorted = [...shippingTranches].sort((a, b) => a.max_g - b.max_g)
+    const tranche = sorted.find(t => totalPoids <= t.max_g) ?? sorted[sorted.length - 1]
+    setShippingCost(tranche?.prix ?? null)
+  }, [shopItems, shippingTranches])
 
   const totalAteliers = atelierItems.reduce((s, i) => s + i.total, 0)
   const hasItems = atelierItems.length > 0 || shopItems.length > 0
@@ -485,6 +503,21 @@ export default function CartDrawer() {
                         <span className="font-black text-[#1A1040]">{((item.chosen_price ?? item.product?.price ?? 0) * item.quantity).toFixed(2)} €</span>
                       </div>
                     ))}
+                    {shippingCost !== null && (
+                      <div className="border-t border-dashed border-[#1A1040]/20 pt-2 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 text-gray-500 font-medium">
+                            <span>📦</span>
+                            <span>Frais de port Mondial Relay</span>
+                          </div>
+                          <span className="font-black text-[#1A1040]">{shippingCost.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-black text-[#1A1040] bg-citron-400/20 rounded-lg px-2 py-1">
+                          <span>Total boutique + port</span>
+                          <span>{(shopItems.reduce((s, i) => s + (i.chosen_price ?? i.product?.price ?? 0) * i.quantity, 0) + shippingCost).toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="border-t border-dashed border-[#1A1040]/20 pt-2 flex justify-end">
                       <a href="/boutique"
                         className="flex items-center gap-1 text-xs font-black text-rose-400 hover:text-rose-600">

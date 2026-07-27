@@ -3,6 +3,7 @@ import React from 'react'
 import { Mail, CreditCard, Check, Eye, EyeOff, Wifi, WifiOff, Settings } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CgvManager from '../components/CgvManager'
+import MondialRelayManager from '../components/MondialRelayManager'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EmailProvider  = 'smtp' | 'gmail' | 'resend'
@@ -535,6 +536,23 @@ export default function Connecteurs() {
           <div className="flex justify-end pt-2">
             <SaveButton section="social" keys={['instagram_url','facebook_url','tiktok_url','linkedin_url','pinterest_url']} />
           </div>
+        </div>
+      </div>
+
+      {/* ── MONDIAL RELAY ── */}
+      <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden"
+        style={{ boxShadow: '5px 5px 0px 0px #fed7aa' }}>
+        <div className="bg-[#1A1040] px-6 py-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-400 rounded-xl flex items-center justify-center border-2 border-orange-300 text-xl">
+            📦
+          </div>
+          <div>
+            <h2 className="font-serif text-xl font-black text-white">Mondial Relay</h2>
+            <p className="text-gray-400 text-xs mt-0.5">Identifiants + grille tarifaire pour le calcul des frais de port boutique</p>
+          </div>
+        </div>
+        <div className="p-6">
+          <MondialRelayManager />
         </div>
       </div>
 

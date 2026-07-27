@@ -22,6 +22,7 @@ export interface ShopProduct {
   stock: number
   stock_illimite: boolean
   montants_disponibles: number[] | null
+  weight_g: number | null
   is_active: boolean
   sort_order: number
   created_at: string
