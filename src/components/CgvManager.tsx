@@ -4,7 +4,7 @@ import { Upload, FileText, Eye, Download, Trash2, RefreshCw, Check } from 'lucid
 import { supabase } from '../lib/supabase'
 
 const SETTING_KEY = 'cgv_url'
-const BUCKET      = 'hero'
+const BUCKET      = 'documents'
 const FILENAME    = 'cgv.pdf'
 
 export default function CgvManager() {
