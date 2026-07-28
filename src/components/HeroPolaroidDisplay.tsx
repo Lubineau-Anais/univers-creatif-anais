@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { POLAROID_FONTS, type HeroPolaroid } from './HeroPolaroidManager'
 
-export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved, tableName = 'hero_polaroids' }: {
+export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, onMoved, tableName = 'hero_polaroids' }: {
   polaroid: HeroPolaroid
   index: number
   isAdmin: boolean
