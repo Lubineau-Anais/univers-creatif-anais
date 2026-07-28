@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Star, Image as ImageIcon } from 'lucide-react'
+import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
-import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import BgEditor from '../components/BgEditor'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import AproposPhotoManager from '../components/AproposPhotoManager'
 import AproposPhotoDisplay, { type AproposPhoto } from '../components/AproposPhotoDisplay'
@@ -170,6 +171,10 @@ export default function Accueil() {
   const [heroStyle, setHeroStyle]           = useState<HeroStyle>(DEFAULT_HERO_STYLE)
   const [showTitleEditor, setShowTitleEditor] = useState(false)
   const [heroBg,  setHeroBg]  = useState<HeroBg>(DEFAULT_HERO_BG)
+  const [showBgEditor, setShowBgEditor]   = useState(false)
+  const [bgUploading, setBgUploading]     = useState(false)
+  const [bgUploadError, setBgUploadError] = useState('')
+  const bgFileRef = useRef<HTMLInputElement | null>(null)
   // ── Section Actu ──
   const [actuBg,          setActuBg]          = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [actuTitleStyle,  setActuTitleStyle]   = useState<HeroStyle>(DEFAULT_ACTU_TITLE_STYLE)
@@ -411,6 +416,12 @@ async function loadContent() {
   }
 
 
+  async function saveBg() {
+    const val = JSON.stringify(heroBg)
+    await supabase.from('settings').upsert({ key: 'hero_bg_config', value: val }, { onConflict: 'key' })
+    setShowBgEditor(false)
+  }
+
   const hasSocialLinks = Object.values(socialLinks).some(v => v.trim() !== '')
 
   return (
@@ -447,7 +458,13 @@ async function loadContent() {
           <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} />
         ))}
 
-        {/* Bouton admin — gérer les polaroïds */}
+        {/* Boutons admin hero */}
+        {isAdmin && (
+          <button onClick={() => setShowBgEditor(true)}
+            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du hero
+          </button>
+        )}
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
             className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
@@ -1243,6 +1260,35 @@ async function loadContent() {
           onClose={() => setShowAproposManager(false)}
           onRefresh={loadAproposPhotos}
         />
+      )}
+
+      {/* ===== ÉDITEUR FOND DU HERO ===== */}
+      {showBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowBgEditor(false) }}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+            <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
+              <span className="font-black text-[#1A1040]">🎨 Fond du hero</span>
+              <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={heroBg}
+                setBg={setHeroBg}
+                activeTab={heroBg.type as BgType}
+                setActiveTab={t => setHeroBg(p => ({ ...p, type: t }))}
+                fileRef={bgFileRef}
+                uploadError={bgUploadError}
+                setUploadError={setBgUploadError}
+                uploading={bgUploading}
+                setUploading={setBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
+              <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
+              <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2"><Check className="w-4 h-4"/> Enregistrer</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ===== GESTIONNAIRE POLAROÏDS HERO ===== */}

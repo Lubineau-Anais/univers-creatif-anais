@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Check, X, MapPin, Phone, Mail, Image as ImageIcon } from 'lucide-react'
+import { Pencil, Check, X, MapPin, Phone, Mail, Image as ImageIcon, Palette } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
-import { type HeroBg, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import BgEditor from '../components/BgEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 
@@ -45,6 +46,10 @@ export default function Contact() {
   const [error,   setError]   = useState('')
   const formRef = useRef<HTMLFormElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [showBgEditor, setShowBgEditor]   = useState(false)
+  const [bgUploading, setBgUploading]     = useState(false)
+  const [bgUploadError, setBgUploadError] = useState('')
+  const bgFileRef = useRef<HTMLInputElement | null>(null)
 
   async function loadContactPolaroids() {
     const { data } = await supabase.from('contact_polaroids').select('*').order('sort_order')
@@ -98,6 +103,12 @@ export default function Contact() {
     })
   }
 
+  async function saveBg() {
+    const val = JSON.stringify(contactBg)
+    await supabase.from('settings').upsert({ key: 'contact_bg_config', value: val }, { onConflict: 'key' })
+    setShowBgEditor(false)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.nom.trim() || !form.email.trim() || !form.message.trim()) {
@@ -149,6 +160,12 @@ export default function Contact() {
         )}
         {contactBg.type === 'video' && contactBg.videoOverlay !== 'transparent' && (
           <div className="absolute inset-0" style={{ backgroundColor: contactBg.videoOverlay, zIndex: 1 }} />
+        )}
+        {isAdmin && (
+          <button onClick={() => setShowBgEditor(true)}
+            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du hero
+          </button>
         )}
         <div className="max-w-3xl mx-auto relative z-10">
 
@@ -323,6 +340,35 @@ export default function Contact() {
           }}
           onClose={() => setShowTitreEditor(false)}
         />
+      )}
+
+      {/* ===== ÉDITEUR FOND DU HERO ===== */}
+      {showBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowBgEditor(false) }}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+            <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
+              <span className="font-black text-[#1A1040]">🎨 Fond du hero</span>
+              <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={contactBg}
+                setBg={setContactBg}
+                activeTab={contactBg.type as BgType}
+                setActiveTab={t => setContactBg(p => ({ ...p, type: t }))}
+                fileRef={bgFileRef}
+                uploadError={bgUploadError}
+                setUploadError={setBgUploadError}
+                uploading={bgUploading}
+                setUploading={setBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
+              <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
+              <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2"><Check className="w-4 h-4"/> Enregistrer</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showPolaroidManager && (
