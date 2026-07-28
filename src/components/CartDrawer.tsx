@@ -222,6 +222,7 @@ export default function CartDrawer() {
             atelier_heure:    item.atelier.heure,
             atelier_duree:    item.atelier.duree,
             atelier_lieu:     item.atelier.lieu,
+            atelier_image_url: item.atelier.image_url ?? '',
             category_id:      item.atelier.category_id,
             client_prenom:    item.form.prenom,
             client_nom:       item.form.nom,
@@ -231,6 +232,9 @@ export default function CartDrawer() {
             nb_personnes:     item.nbPersonnes,
             personnes_sup:    item.personnesSup,
             total:            item.total,
+            is_gift:          item.form.is_gift   ?? false,
+            gift_from:        item.form.gift_from ?? '',
+            gift_to:          item.form.gift_to   ?? '',
           }),
         }).catch(() => {})
 
@@ -311,6 +315,7 @@ export default function CartDrawer() {
             atelier_heure:    item.atelier.heure,
             atelier_duree:    item.atelier.duree,
             atelier_lieu:     item.atelier.lieu,
+            atelier_image_url: item.atelier.image_url ?? '',
             category_id:      item.atelier.category_id,
             client_prenom:    item.form.prenom,
             client_nom:       item.form.nom,
@@ -320,6 +325,9 @@ export default function CartDrawer() {
             nb_personnes:     item.nbPersonnes,
             personnes_sup:    item.personnesSup,
             total:            item.total,
+            is_gift:          item.form.is_gift   ?? false,
+            gift_from:        item.form.gift_from ?? '',
+            gift_to:          item.form.gift_to   ?? '',
           }),
         }).catch(() => {})
 

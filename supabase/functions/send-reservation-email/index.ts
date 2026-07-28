@@ -77,15 +77,155 @@ function modeLabel(mode: string) {
   return labels[mode] ?? mode
 }
 
+function escapeHtml(str: string) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+// ─── Carte cadeau HTML (pièce jointe) ────────────────────────────────────────
+function buildGiftCardHtml(params: {
+  atelier_titre: string
+  dateFormatted: string
+  atelier_heure: string
+  atelier_image_url: string
+  gift_from: string
+  gift_to: string
+}) {
+  const { atelier_titre, dateFormatted, atelier_heure, atelier_image_url, gift_from, gift_to } = params
+
+  const safeImgUrl = atelier_image_url.replace(/'/g, '%27')
+  const leftBg = safeImgUrl
+    ? `background-image:url('${safeImgUrl}');background-size:cover;background-position:center;`
+    : 'background:linear-gradient(135deg,#c4955a 0%,#8b6340 100%);'
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Bon Cadeau — L'Univers Créatif d'Anaïs</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:#e4dcd0;
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,'Times New Roman',serif;
+  }
+  .card{
+    width:800px;height:520px;
+    display:flex;
+    border:2px solid #8b6340;
+    box-shadow:0 12px 48px rgba(0,0,0,0.28);
+  }
+  .left{
+    width:38%;
+    position:relative;
+    ${leftBg}
+  }
+  .left-overlay{
+    position:absolute;inset:0;
+    background:rgba(30,15,5,0.18);
+  }
+  .right{
+    flex:1;
+    background:#faf5ec;
+    border-left:2px solid #8b6340;
+    padding:36px 42px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+  .bon-cadeau{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:40px;font-weight:700;
+    color:#3a2112;
+    text-align:center;
+    letter-spacing:5px;
+    text-transform:uppercase;
+  }
+  .hr{height:1px;background:#c4955a;margin:14px 0;}
+  .label{
+    font-family:Lato,Arial,sans-serif;
+    font-size:9px;color:#8b6340;
+    text-transform:uppercase;letter-spacing:1.8px;
+    margin-bottom:3px;
+  }
+  .value{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:17px;font-weight:700;
+    color:#3a2112;margin-bottom:16px;
+  }
+  .row{display:flex;gap:32px;}
+  .footer{
+    text-align:center;
+    border-top:1px solid #d4c4a8;
+    padding-top:14px;
+  }
+  .footer-name{
+    font-family:'Playfair Display',Georgia,serif;
+    font-size:15px;font-weight:700;
+    color:#3a2112;margin-bottom:4px;
+  }
+  .footer-addr{
+    font-family:Lato,Arial,sans-serif;
+    font-size:11px;color:#8b6340;letter-spacing:0.5px;
+  }
+  @media print{
+    body{background:white;min-height:auto;}
+    .card{box-shadow:none;}
+    @page{size:A5 landscape;margin:0;}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left" style="${leftBg}">
+    <div class="left-overlay"></div>
+  </div>
+  <div class="right">
+    <div>
+      <div class="bon-cadeau">BON CADEAU</div>
+      <div class="hr"></div>
+      <div class="label">pour un atelier de :</div>
+      <div class="value">${escapeHtml(atelier_titre)}</div>
+      <div class="row">
+        <div>
+          <div class="label">De la part de :</div>
+          <div class="value">${escapeHtml(gift_from || '—')}</div>
+        </div>
+        <div>
+          <div class="label">Pour :</div>
+          <div class="value">${escapeHtml(gift_to || '—')}</div>
+        </div>
+      </div>
+      <div class="label">Date de l'atelier :</div>
+      <div class="value" style="margin-bottom:0;font-size:15px;">le ${escapeHtml(dateFormatted)} à ${escapeHtml(atelier_heure)}</div>
+    </div>
+    <div class="footer">
+      <div class="footer-name">Avec L'Univers Créatif d'Anaïs</div>
+      <div class="footer-addr">7 Rue du Pré aux Clercs &mdash; 44260 Prinquiau</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 // ─── Email client (confirmation) ──────────────────────────────────────────────
 function buildEmailClient(params: {
   prenom: string; nom: string; atelier_titre: string; dateFormatted: string
   heure: string; duree: string; lieu: string; mode_paiement: string
   nb_personnes: number; personnes_sup: { prenom: string; nom: string; age: string }[]
   total: number; catInfo: CatInfo; stripeUrl: string; reference: string
+  is_gift: boolean; gift_from: string; gift_to: string
 }) {
   const { prenom, nom, atelier_titre, dateFormatted, heure, duree, lieu,
-    mode_paiement, nb_personnes, personnes_sup, total, catInfo, stripeUrl, reference } = params
+    mode_paiement, nb_personnes, personnes_sup, total, catInfo, stripeUrl, reference,
+    is_gift, gift_from, gift_to } = params
 
   const allParticipants = [
     `${prenom} ${nom}`,
@@ -97,6 +237,14 @@ function buildEmailClient(params: {
 
   // Résoudre le placeholder {ATELIER} dans le message d'intro
   const introHtml = catInfo.message.replace('{ATELIER}', atelier_titre)
+
+  const giftBlock = is_gift ? `
+    <div style="background:#fff7ed;border:2px solid #f97316;border-radius:12px;padding:18px;margin:20px 0;">
+      <p style="font-weight:900;color:#9a3412;margin:0 0 8px;font-size:15px;">🎁 Réservation en tant que cadeau</p>
+      <p style="margin:0 0 6px;color:#c2410c;font-size:14px;"><strong>De la part de :</strong> ${escapeHtml(gift_from || '—')}</p>
+      <p style="margin:0 0 10px;color:#c2410c;font-size:14px;"><strong>Pour :</strong> ${escapeHtml(gift_to || '—')}</p>
+      <p style="margin:0;color:#9a3412;font-size:13px;">📎 Votre bon cadeau personnalisé est joint à cet e-mail. Vous pouvez l'imprimer ou le transmettre au bénéficiaire.</p>
+    </div>` : ''
 
   const paiementBlock = (() => {
     if (mode_paiement === 'virement') return `
@@ -165,6 +313,7 @@ function buildEmailClient(params: {
       <tr><td style="background:#ffffff;padding:32px 36px;border-left:3px solid #1A1040;border-right:3px solid #1A1040;">
         <p style="font-size:22px;font-weight:900;color:#1A1040;margin:0 0 12px;">Bonjour ${prenom} ${catInfo.emoji}</p>
         <p style="color:#6b7280;font-size:15px;margin:0 0 24px;line-height:1.6;">${introHtml}</p>
+        ${giftBlock}
         <div style="background:#fdf2f8;border:2px solid #fbcfe8;border-radius:16px;padding:22px;">
           <p style="font-weight:900;color:#1A1040;font-size:16px;margin:0 0 16px;">📋 Récapitulatif de votre réservation</p>
           <table width="100%" cellpadding="0" cellspacing="0">
@@ -236,15 +385,25 @@ function buildEmailAdmin(params: {
   mode_paiement: string; nb_personnes: number
   personnes_sup: { prenom: string; nom: string; age: string }[]
   total: number; nomOrga: string; reference: string
+  is_gift: boolean; gift_from: string; gift_to: string
 }) {
   const { prenom, nom, email, telephone, atelier_titre, dateFormatted, heure,
-    categorie, mode_paiement, nb_personnes, personnes_sup, total, nomOrga, reference } = params
+    categorie, mode_paiement, nb_personnes, personnes_sup, total, nomOrga, reference,
+    is_gift, gift_from, gift_to } = params
 
   const modeEmoji: Record<string, string> = { cb: '💳', virement: '🏦', cheque: '📝', especes: '💵' }
   const alerteVirement = mode_paiement === 'virement'
     ? `<div style="background:#eff6ff;border:2px solid #93c5fd;border-radius:10px;padding:12px;margin:14px 0;">
         <p style="font-weight:900;color:#1e40af;margin:0;font-size:14px;">💳 Lien Stripe envoyé au client pour paiement en ligne.</p>
         <p style="margin:6px 0 0;color:#3b82f6;font-size:13px;">La transaction apparaîtra dans Stripe et sera synchronisée avec Indy.</p>
+       </div>`
+    : ''
+
+  const giftAdminBlock = is_gift
+    ? `<div style="background:#fff7ed;border:2px solid #f97316;border-radius:10px;padding:12px;margin:14px 0;">
+        <p style="font-weight:900;color:#9a3412;margin:0 0 4px;font-size:14px;">🎁 Réservation cadeau</p>
+        <p style="margin:2px 0;color:#c2410c;font-size:13px;"><strong>De la part de :</strong> ${escapeHtml(gift_from || '—')}</p>
+        <p style="margin:2px 0;color:#c2410c;font-size:13px;"><strong>Pour :</strong> ${escapeHtml(gift_to || '—')}</p>
        </div>`
     : ''
 
@@ -270,6 +429,7 @@ function buildEmailAdmin(params: {
     <p style="margin:4px 0;color:#374151;font-size:15px;"><strong>${prenom} ${nom}</strong></p>
     <p style="margin:4px 0;color:#6b7280;font-size:14px;">📧 <a href="mailto:${email}" style="color:#ec4899;">${email}</a></p>
     <p style="margin:4px 0;color:#6b7280;font-size:14px;">📞 ${telephone || '—'}</p>
+    ${giftAdminBlock}
     ${supBlock}
     <div style="background:#f9fafb;border:2px solid #e5e7eb;border-radius:12px;padding:16px;margin:18px 0;">
       <p style="margin:4px 0;font-size:14px;color:#374151;">📅 <strong>${dateFormatted}</strong> à <strong>${heure}</strong></p>
@@ -319,8 +479,10 @@ serve(async (req) => {
     const data = await req.json()
     const {
       atelier_titre, atelier_date, atelier_heure, atelier_duree, atelier_lieu,
+      atelier_image_url,
       category_id, client_prenom, client_nom, client_email, client_telephone,
       mode_paiement, nb_personnes, personnes_sup, total,
+      is_gift, gift_from, gift_to,
     } = data
 
     // Générer une référence de réservation lisible
@@ -384,6 +546,7 @@ serve(async (req) => {
       heure: atelier_heure, duree: atelier_duree, lieu: atelier_lieu,
       mode_paiement, nb_personnes, personnes_sup: personnes_sup ?? [],
       total, catInfo, stripeUrl, reference,
+      is_gift: !!is_gift, gift_from: gift_from || '', gift_to: gift_to || '',
     })
 
     const htmlAdmin = buildEmailAdmin({
@@ -391,15 +554,42 @@ serve(async (req) => {
       atelier_titre, dateFormatted, heure: atelier_heure, categorie,
       mode_paiement, nb_personnes, personnes_sup: personnes_sup ?? [],
       total, nomOrga, reference,
+      is_gift: !!is_gift, gift_from: gift_from || '', gift_to: gift_to || '',
     })
 
-    // Envoyer les deux emails
-    async function sendEmail(to: string, subject: string, html: string, replyTo?: string) {
+    // ── Génération de la carte cadeau en pièce jointe
+    type Attachment = { filename: string; content: string }
+    let clientAttachments: Attachment[] | undefined
+    if (is_gift) {
+      const giftHtml = buildGiftCardHtml({
+        atelier_titre,
+        dateFormatted,
+        atelier_heure,
+        atelier_image_url: atelier_image_url || '',
+        gift_from: gift_from || '',
+        gift_to: gift_to || '',
+      })
+      // Encode UTF-8 → base64
+      const encoder = new TextEncoder()
+      const bytes = encoder.encode(giftHtml)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      clientAttachments = [{ filename: 'bon-cadeau.html', content: btoa(binary) }]
+    }
+
+    // ── Envoi des emails
+    async function sendEmail(
+      to: string, subject: string, html: string, replyTo?: string,
+      attachments?: Attachment[],
+    ) {
       const body: Record<string, unknown> = {
         from: `${nomOrga} <reservation@luniverscreatifdanais.fr>`,
         to: [to], subject, html,
       }
       if (replyTo) body['reply_to'] = replyTo
+      if (attachments?.length) body['attachments'] = attachments
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -408,8 +598,12 @@ serve(async (req) => {
       if (!res.ok) throw new Error(await res.text())
     }
 
+    const clientSubject = is_gift
+      ? `🎁 Votre réservation cadeau est confirmée — ${atelier_titre}`
+      : `✅ Ta réservation est confirmée — ${atelier_titre}`
+
     await Promise.all([
-      sendEmail(client_email, `✅ Ta réservation est confirmée — ${atelier_titre}`, htmlClient),
+      sendEmail(client_email, clientSubject, htmlClient, undefined, clientAttachments),
       sendEmail(adminEmail, `🎟️ Nouvelle réservation — ${client_prenom} ${client_nom} — ${atelier_titre}`, htmlAdmin, client_email),
     ])
 
