@@ -68,7 +68,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow:'6px 6px 0px 0px #c4b5fd' }}>
         <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
           <h3 className="font-black text-[#1A1040]">{product ? 'Modifier le produit' : 'Nouveau produit'}</h3>
