@@ -187,6 +187,18 @@ export default function Navbar() {
 
           </div>
 
+          {/* Panier mobile (toujours visible) */}
+          <button onClick={() => openCart(true)}
+            className="md:hidden relative w-10 h-10 rounded-xl flex items-center justify-center border-2 border-[#1A1040] bg-white"
+            style={{ color: nav.inactiveText }}>
+            <ShoppingCart className="w-5 h-5" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full border-2 border-white flex items-center justify-center">
+                {itemCount > 9 ? '9+' : itemCount}
+              </span>
+            )}
+          </button>
+
           {/* Mobile burger */}
           <button
             className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center border-2 border-[#1A1040]"
