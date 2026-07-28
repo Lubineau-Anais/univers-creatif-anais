@@ -21,6 +21,7 @@ export interface ShopProduct {
   images: string[]
   stock: number
   stock_illimite: boolean
+  sur_commande: boolean
   montants_disponibles: number[] | null
   weight_g: number | null
   is_active: boolean

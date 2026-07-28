@@ -37,7 +37,7 @@ function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit
   const [hovered, setHovered] = useState(false)
   const promo = getActivePromoForProduct(product, promotions)
   const discountedPrice = getDiscountedPrice(product, promotions)
-  const isOutOfStock = !product.stock_illimite && product.stock === 0
+  const isOutOfStock = !product.stock_illimite && !product.sur_commande && product.stock === 0
   const hasMontants = !!product.montants_disponibles?.length
 
   async function handleAdd() {
@@ -64,6 +64,9 @@ function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {isOutOfStock && (
             <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-red-600">Rupture de stock</span>
+          )}
+          {product.sur_commande && !isOutOfStock && (
+            <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-300">Sur commande</span>
           )}
           {promo && !isOutOfStock && (
             <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-600">
@@ -152,7 +155,7 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
 }) {
   const promo = getActivePromoForProduct(product, promotions)
   const discountedPrice = getDiscountedPrice(product, promotions)
-  const isOutOfStock = !product.stock_illimite && product.stock === 0
+  const isOutOfStock = !product.stock_illimite && !product.sur_commande && product.stock === 0
   const hasMontants = !!product.montants_disponibles?.length
   const [selectedMontant, setSelectedMontant] = useState<number | null>(hasMontants ? product.montants_disponibles![0] : null)
   const [adding, setAdding] = useState(false)
@@ -215,7 +218,10 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
               </div>
             )}
 
-            {!product.stock_illimite && (
+            {product.sur_commande && !isOutOfStock && (
+              <p className="text-blue-700 text-xs font-black mb-3">Article sur commande</p>
+            )}
+            {!product.stock_illimite && !product.sur_commande && (
               isOutOfStock
                 ? <p className="text-red-500 text-xs font-black mb-3">Rupture de stock</p>
                 : product.stock <= 5 ? <p className="text-amber-700 text-xs font-black mb-3">Plus que {product.stock} en stock !</p> : null

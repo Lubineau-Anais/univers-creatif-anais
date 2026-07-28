@@ -16,6 +16,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
   const [catId, setCatId]         = useState(product?.category_id || '')
   const [stock, setStock]         = useState(product?.stock?.toString() || '0')
   const [stockIllimite, setStockIllimite] = useState(product?.stock_illimite ?? false)
+  const [surCommande, setSurCommande]     = useState(product?.sur_commande ?? false)
   const [montants, setMontants]   = useState<string[]>(
     product?.montants_disponibles?.length ? product.montants_disponibles.map(String) : []
   )
@@ -54,6 +55,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
       category_id: catId || null,
       stock: parseInt(stock) || 0,
       stock_illimite: stockIllimite,
+      sur_commande: surCommande,
       montants_disponibles: montantsValides.length ? montantsValides : null,
       weight_g: weightG ? parseInt(weightG) : null,
       images,
@@ -142,6 +144,14 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
               <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${stockIllimite ? 'translate-x-6' : 'translate-x-0'}`}/>
             </button>
             <span className="text-sm font-black text-[#1A1040]">♾️ Stock illimité {stockIllimite ? '(activé)' : ''}</span>
+          </div>
+          {/* Sur commande */}
+          <div className="flex items-center gap-3">
+            <button onClick={()=>setSurCommande(!surCommande)}
+              className={`w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors relative ${surCommande ? 'bg-blue-300' : 'bg-gray-200'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${surCommande ? 'translate-x-6' : 'translate-x-0'}`}/>
+            </button>
+            <span className="text-sm font-black text-[#1A1040]">📋 Article sur commande {surCommande ? '(activé)' : ''}</span>
           </div>
           {/* Montants au choix (carte cadeau) */}
           <div className="border-2 border-dashed border-turquoise-300 rounded-xl p-3 space-y-2 bg-turquoise-50/30">
