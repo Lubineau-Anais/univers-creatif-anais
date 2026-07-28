@@ -245,8 +245,8 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
 }
 
 // ─── Panneau panier ────────────────────────────────────────────────────────────
-function CartPanel() {
-  const { items, subtotal, discount, total, appliedCode, expiresAt, isOpen, setIsOpen,
+function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { items, subtotal, discount, total, appliedCode, expiresAt,
           removeItem, clearCart, applyPromoCode, removePromoCode } = useCart()
   const [codeInput, setCodeInput] = useState('')
   const [codeError, setCodeError] = useState('')
@@ -279,7 +279,7 @@ function CartPanel() {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setIsOpen(false)}/>
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose}/>
 
       {/* Panneau */}
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-white z-50 border-l-4 border-[#1A1040] flex flex-col" style={{ boxShadow:'-4px 0 0 0 #1A1040' }}>
@@ -295,7 +295,7 @@ function CartPanel() {
               </span>
             )}
           </div>
-          <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-white flex items-center justify-center hover:bg-red-50">
+          <button onClick={onClose} className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-white flex items-center justify-center hover:bg-red-50">
             <X className="w-4 h-4"/>
           </button>
         </div>
@@ -390,7 +390,8 @@ function CartPanel() {
 
 // ─── Page principale ───────────────────────────────────────────────────────────
 export default function Boutique() {
-  const { itemCount, setIsOpen, addItem } = useCart()
+  const { itemCount, addItem } = useCart()
+  const [cartPanelOpen, setCartPanelOpen] = useState(false)
   const { isAdmin } = useAuth()
 
   // Settings boutique
@@ -511,8 +512,8 @@ export default function Boutique() {
 
   const handleAddToCart = useCallback(async (productId: string, chosenPrice?: number) => {
     const result = await addItem(productId, 1, chosenPrice)
-    if (result.success) setIsOpen(true)
-  }, [addItem, setIsOpen])
+    if (result.success) setCartPanelOpen(true)
+  }, [addItem])
 
   const bgStyle = buildHeroBgStyle({ ...heroBg, type: heroBgTab as HeroBg['type'] })
 
@@ -825,7 +826,7 @@ export default function Boutique() {
 
       {/* BOUTON PANIER FLOTTANT */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => setCartPanelOpen(true)}
         className="fixed bottom-6 right-6 z-40 w-16 h-16 bg-[#1A1040] text-citron-400 rounded-2xl border-4 border-[#1A1040] flex items-center justify-center transition-all hover:bg-[#2d2060] hover:-translate-y-1"
         style={{ boxShadow:'4px 4px 0px 0px #ffe500' }}>
         <ShoppingCart className="w-6 h-6"/>
@@ -837,7 +838,7 @@ export default function Boutique() {
       </button>
 
       {/* Panneau panier */}
-      <CartPanel/>
+      <CartPanel isOpen={cartPanelOpen} onClose={() => setCartPanelOpen(false)} />
 
       {/* ── Lightbox produit (agrandi) ── */}
       {openedProduct && (
