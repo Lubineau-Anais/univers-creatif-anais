@@ -43,8 +43,9 @@ export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved,
     await supabase.from(tableName).update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
   }
 
-  const baseTop = `${15 + (index % 3) * 28}%`
-  const sideStyle = polaroid.side === 'left' ? { left: '16px' } : { right: '16px' }
+  // Position fixe en pixels (ne dépend pas de la hauteur du conteneur).
+  // offset_x / offset_y stockent la position COMPLÈTE depuis top:0 / left:0 (ou right:0).
+  const sideStyle = polaroid.side === 'left' ? { left: 0 } : { right: 0 }
 
   return (
     <div
@@ -53,10 +54,10 @@ export default function HeroPolaroidDisplay({ polaroid, index, isAdmin, onMoved,
       onPointerUp={onPointerUp}
       className={`absolute z-20 select-none ${canDrag ? 'cursor-move' : ''} ${!polaroid.is_visible ? 'opacity-40' : ''}`}
       style={{
-        top: baseTop,
+        top: 0,
         ...sideStyle,
         transform: `translate(${offsetX}px, ${offsetY}px) rotate(${polaroid.rotation}deg)`,
-        transition: drag ? 'none' : 'transform 0.2s ease-out',
+        transition: drag ? 'none' : 'none',
       }}>
       <div className="bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm"
         style={{ width: `${polaroid.size}px`, boxShadow: '4px 4px 0px 0px #1A1040', filter: 'drop-shadow(2px 4px 8px rgba(0,0,0,0.15))' }}>
