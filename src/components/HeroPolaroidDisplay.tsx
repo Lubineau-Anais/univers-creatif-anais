@@ -34,10 +34,12 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
     setDrag({ x: start.current.ox + dx, y: start.current.oy + dy })
   }
 
-  async function onPointerUp() {
-    if (!start.current || !drag) { start.current = null; return }
+  async function onPointerUp(e: React.PointerEvent) {
+    if (!start.current) { start.current = null; return }
+    // Calcul depuis l'événement réel, pas depuis l'état React (qui peut être périmé d'un frame).
+    const x = start.current.ox + (e.clientX - start.current.px)
+    const y = start.current.oy + (e.clientY - start.current.py)
     start.current = null
-    const { x, y } = drag
     setDrag(null)
     onMoved(polaroid.id, x, y)
     await supabase.from(tableName).update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
