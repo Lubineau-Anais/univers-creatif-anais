@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X, Image as ImageIcon } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X, Image as ImageIcon, Palette } from 'lucide-react'
+import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
+import BgEditor from '../components/BgEditor'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import type { Atelier, AtelierCategory } from '../types'
@@ -216,6 +218,15 @@ export default function NosAteliers() {
   const [descStyle, setDescStyle] = useState<DescStyle>(DEFAULT_DESC_STYLE)
   const [showDescEditor, setShowDescEditor] = useState(false)
 
+  // Fond du hero
+  const [ateliersBg, setAteliersBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
+  const [ateliersBgTab, setAteliersBgTab] = useState<BgType>('color')
+  const [showBgEditor, setShowBgEditor] = useState(false)
+  const [bgUploading, setBgUploading] = useState(false)
+  const [bgUploadError, setBgUploadError] = useState('')
+  const bgFileRef = useRef<HTMLInputElement>(null)
+  const videoRef  = useRef<HTMLVideoElement>(null)
+
   const today = new Date(); today.setHours(0, 0, 0, 0)
 
   // Regroupement des ateliers par mois/année (ateliers déjà triés par date ascendante)
@@ -241,10 +252,14 @@ export default function NosAteliers() {
 
   useEffect(() => { loadCategories(); loadHero(); loadAtelierPolaroids() }, [])
 
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = ateliersBg.videoMuted
+  }, [ateliersBg.videoMuted])
+
   async function loadHero() {
     const [{ data: settings }, { data: content }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
-        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style', 'ateliers_desc_style',
+        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style', 'ateliers_desc_style', 'ateliers_bg_config',
       ]),
       supabase.from('page_content').select('section, contenu').eq('page', 'ateliers')
         .in('section', ['ateliers_titre', 'ateliers_soustitre']),
@@ -255,6 +270,11 @@ export default function NosAteliers() {
         if (s.key === 'ateliers_titre_style')      setHeroTitreStyle(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_soustitre_style')  setHeroSousStyle(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_desc_style')       setDescStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'ateliers_bg_config') {
+          const v = JSON.parse(s.value)
+          setAteliersBg(p => ({ ...p, ...v }))
+          setAteliersBgTab(v.type || 'color')
+        }
       } catch {}
     })
     ;(content || []).forEach((c: { section: string; contenu: string }) => {
@@ -266,6 +286,14 @@ export default function NosAteliers() {
   async function saveBadge() {
     await supabase.from('settings').upsert({ key: 'ateliers_badge_config', value: JSON.stringify(heroBadge) }, { onConflict: 'key' })
     setShowBadgeEditor(false)
+  }
+
+  async function saveBg() {
+    await supabase.from('settings').upsert(
+      { key: 'ateliers_bg_config', value: JSON.stringify({ ...ateliersBg, type: ateliersBgTab }) },
+      { onConflict: 'key' }
+    )
+    setShowBgEditor(false)
   }
 
   async function saveDescStyle() {
@@ -330,12 +358,27 @@ export default function NosAteliers() {
       <div className="relative">
 
       {/* ── HEADER ── */}
-      <section className="relative bg-[#1A1040] py-16 px-4 text-center border-b-4 border-[#1A1040] overflow-hidden">
+      <section className="relative py-16 px-4 text-center border-b-4 border-[#1A1040] overflow-hidden"
+        style={buildHeroBgStyle({ ...ateliersBg, type: ateliersBgTab })}>
+        {ateliersBgTab === 'video' && ateliersBg.videoUrl && (
+          <video ref={videoRef} src={ateliersBg.videoUrl} autoPlay muted={ateliersBg.videoMuted}
+            loop={ateliersBg.videoLoop} playsInline
+            className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
+        )}
+        {ateliersBgTab === 'video' && ateliersBg.videoOverlay !== 'transparent' && (
+          <div className="absolute inset-0" style={{ backgroundColor: ateliersBg.videoOverlay, zIndex: 1 }} />
+        )}
+        {isAdmin && !selectedCat && (
+          <button onClick={() => setShowBgEditor(true)}
+            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du hero
+          </button>
+        )}
         {/* Polaroïds déco */}
         <div className="absolute -left-8 top-4 w-24 h-28 bg-white/10 border-2 border-white/20 rounded-sm rotate-12 hidden md:block" />
         <div className="absolute -right-6 bottom-2 w-20 h-24 bg-white/10 border-2 border-white/20 rounded-sm -rotate-6 hidden md:block" />
 
-        <div className="relative max-w-3xl mx-auto">
+        <div className="relative z-10 max-w-3xl mx-auto">
           {selectedCat ? (
             <div className="flex flex-col items-center gap-4">
               <button onClick={back}
@@ -715,6 +758,31 @@ export default function NosAteliers() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
+
+      {/* ── ÉDITEUR FOND HERO ── */}
+      {showBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && setShowBgEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
+              <h3 className="font-black text-[#1A1040]">🎨 Fond du hero — Mes Ateliers</h3>
+              <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={ateliersBg} setBg={setAteliersBg}
+                activeTab={ateliersBgTab} setActiveTab={setAteliersBgTab}
+                fileRef={bgFileRef}
+                uploadError={bgUploadError} setUploadError={setBgUploadError}
+                uploading={bgUploading} setUploading={setBgUploading}
+              />
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+                <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── ÉDITEUR BADGE HERO ── */}
       {showBadgeEditor && (

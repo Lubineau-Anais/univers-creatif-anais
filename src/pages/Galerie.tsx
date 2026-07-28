@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Images, ZoomIn } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
+import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
+import BgEditor from '../components/BgEditor'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface GalerieCategory {
@@ -35,6 +38,7 @@ const FONT_FAMILY: Record<string, string> = {
 
 // ─── Page publique Galerie ────────────────────────────────────────────────────
 export default function Galerie() {
+  const { isAdmin } = useAuth()
   const [categories, setCategories]   = useState<GalerieCategory[]>([])
   const [selectedCat, setSelectedCat] = useState<GalerieCategory | null>(null)
   const [photos, setPhotos]           = useState<GaleriePhoto[]>([])
@@ -42,7 +46,39 @@ export default function Galerie() {
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
-  useEffect(() => { loadCategories() }, [])
+  // Fond du hero
+  const [galerieBg, setGalerieBg]       = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
+  const [galerieBgTab, setGalerieBgTab] = useState<BgType>('color')
+  const [showBgEditor, setShowBgEditor] = useState(false)
+  const [bgUploading, setBgUploading]   = useState(false)
+  const [bgUploadError, setBgUploadError] = useState('')
+  const bgFileRef = useRef<HTMLInputElement>(null)
+  const videoRef  = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => { loadCategories(); loadGalerieBg() }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = galerieBg.videoMuted
+  }, [galerieBg.videoMuted])
+
+  async function loadGalerieBg() {
+    const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_bg_config').single()
+    if (data) {
+      try {
+        const v = JSON.parse(data.value)
+        setGalerieBg(p => ({ ...p, ...v }))
+        setGalerieBgTab(v.type || 'color')
+      } catch {}
+    }
+  }
+
+  async function saveBg() {
+    await supabase.from('settings').upsert(
+      { key: 'galerie_bg_config', value: JSON.stringify({ ...galerieBg, type: galerieBgTab }) },
+      { onConflict: 'key' }
+    )
+    setShowBgEditor(false)
+  }
 
   async function loadCategories() {
     setLoading(true)
@@ -101,8 +137,23 @@ export default function Galerie() {
     <main className="flex-1 bg-white min-h-screen">
 
       {/* ── En-tête ── */}
-      <section className="bg-[#1A1040] py-12 px-4 border-b-4 border-[#1A1040]">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative py-12 px-4 border-b-4 border-[#1A1040] overflow-hidden"
+        style={buildHeroBgStyle({ ...galerieBg, type: galerieBgTab })}>
+        {galerieBgTab === 'video' && galerieBg.videoUrl && (
+          <video ref={videoRef} src={galerieBg.videoUrl} autoPlay muted={galerieBg.videoMuted}
+            loop={galerieBg.videoLoop} playsInline
+            className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
+        )}
+        {galerieBgTab === 'video' && galerieBg.videoOverlay !== 'transparent' && (
+          <div className="absolute inset-0" style={{ backgroundColor: galerieBg.videoOverlay, zIndex: 1 }} />
+        )}
+        {isAdmin && !selectedCat && (
+          <button onClick={() => setShowBgEditor(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du hero
+          </button>
+        )}
+        <div className="relative z-10 max-w-6xl mx-auto">
           {selectedCat ? (
             <div className="flex items-center gap-4 flex-wrap">
               <button
@@ -260,6 +311,31 @@ export default function Galerie() {
           </>
         )}
       </div>
+
+      {/* ── Éditeur fond hero ── */}
+      {showBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && setShowBgEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
+              <h3 className="font-black text-[#1A1040]">🎨 Fond du hero — Ma Galerie</h3>
+              <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={galerieBg} setBg={setGalerieBg}
+                activeTab={galerieBgTab} setActiveTab={setGalerieBgTab}
+                fileRef={bgFileRef}
+                uploadError={bgUploadError} setUploadError={setBgUploadError}
+                uploading={bgUploading} setUploading={setBgUploading}
+              />
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+                <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Lightbox ── */}
       {lightboxIdx !== null && photos[lightboxIdx] && (

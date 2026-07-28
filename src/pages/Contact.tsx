@@ -44,6 +44,7 @@ export default function Contact() {
   const [sent,    setSent]    = useState(false)
   const [error,   setError]   = useState('')
   const formRef = useRef<HTMLFormElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   async function loadContactPolaroids() {
     const { data } = await supabase.from('contact_polaroids').select('*').order('sort_order')
@@ -67,6 +68,10 @@ export default function Contact() {
     loadSettings()
     return () => { supabase.removeChannel(ch) }
   }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = contactBg.videoMuted
+  }, [contactBg.videoMuted])
 
   async function loadContent() {
     const { data } = await supabase
@@ -137,6 +142,14 @@ export default function Contact() {
       <section
         className="py-16 px-4 text-center border-b-4 border-[#1A1040] relative overflow-hidden"
         style={buildHeroBgStyle(contactBg)}>
+        {contactBg.type === 'video' && contactBg.videoUrl && (
+          <video ref={videoRef} src={contactBg.videoUrl} autoPlay muted={contactBg.videoMuted}
+            loop={contactBg.videoLoop} playsInline
+            className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
+        )}
+        {contactBg.type === 'video' && contactBg.videoOverlay !== 'transparent' && (
+          <div className="absolute inset-0" style={{ backgroundColor: contactBg.videoOverlay, zIndex: 1 }} />
+        )}
         <div className="max-w-3xl mx-auto relative z-10">
 
           {/* Badge */}
