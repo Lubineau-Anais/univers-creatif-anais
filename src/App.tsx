@@ -24,6 +24,7 @@ import ProduitsAdmin from './pages/ProduitsAdmin'
 import PromosAdmin from './pages/PromosAdmin'
 import Galerie from './pages/Galerie'
 import GalerieAdmin from './pages/GalerieAdmin'
+import CommandesAdmin from './pages/CommandesAdmin'
 
 export default function App() {
   return (
@@ -74,6 +75,9 @@ export default function App() {
                 } />
                 <Route path="/galerie-admin" element={
                   <ProtectedRoute><GalerieAdmin /></ProtectedRoute>
+                } />
+                <Route path="/commandes-admin" element={
+                  <ProtectedRoute><CommandesAdmin /></ProtectedRoute>
                 } />
               </Routes>
               <Footer />

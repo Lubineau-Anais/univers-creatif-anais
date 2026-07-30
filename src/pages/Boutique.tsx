@@ -11,6 +11,7 @@ import { formatPrice, getActivePromoForProduct, getDiscountedPrice } from '../li
 import type { ShopStatus } from '../lib/shop'
 import ShopCatModal from '../components/ShopCatModal'
 import ShopProductModal from '../components/ShopProductModal'
+import ShopCheckout from '../components/ShopCheckout'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import { Image as ImageIcon } from 'lucide-react'
@@ -252,7 +253,7 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
 }
 
 // ─── Panneau panier ────────────────────────────────────────────────────────────
-function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function CartPanel({ isOpen, onClose, onCheckout }: { isOpen: boolean; onClose: () => void; onCheckout: () => void }) {
   const { items, subtotal, discount, total, appliedCode, expiresAt,
           removeItem, clearCart, applyPromoCode, removePromoCode } = useCart()
   const [codeInput, setCodeInput] = useState('')
@@ -381,7 +382,8 @@ function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
             </div>
 
             {/* CTA */}
-            <button className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all"
+            <button onClick={() => { onClose(); onCheckout() }}
+              className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all"
               style={{ boxShadow:'3px 3px 0px 0px #ffe500' }}>
               Commander → {formatPrice(total)}
             </button>
@@ -399,6 +401,7 @@ function CartPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 export default function Boutique() {
   const { itemCount, addItem } = useCart()
   const [cartPanelOpen, setCartPanelOpen] = useState(false)
+  const [showCheckout, setShowCheckout]   = useState(false)
   const { isAdmin } = useAuth()
 
   // Settings boutique
@@ -861,7 +864,8 @@ export default function Boutique() {
       </button>
 
       {/* Panneau panier */}
-      <CartPanel isOpen={cartPanelOpen} onClose={() => setCartPanelOpen(false)} />
+      <CartPanel isOpen={cartPanelOpen} onClose={() => setCartPanelOpen(false)} onCheckout={() => setShowCheckout(true)} />
+      {showCheckout && <ShopCheckout onClose={() => setShowCheckout(false)} />}
 
       {/* ── Lightbox produit (agrandi) ── */}
       {openedProduct && (

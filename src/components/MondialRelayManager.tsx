@@ -17,19 +17,20 @@ const TRANCHES_DEFAUT: Tranche[] = [
 ]
 
 export default function MondialRelayManager() {
-  const [enseigne,   setEnseigne]   = useState('')
-  const [cleApi,     setCleApi]     = useState('')
-  const [showCle,    setShowCle]    = useState(false)
-  const [tranches,   setTranches]   = useState<Tranche[]>(TRANCHES_DEFAUT)
-  const [saving,     setSaving]     = useState(false)
-  const [saved,      setSaved]      = useState(false)
-  const [loading,    setLoading]    = useState(true)
+  const [enseigne,      setEnseigne]      = useState('')
+  const [cleApi,        setCleApi]        = useState('')
+  const [showCle,       setShowCle]       = useState(false)
+  const [tranches,      setTranches]      = useState<Tranche[]>(TRANCHES_DEFAUT)
+  const [collectInfo,   setCollectInfo]   = useState('')
+  const [saving,        setSaving]        = useState(false)
+  const [saved,         setSaved]         = useState(false)
+  const [loading,       setLoading]       = useState(true)
 
   useEffect(() => { load() }, [])
 
   async function load() {
     const { data } = await supabase.from('settings').select('key, value')
-      .in('key', ['mondial_relay_code_enseigne', 'mondial_relay_cle_api', 'mondial_relay_tarifs'])
+      .in('key', ['mondial_relay_code_enseigne', 'mondial_relay_cle_api', 'mondial_relay_tarifs', 'click_collect_info'])
     const map: Record<string, string> = {}
     data?.forEach(r => { map[r.key] = r.value || '' })
     if (map['mondial_relay_code_enseigne']) setEnseigne(map['mondial_relay_code_enseigne'])
@@ -37,6 +38,7 @@ export default function MondialRelayManager() {
     if (map['mondial_relay_tarifs']) {
       try { setTranches(JSON.parse(map['mondial_relay_tarifs'])) } catch { /* keep default */ }
     }
+    if (map['click_collect_info']) setCollectInfo(map['click_collect_info'])
     setLoading(false)
   }
 
@@ -60,6 +62,7 @@ export default function MondialRelayManager() {
       { key: 'mondial_relay_code_enseigne', value: enseigne },
       { key: 'mondial_relay_cle_api',       value: cleApi },
       { key: 'mondial_relay_tarifs',         value: JSON.stringify(tranchesTriees) },
+      { key: 'click_collect_info',           value: collectInfo },
     ], { onConflict: 'key' })
     setTranches(tranchesTriees)
     setSaving(false)
@@ -153,6 +156,15 @@ export default function MondialRelayManager() {
           <Package className="w-3.5 h-3.5 inline mr-1" />
           Les tranches sont classées par poids croissant. Le prix appliqué correspond à la première tranche dont le poids max est supérieur ou égal au poids total de la commande.
         </p>
+      </div>
+
+      {/* Infos Click & Collect */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-black text-gray-500 uppercase tracking-wide">🏪 Click & Collect — informations client</h4>
+        <p className="text-[11px] text-gray-400">Ce texte est affiché au client lors du paiement et dans la confirmation de commande (adresse, horaires, etc.).</p>
+        <textarea value={collectInfo} onChange={e => setCollectInfo(e.target.value)} rows={4}
+          placeholder={"ex : Atelier Anaïs\n12 rue des Fleurs, 35000 Rennes\nRetrait du lundi au vendredi 10h–18h\nSur rendez-vous au 06 12 34 56 78"}
+          className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400 bg-candy resize-none" />
       </div>
 
       {/* Bouton Enregistrer */}
