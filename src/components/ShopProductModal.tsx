@@ -110,11 +110,17 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
               <select value={catId} onChange={e=>setCatId(e.target.value)}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none bg-white">
                 <option value="">— Aucune —</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.parent_id ? '  └ ' : ''}{c.name}
-                  </option>
-                ))}
+                {categories
+                  .filter(c => !c.parent_id)
+                  .flatMap(parent => [
+                    parent,
+                    ...categories.filter(c => c.parent_id === parent.id),
+                  ])
+                  .map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.parent_id ? '  └ ' : ''}{c.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
