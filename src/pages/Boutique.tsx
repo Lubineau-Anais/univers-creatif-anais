@@ -162,6 +162,10 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
   const [selectedMontant, setSelectedMontant] = useState<number | null>(hasMontants ? product.montants_disponibles![0] : null)
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const images = product.images?.length ? product.images : []
+  const [imgIdx, setImgIdx] = useState(0)
+  function prevImg() { setImgIdx(i => (i - 1 + images.length) % images.length) }
+  function nextImg() { setImgIdx(i => (i + 1) % images.length) }
 
   async function handleAdd() {
     if (isOutOfStock || adding) return
@@ -181,11 +185,40 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
           </button>
         </div>
         <div className="grid sm:grid-cols-2 gap-6 p-6 pt-2">
-          {/* Image grande */}
-          <div className="rounded-2xl border-4 border-[#1A1040] overflow-hidden bg-candy aspect-square">
-            {product.images?.[0]
-              ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-              : <div className="w-full h-full flex items-center justify-center text-7xl">🛍️</div>}
+          {/* Carrousel photos */}
+          <div className="flex flex-col gap-2">
+            <div className="relative rounded-2xl border-4 border-[#1A1040] overflow-hidden bg-candy aspect-square">
+              {images.length === 0 ? (
+                <div className="w-full h-full flex items-center justify-center text-7xl">🛍️</div>
+              ) : /\.(mp4|webm|mov)(\?|$)/i.test(images[imgIdx]) ? (
+                <video src={images[imgIdx]} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+              ) : (
+                <img src={images[imgIdx]} alt={product.name} className="w-full h-full object-cover" />
+              )}
+              {images.length > 1 && (
+                <>
+                  <button onClick={prevImg}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 border-2 border-[#1A1040] rounded-xl flex items-center justify-center hover:bg-candy transition-all"
+                    style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                    <ChevronRight className="w-4 h-4 rotate-180" />
+                  </button>
+                  <button onClick={nextImg}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 border-2 border-[#1A1040] rounded-xl flex items-center justify-center hover:bg-candy transition-all"
+                    style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+            {/* Pastilles */}
+            {images.length > 1 && (
+              <div className="flex justify-center gap-1.5">
+                {images.map((_, i) => (
+                  <button key={i} onClick={() => setImgIdx(i)}
+                    className={`rounded-full border-2 border-[#1A1040] transition-all ${i === imgIdx ? 'w-4 h-2.5 bg-[#1A1040]' : 'w-2.5 h-2.5 bg-white hover:bg-candy'}`} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Infos */}
