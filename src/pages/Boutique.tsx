@@ -628,8 +628,8 @@ export default function Boutique() {
   return (
     <main className="flex-1 bg-candy">
 
-      {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
-      <div className="relative">
+      {/* Hero isolé dans son propre relatif — polaroïds positionnés uniquement par rapport au hero */}
+      <div className="relative" style={{ overflow: 'visible' }}>
 
         {/* HERO */}
         <section className="relative overflow-hidden" style={bgStyle}>
@@ -653,9 +653,23 @@ export default function Boutique() {
           </div>
         </section>
 
-        {/* CONTENU : SIDEBAR + GRILLE */}
-        <section className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex gap-6 items-start">
+        {/* Polaroïds flottants — relatifs au hero uniquement */}
+        {boutiquePolaroids.map((p, i) => (
+          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
+        ))}
+
+        {isAdmin && (
+          <button onClick={() => setShowPolaroidManager(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+          </button>
+        )}
+
+      </div>{/* fin wrapper hero + polaroïds */}
+
+      {/* CONTENU : SIDEBAR + GRILLE */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex gap-6 items-start">
 
           {/* ── Sidebar catégories (desktop + tablet) ── */}
           {(topCategories.length > 0 || isAdmin) && (
@@ -867,21 +881,7 @@ export default function Boutique() {
           </div>
 
         </div>
-        </section>
-
-        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
-        {boutiquePolaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
-        ))}
-
-        {isAdmin && (
-          <button onClick={() => setShowPolaroidManager(true)}
-            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
-          </button>
-        )}
-
-      </div>{/* fin wrapper hero+contenu polaroïds */}
+      </section>
 
       {/* BOUTON PANIER FLOTTANT */}
       <button
