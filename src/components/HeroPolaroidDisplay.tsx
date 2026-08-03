@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { POLAROID_FONTS, type HeroPolaroid } from './HeroPolaroidManager'
 
@@ -9,14 +9,31 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
   onMoved: (id: string, offset_x: number, offset_y: number) => void
   tableName?: string
 }) {
+  const elRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null)
+  // For right-side polaroids: computed left offset from the left edge of the container.
+  // Converted via: containerWidth - elementWidth + offset_x
+  // Using useLayoutEffect so the conversion happens before browser paint (no flash).
+  const [rightToLeft, setRightToLeft] = useState<number | null>(null)
   const start = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null)
 
-  if (!polaroid.is_visible && !isAdmin) return null
+  // Hooks must come before any conditional return.
+  useLayoutEffect(() => {
+    if (polaroid.side !== 'right') { setRightToLeft(null); return }
+    const el = elRef.current
+    if (!el) return
+    const compute = () => {
+      const parent = el.offsetParent as HTMLElement | null
+      if (!parent) return
+      setRightToLeft(parent.offsetWidth - el.offsetWidth + polaroid.offset_x)
+    }
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [polaroid.side, polaroid.offset_x])
 
+  if (!polaroid.is_visible && !isAdmin) return null
   const canDrag = isAdmin && polaroid.draggable
-  const offsetX = drag ? drag.x : polaroid.offset_x
-  const offsetY = drag ? drag.y : polaroid.offset_y
 
   function onPointerDown(e: React.PointerEvent) {
     if (!canDrag) return
@@ -29,14 +46,11 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
 
   function onPointerMove(e: React.PointerEvent) {
     if (!start.current) return
-    const dx = e.clientX - start.current.px
-    const dy = e.clientY - start.current.py
-    setDrag({ x: start.current.ox + dx, y: start.current.oy + dy })
+    setDrag({ x: start.current.ox + (e.clientX - start.current.px), y: start.current.oy + (e.clientY - start.current.py) })
   }
 
   async function onPointerUp(e: React.PointerEvent) {
     if (!start.current) { start.current = null; return }
-    // Calcul depuis l'événement réel, pas depuis l'état React (qui peut être périmé d'un frame).
     const x = start.current.ox + (e.clientX - start.current.px)
     const y = start.current.oy + (e.clientY - start.current.py)
     start.current = null
@@ -45,21 +59,31 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
     await supabase.from(tableName).update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
   }
 
-  // Position fixe en pixels (ne dépend pas de la hauteur du conteneur).
-  // offset_x / offset_y stockent la position COMPLÈTE depuis top:0 / left:0 (ou right:0).
-  const sideStyle = polaroid.side === 'left' ? { left: 0 } : { right: 0 }
+  // All polaroids use left: 0 as their CSS anchor.
+  // Right-side polaroids are converted to a left-absolute position so that
+  // scrollbar appearance/disappearance (which changes content width by ~15 px) no longer shifts them.
+  const rawX = drag ? drag.x : polaroid.offset_x
+  const rawY = drag ? drag.y : polaroid.offset_y
+
+  let displayX: number
+  if (polaroid.side === 'right' && rightToLeft !== null) {
+    // Apply drag delta on top of the stable computed left position.
+    displayX = rightToLeft + (rawX - polaroid.offset_x)
+  } else {
+    displayX = rawX
+  }
 
   return (
     <div
+      ref={elRef}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       className={`absolute z-20 select-none ${canDrag ? 'cursor-move' : ''} ${!polaroid.is_visible ? 'opacity-40' : ''}`}
       style={{
         top: 0,
-        ...sideStyle,
-        transform: `translate(${offsetX}px, ${offsetY}px) rotate(${polaroid.rotation}deg)`,
-        transition: drag ? 'none' : 'none',
+        left: 0,
+        transform: `translate(${displayX}px, ${rawY}px) rotate(${polaroid.rotation}deg)`,
       }}>
       <div className="bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm"
         style={{ width: `${polaroid.size}px`, boxShadow: '4px 4px 0px 0px #1A1040', filter: 'drop-shadow(2px 4px 8px rgba(0,0,0,0.15))' }}>
