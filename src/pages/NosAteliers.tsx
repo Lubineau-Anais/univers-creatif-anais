@@ -636,6 +636,11 @@ export default function NosAteliers() {
                           🔥 Dernières places !
                         </div>
                       )}
+                      {atelier.prix_type === 'duo' && !isComplet && (
+                        <div className="absolute top-2 left-2 bg-[#1A1040] text-citron-400 text-[10px] font-black px-2 py-1 rounded-lg border-2 border-citron-400 tracking-widest">
+                          👥 DUO
+                        </div>
+                      )}
                     </div>
 
                     {/* Bande info */}

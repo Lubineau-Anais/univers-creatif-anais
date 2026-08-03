@@ -293,8 +293,9 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             {/* Prix total */}
             <div className="bg-citron-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
               <span className="text-xs font-bold text-[#1A1040]">
-                {nbPersonnes} × {atelier.prix} €/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
-                {atelier.prix_type === 'duo' && nbPersonnes > 1 && ` (${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''})`}
+                {atelier.prix_type === 'duo'
+                  ? `${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''} × ${atelier.prix} €/duo`
+                  : `${nbPersonnes} × ${atelier.prix} €/pers.`}
               </span>
               <span className="font-black text-[#1A1040] text-base">Total : {total} €</span>
             </div>
