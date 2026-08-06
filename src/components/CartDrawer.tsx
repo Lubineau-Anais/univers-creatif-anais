@@ -190,7 +190,7 @@ export default function CartDrawer() {
     try {
       // Confirmer les réservations non-CB immédiatement (email envoyé)
       for (const item of nonCbItems) {
-        const { data: inserted, error: insertError } = await supabase.from('reservations').insert([{
+        const { error: insertError } = await supabase.from('reservations').insert([{
           atelier_id:      item.atelier.id,
           nom:             item.form.nom,
           prenom:          item.form.prenom,
@@ -204,8 +204,9 @@ export default function CartDrawer() {
           is_gift:         item.form.is_gift  ?? false,
           gift_from:       item.form.gift_from ?? null,
           gift_to:         item.form.gift_to   ?? null,
-        }]).select().single()
+        }])
         if (insertError) throw insertError
+        const inserted = null
 
         if (!item.atelier.id.startsWith('demo-')) {
           await supabase.from('ateliers')
