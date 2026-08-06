@@ -206,7 +206,6 @@ export default function CartDrawer() {
           gift_to:         item.form.gift_to   ?? null,
         }])
         if (insertError) throw insertError
-        const inserted = null
 
         if (!item.atelier.id.startsWith('demo-')) {
           await supabase.from('ateliers')
@@ -244,7 +243,7 @@ export default function CartDrawer() {
           headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
           body: JSON.stringify({
             type:             'facture',
-            reservation_id:   inserted?.id,
+            reservation_id:   undefined,
             atelier_titre:    item.atelier.titre,
             atelier_date:     item.atelier.date,
             client_nom:       item.form.nom,
