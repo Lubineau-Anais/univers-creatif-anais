@@ -3,12 +3,35 @@ import {
   LayoutDashboard, Calendar, Users, Euro,
   ChevronDown, ChevronUp, RefreshCw,
   ChevronLeft, ChevronRight, Archive, TrendingUp, Download,
+  ShoppingBag, Package, Store,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { downloadCSV } from '../lib/csv'
+import { formatPrice } from '../lib/shop'
 import type { Atelier } from '../types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
+interface ShopArticle { product_id: string; name: string; price: number; quantity: number }
+interface ShopOrder {
+  id: string
+  client_prenom: string; client_nom: string; client_email: string; client_telephone: string
+  mode_livraison: 'mondial_relay' | 'click_and_collect'
+  relay_nom: string | null; relay_adresse: string | null; relay_cp: string | null; relay_ville: string | null
+  articles: ShopArticle[]
+  sous_total: number; frais_livraison: number; remise: number; total: number
+  code_promo: string | null
+  statut: string
+  created_at: string
+}
+
+const SHOP_STATUTS = [
+  { value: 'en_attente', label: '🔴 En attente',  style: 'bg-red-100 text-red-700 border-red-300' },
+  { value: 'paye',       label: '✅ Payé',         style: 'bg-lime-100 text-lime-700 border-lime-400' },
+  { value: 'expedie',    label: '📦 Expédié',      style: 'bg-blue-100 text-blue-700 border-blue-300' },
+  { value: 'retire',     label: '🏪 Retiré',       style: 'bg-violet-100 text-violet-700 border-violet-300' },
+  { value: 'annule',     label: '❌ Annulé',       style: 'bg-gray-100 text-gray-500 border-gray-300' },
+] as const
+
 interface Reservation {
   id: string
   atelier_id: string
@@ -52,6 +75,7 @@ export default function TableauDeBord() {
   const currentYear = new Date().getFullYear()
 
   const [ateliers, setAteliers]               = useState<AtelierAvecReservations[]>([])
+  const [shopOrders, setShopOrders]           = useState<ShopOrder[]>([])
   const [loading, setLoading]                 = useState(true)
   const [collapsed, setCollapsed]             = useState<Record<string, boolean>>({})
   const [updatingId, setUpdatingId]           = useState<string | null>(null)
@@ -67,10 +91,11 @@ export default function TableauDeBord() {
   // ── Chargement des données ───────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
-    const { data: atelierData } = await supabase
-      .from('ateliers').select('*').order('date', { ascending: true })
-    const { data: reservData } = await supabase
-      .from('reservations').select('*').order('created_at', { ascending: true })
+    const [{ data: atelierData }, { data: reservData }, { data: ordersData }] = await Promise.all([
+      supabase.from('ateliers').select('*').order('date', { ascending: true }),
+      supabase.from('reservations').select('*').order('created_at', { ascending: true }),
+      supabase.from('shop_orders').select('*').order('created_at', { ascending: false }),
+    ])
 
     if (atelierData) {
       const combined: AtelierAvecReservations[] = atelierData.map(a => ({
@@ -79,6 +104,7 @@ export default function TableauDeBord() {
       }))
       setAteliers(combined)
     }
+    setShopOrders((ordersData as ShopOrder[]) || [])
     setLoading(false)
   }, [])
 
@@ -285,6 +311,29 @@ export default function TableauDeBord() {
   const totalPlaces      = ateliersDeLAnnee.reduce((sum, a) => sum + a.places_max, 0)
   const totalInscrits    = allReservAnnee.filter(r => r.statut_paiement !== 'annule').length
   const tauxRemplissage  = totalPlaces > 0 ? Math.round((totalInscrits / totalPlaces) * 100) : 0
+
+  // ── Stats boutique (année sélectionnée) ──────────────────────────────────
+  const shopOrdersAnnee = shopOrders.filter(o =>
+    new Date(o.created_at).getFullYear() === anneeSelectionnee
+  )
+  const shopCA = shopOrdersAnnee
+    .filter(o => ['paye', 'expedie', 'retire'].includes(o.statut))
+    .reduce((s, o) => s + o.total, 0)
+  const shopEnAttente = shopOrdersAnnee.filter(o => o.statut === 'en_attente').length
+  const shopPayees    = shopOrdersAnnee.filter(o => ['paye', 'expedie', 'retire'].includes(o.statut)).length
+
+  const caParMoisBoutique: number[] = Array(12).fill(0)
+  shopOrdersAnnee.forEach(o => {
+    if (!['paye', 'expedie', 'retire'].includes(o.statut)) return
+    const mois = new Date(o.created_at).getMonth()
+    caParMoisBoutique[mois] += o.total
+  })
+  const maxCABoutique = Math.max(...caParMoisBoutique, 1)
+
+  async function updateShopStatut(id: string, statut: string) {
+    await supabase.from('shop_orders').update({ statut }).eq('id', id)
+    setShopOrders(prev => prev.map(o => o.id === id ? { ...o, statut } : o))
+  }
 
   // ── CA mensuel (année sélectionnée) ──────────────────────────────────────
   const caParMois: number[] = Array(12).fill(0)
@@ -562,6 +611,186 @@ export default function TableauDeBord() {
               <div className="text-[10px] font-bold opacity-70 mt-1">Hors taxes</div>
             </div>
           </div>
+        </div>
+
+        {/* ── STATS BOUTIQUE ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <ShoppingBag className="w-4 h-4 text-[#1A1040]" />
+            <h2 className="text-sm font-black text-[#1A1040] uppercase tracking-wide">
+              Boutique {anneeSelectionnee}
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl p-5 border-2 border-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wide text-gray-500">Commandes</span>
+                <ShoppingBag className="w-5 h-5 text-[#1A1040]" />
+              </div>
+              <div className="text-3xl font-black text-[#1A1040]">{shopOrdersAnnee.length}</div>
+            </div>
+            <div className="bg-red-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wide opacity-70">En attente</span>
+                <span className="text-lg">🔴</span>
+              </div>
+              <div className="text-3xl font-black">{shopEnAttente}</div>
+            </div>
+            <div className="bg-lime-300 rounded-2xl p-5 border-2 border-[#1A1040] text-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wide opacity-70">Payées / expédiées</span>
+                <span className="text-lg">✅</span>
+              </div>
+              <div className="text-3xl font-black">{shopPayees}</div>
+            </div>
+            <div className="bg-violet-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black uppercase tracking-wide opacity-70">CA boutique</span>
+                <Euro className="w-5 h-5" />
+              </div>
+              <div className="text-3xl font-black">{shopCA.toLocaleString('fr-FR')} €</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── GRAPHIQUE CA MENSUEL BOUTIQUE ── */}
+        <div className="bg-white rounded-2xl border-2 border-[#1A1040] overflow-hidden"
+          style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+          <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between">
+            <div>
+              <h3 className="font-black text-[#1A1040] flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                CA boutique mensuel — {anneeSelectionnee}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">Commandes payées / expédiées / retirées</p>
+            </div>
+            <span className="text-xs bg-violet-100 text-violet-600 font-black px-3 py-1 rounded-full border border-violet-200">
+              Total : {shopCA.toLocaleString('fr-FR')} €
+            </span>
+          </div>
+          <div className="px-6 py-6">
+            <div className="flex items-end gap-1.5 h-32">
+              {caParMoisBoutique.map((ca, idx) => {
+                const hauteur = Math.max(4, Math.round((ca / maxCABoutique) * 100))
+                const estMoisCourant = anneeSelectionnee === currentYear && idx === moisCourant
+                const estVide        = ca === 0
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    {!estVide && (
+                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-[#1A1040] text-white text-[10px] font-black px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                        {ca.toLocaleString('fr-FR')} €
+                      </div>
+                    )}
+                    <div
+                      className={`w-full rounded-t-lg transition-all duration-500 ${
+                        estMoisCourant ? 'bg-citron-400 border-2 border-[#1A1040]'
+                        : estVide ? 'bg-gray-100 border border-gray-200'
+                        : 'bg-violet-400 group-hover:bg-violet-500'
+                      }`}
+                      style={{ height: `${hauteur}%`, minHeight: '6px' }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              {MOIS_FR.map((mois, idx) => {
+                const estMoisCourant = anneeSelectionnee === currentYear && idx === moisCourant
+                return (
+                  <div key={idx} className="flex-1 text-center">
+                    <span className={`text-[10px] font-black ${estMoisCourant ? 'text-[#1A1040]' : 'text-gray-400'}`}>{mois}</span>
+                    {caParMoisBoutique[idx] > 0 && (
+                      <div className="text-[9px] text-gray-400 font-bold truncate">
+                        {caParMoisBoutique[idx] >= 1000 ? `${(caParMoisBoutique[idx] / 1000).toFixed(1)}k` : caParMoisBoutique[idx]}€
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── COMMANDES BOUTIQUE ── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-[#1A1040]" />
+              <h2 className="text-sm font-black text-[#1A1040] uppercase tracking-wide">
+                Commandes boutique {anneeSelectionnee}
+              </h2>
+            </div>
+          </div>
+          {shopOrdersAnnee.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-[#1A1040] py-12 text-center">
+              <ShoppingBag className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+              <p className="font-black text-gray-400">Aucune commande boutique en {anneeSelectionnee}</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border-2 border-[#1A1040] overflow-hidden" style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-candy border-b-2 border-[#1A1040]">
+                      {['Date', 'Client', 'Mode', 'Articles', 'Total', 'Statut'].map(col => (
+                        <th key={col} className="px-4 py-3 text-left text-xs font-black text-[#1A1040] uppercase tracking-wide whitespace-nowrap">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shopOrdersAnnee.map((order, idx) => {
+                      const date = new Date(order.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                      const statutInfo = SHOP_STATUTS.find(s => s.value === order.statut)
+                      return (
+                        <tr key={order.id} className={`border-b border-gray-100 transition-colors ${idx % 2 === 0 ? 'bg-white hover:bg-rose-50/40' : 'bg-candy/30 hover:bg-rose-50/40'}`}>
+                          <td className="px-4 py-3 text-xs text-gray-400 font-bold whitespace-nowrap">{date}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-black text-[#1A1040] text-sm whitespace-nowrap">{order.client_prenom} {order.client_nom}</div>
+                            <div className="text-xs text-gray-400">{order.client_email}</div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {order.mode_livraison === 'mondial_relay'
+                              ? <span className="flex items-center gap-1 text-xs font-bold text-blue-600"><Package className="w-3 h-3" /> Mondial Relay</span>
+                              : <span className="flex items-center gap-1 text-xs font-bold text-violet-600"><Store className="w-3 h-3" /> Click & Collect</span>
+                            }
+                            {order.relay_nom && <div className="text-xs text-gray-400 truncate max-w-[140px]">{order.relay_nom}</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="space-y-0.5">
+                              {order.articles.slice(0, 2).map((a, i) => (
+                                <div key={i} className="text-xs text-gray-600 whitespace-nowrap">{a.name} ×{a.quantity}</div>
+                              ))}
+                              {order.articles.length > 2 && <div className="text-xs text-gray-400">+{order.articles.length - 2} article{order.articles.length - 2 > 1 ? 's' : ''}</div>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-black text-[#1A1040] whitespace-nowrap">{formatPrice(order.total)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <select
+                              value={order.statut}
+                              onChange={e => updateShopStatut(order.id, e.target.value)}
+                              className={`text-xs font-black border-2 rounded-xl px-2 py-1 focus:outline-none cursor-pointer ${statutInfo?.style ?? 'bg-gray-100 text-gray-500 border-gray-300'}`}>
+                              {SHOP_STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                            </select>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-[#1A1040]">
+                      <td colSpan={4} className="px-4 py-3 text-white text-xs font-black">{shopOrdersAnnee.length} commande{shopOrdersAnnee.length > 1 ? 's' : ''}</td>
+                      <td className="px-4 py-3 text-citron-400 font-black text-sm">{shopCA.toLocaleString('fr-FR')} €</td>
+                      <td className="px-4 py-3">
+                        {shopEnAttente > 0 && (
+                          <span className="text-xs font-black text-red-300">⚠️ {shopEnAttente} en attente</span>
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── GRAPHIQUE CA MENSUEL ── */}
