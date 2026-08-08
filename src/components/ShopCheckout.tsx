@@ -252,6 +252,31 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
       stripe_payment_intent_id: paymentIntentId === 'demo' ? null : paymentIntentId,
       statut:                   paymentIntentId === 'demo' ? 'en_attente' : 'paye',
     })
+
+    const url  = import.meta.env.VITE_SUPABASE_URL as string
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+    fetch(`${url}/functions/v1/send-shop-order-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },
+      body: JSON.stringify({
+        client_prenom:   info.prenom,
+        client_nom:      info.nom,
+        client_email:    info.email,
+        client_telephone: info.telephone,
+        mode_livraison:  method,
+        articles,
+        sous_total:      subtotal,
+        frais_livraison: shippingCost,
+        remise:          discount,
+        total:           totalFinal,
+        code_promo:      appliedCode?.code ?? null,
+        relay_nom:       relay?.nom     ?? null,
+        relay_adresse:   relay?.adresse ?? null,
+        relay_cp:        relay?.cp      ?? null,
+        relay_ville:     relay?.ville   ?? null,
+      }),
+    }).catch(err => console.error('[send-shop-order-email]', err))
+
     clearCart()
     setStep('success')
   }
