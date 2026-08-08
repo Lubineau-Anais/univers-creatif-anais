@@ -288,7 +288,7 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
 // ─── Panneau panier ────────────────────────────────────────────────────────────
 function CartPanel({ isOpen, onClose, onCheckout }: { isOpen: boolean; onClose: () => void; onCheckout: () => void }) {
   const { items, subtotal, discount, total, appliedCode, expiresAt,
-          removeItem, clearCart, applyPromoCode, removePromoCode } = useCart()
+          addItem, removeItem, clearCart, applyPromoCode, removePromoCode } = useCart()
   const [codeInput, setCodeInput] = useState('')
   const [codeError, setCodeError] = useState('')
   const [codeLoading, setCodeLoading] = useState(false)
@@ -374,7 +374,10 @@ function CartPanel({ isOpen, onClose, onCheckout }: { isOpen: boolean; onClose: 
                     <Minus className="w-3 h-3"/>
                   </button>
                   <span className="w-7 text-center font-black text-sm">{item.quantity}</span>
-                  <button disabled className="w-7 h-7 rounded-lg border-2 border-gray-200 bg-gray-100 flex items-center justify-center opacity-50">
+                  <button
+                    onClick={() => addItem(item.product_id, 1, item.chosen_price ?? undefined)}
+                    disabled={!item.product?.stock_illimite && (item.product?.stock ?? 0) < 1}
+                    className="w-7 h-7 rounded-lg border-2 border-[#1A1040] bg-white flex items-center justify-center hover:bg-green-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100">
                     <Plus className="w-3 h-3"/>
                   </button>
                 </div>
