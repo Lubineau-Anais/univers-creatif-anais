@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal, Pencil, Palette, Check } from 'lucide-react'
+import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal, Pencil, Palette, Check, ZoomIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
 import BgEditor from '../components/BgEditor'
@@ -164,6 +164,7 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
   const [added, setAdded] = useState(false)
   const images = product.images?.length ? product.images : []
   const [imgIdx, setImgIdx] = useState(0)
+  const [zoomed, setZoomed] = useState(false)
   function prevImg() { setImgIdx(i => (i - 1 + images.length) % images.length) }
   function nextImg() { setImgIdx(i => (i + 1) % images.length) }
 
@@ -187,13 +188,23 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
         <div className="grid sm:grid-cols-2 gap-6 p-6 pt-2">
           {/* Carrousel photos */}
           <div className="flex flex-col gap-2">
-            <div className="relative rounded-2xl border-4 border-[#1A1040] overflow-hidden bg-candy aspect-square">
+            <div className="group relative rounded-2xl border-4 border-[#1A1040] overflow-hidden bg-candy aspect-square">
               {images.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center text-7xl">🛍️</div>
               ) : /\.(mp4|webm|mov)(\?|$)/i.test(images[imgIdx]) ? (
                 <video src={images[imgIdx]} className="w-full h-full object-cover" autoPlay muted loop playsInline />
               ) : (
-                <img src={images[imgIdx]} alt={product.name} className="w-full h-full object-cover" />
+                <img src={images[imgIdx]} alt={product.name}
+                  className="w-full h-full object-cover cursor-zoom-in transition-transform duration-200 group-hover:scale-[1.02]"
+                  onClick={() => setZoomed(true)} />
+              )}
+              {/* Icône zoom */}
+              {images.length > 0 && !/\.(mp4|webm|mov)(\?|$)/i.test(images[imgIdx]) && (
+                <button onClick={() => setZoomed(true)}
+                  className="absolute bottom-2 right-2 w-8 h-8 bg-white/90 border-2 border-[#1A1040] rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-candy"
+                  style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                  <ZoomIn className="w-4 h-4 text-[#1A1040]" />
+                </button>
               )}
               {images.length > 1 && (
                 <>
@@ -210,6 +221,35 @@ function ProductLightbox({ product, promotions, onClose, onAddToCart }: {
                 </>
               )}
             </div>
+
+            {/* ── Zoom plein écran ── */}
+            {zoomed && (
+              <div className="fixed inset-0 bg-black/90 z-[80] flex items-center justify-center p-4 cursor-zoom-out"
+                onClick={() => setZoomed(false)}>
+                <img src={images[imgIdx]} alt={product.name}
+                  className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl select-none"
+                  onClick={e => e.stopPropagation()} />
+                <button onClick={() => setZoomed(false)}
+                  className="absolute top-4 right-4 w-10 h-10 bg-white rounded-xl border-2 border-[#1A1040] flex items-center justify-center hover:bg-candy transition-all"
+                  style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                  <X className="w-5 h-5 text-[#1A1040]" />
+                </button>
+                {images.length > 1 && (
+                  <>
+                    <button onClick={e => { e.stopPropagation(); prevImg() }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border-2 border-[#1A1040] rounded-xl flex items-center justify-center hover:bg-candy transition-all"
+                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                      <ChevronRight className="w-5 h-5 rotate-180" />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); nextImg() }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border-2 border-[#1A1040] rounded-xl flex items-center justify-center hover:bg-candy transition-all"
+                      style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {/* Pastilles */}
             {images.length > 1 && (
               <div className="flex justify-center gap-1.5">
