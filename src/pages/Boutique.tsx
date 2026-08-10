@@ -505,6 +505,8 @@ export default function Boutique() {
   const [activeCategory, setActiveCategory] = useState('')
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
+  const [perPage, setPerPage] = useState<25 | 50 | 100>(25)
+  const [page, setPage] = useState(1)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // Admin : gestion catégories & produits
@@ -553,7 +555,7 @@ export default function Boutique() {
       ]),
       supabase.from('page_content').select('section,contenu').eq('page','boutique').in('section',['shop_titre']),
       supabase.from('shop_categories').select('*').order('sort_order').order('name'),
-      supabase.from('shop_products').select('*').eq('is_active',true).order('sort_order').order('name'),
+      supabase.from('shop_products').select('*').eq('is_active',true).order('sort_order').order('name').limit(10000),
       supabase.from('shop_promotions').select('*').eq('is_active',true),
     ])
     ;(settings || []).forEach((s: { key: string; value: string }) => {
@@ -620,6 +622,13 @@ export default function Boutique() {
     : products
 
   const topCategories = categories.filter(c => !c.parent_id)
+
+  // Pagination
+  const totalPages   = Math.ceil(filteredProducts.length / perPage)
+  const pagedProducts = filteredProducts.slice((page - 1) * perPage, page * perPage)
+  const showPagination = filteredProducts.length > 25
+
+  useEffect(() => { setPage(1) }, [activeCategory, perPage])
 
   // ─── Boutique inactive ─────────────────────────────────────────────────────
   if (!loading && effectiveStatus === 'inactive') {
@@ -857,31 +866,55 @@ export default function Boutique() {
                 )}
               </div>
             )}
-            {/* Label catégorie active + bouton admin ajouter */}
-            <div className="flex items-center justify-between gap-2 mb-4">
-              {activeCategory ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
-                    {(() => {
-                      const cat = categories.find(c => c.id === activeCategory)
-                      if (!cat) return ''
-                      const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null
-                      return parent ? `${parent.name} › ${cat.name}` : cat.name
-                    })()}
+            {/* Label catégorie active + compteur + sélecteur perPage + bouton admin */}
+            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
+                {activeCategory ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-gray-400 uppercase tracking-wide">
+                      {(() => {
+                        const cat = categories.find(c => c.id === activeCategory)
+                        if (!cat) return ''
+                        const parent = cat.parent_id ? categories.find(c => c.id === cat.parent_id) : null
+                        return parent ? `${parent.name} › ${cat.name}` : cat.name
+                      })()}
+                    </span>
+                    <button onClick={() => setActiveCategory('')}
+                      className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
+                      <X className="w-3 h-3"/> Effacer
+                    </button>
+                  </div>
+                ) : null}
+                {!loading && filteredProducts.length > 0 && (
+                  <span className="text-xs text-gray-400 font-bold">
+                    {filteredProducts.length} article{filteredProducts.length > 1 ? 's' : ''}
                   </span>
-                  <button onClick={() => setActiveCategory('')}
-                    className="text-xs font-bold text-gray-400 hover:text-red-500 flex items-center gap-0.5 transition-colors">
-                    <X className="w-3 h-3"/> Effacer
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {showPagination && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">Afficher :</span>
+                    {([25, 50, 100] as const).map(n => (
+                      <button key={n} onClick={() => setPerPage(n)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black border-2 transition-all ${
+                          perPage === n
+                            ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
+                            : 'bg-white text-[#1A1040] border-[#1A1040]/30 hover:border-[#1A1040]'
+                        }`}>
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {isAdmin && (
+                  <button onClick={() => { setEditingProduct(null); setShowProductModal(true) }}
+                    className="flex items-center gap-1.5 bg-[#1A1040] text-citron-400 px-4 py-2 rounded-xl font-black text-xs border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
+                    style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
+                    <Plus className="w-3.5 h-3.5" /> Ajouter un article
                   </button>
-                </div>
-              ) : <div />}
-              {isAdmin && (
-                <button onClick={() => { setEditingProduct(null); setShowProductModal(true) }}
-                  className="flex items-center gap-1.5 bg-[#1A1040] text-citron-400 px-4 py-2 rounded-xl font-black text-xs border-2 border-[#1A1040] hover:bg-[#2d2060] hover:-translate-y-0.5 transition-all"
-                  style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
-                  <Plus className="w-3.5 h-3.5" /> Ajouter un article
-                </button>
-              )}
+                )}
+              </div>
             </div>
 
             {loading ? (
@@ -897,15 +930,50 @@ export default function Boutique() {
                 <p className="text-sm mt-1">Revenez bientôt, de nouveaux articles arrivent !</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {filteredProducts.map(prod => (
-                  <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}
-                    onOpen={setOpenedProduct}
-                    isAdmin={isAdmin}
-                    onEdit={p => { setEditingProduct(p); setShowProductModal(true) }}
-                    onDelete={id => setDeleteProductId(id)} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {pagedProducts.map(prod => (
+                    <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}
+                      onOpen={setOpenedProduct}
+                      isAdmin={isAdmin}
+                      onEdit={p => { setEditingProduct(p); setShowProductModal(true) }}
+                      onDelete={id => setDeleteProductId(id)} />
+                  ))}
+                </div>
+
+                {/* Navigation pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-3 py-2 rounded-xl border-2 border-[#1A1040] font-black text-sm bg-white text-[#1A1040] hover:bg-candy disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      style={{ boxShadow: page > 1 ? '2px 2px 0px 0px #1A1040' : 'none' }}>
+                      ← Précédent
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                        <button key={n} onClick={() => setPage(n)}
+                          className={`w-9 h-9 rounded-xl border-2 font-black text-sm transition-all ${
+                            n === page
+                              ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]'
+                              : 'bg-white text-[#1A1040] border-[#1A1040]/30 hover:border-[#1A1040] hover:bg-candy'
+                          }`}
+                          style={n === page ? { boxShadow: '2px 2px 0px 0px #ffe500' } : {}}>
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-3 py-2 rounded-xl border-2 border-[#1A1040] font-black text-sm bg-white text-[#1A1040] hover:bg-candy disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      style={{ boxShadow: page < totalPages ? '2px 2px 0px 0px #1A1040' : 'none' }}>
+                      Suivant →
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
