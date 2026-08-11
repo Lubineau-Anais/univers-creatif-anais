@@ -5,6 +5,7 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { useCart } from '../context/CartContext'
 import { useAtelierCart, type AtelierCartItem } from '../context/AtelierCartContext'
 import { supabase } from '../lib/supabase'
+import ShopCheckout from './ShopCheckout'
 
 function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
@@ -144,6 +145,7 @@ export default function CartDrawer() {
   const [cgvAccepted,      setCgvAccepted]      = useState(false)
   const [shippingCost,     setShippingCost]     = useState<number | null>(null)
   const [shippingTranches, setShippingTranches] = useState<{ max_g: number; prix: number }[]>([])
+  const [showShopCheckout, setShowShopCheckout] = useState(false)
 
   useEffect(() => {
     supabase.from('settings').select('key, value')
@@ -641,15 +643,21 @@ export default function CartDrawer() {
 
         {/* Footer boutique seul (si pas d'ateliers) */}
         {!checked && !showStripeForm && atelierItems.length === 0 && shopItems.length > 0 && (
-          <div className="border-t-4 border-[#1A1040] px-4 py-4 bg-white">
+          <div className="border-t-4 border-[#1A1040] px-4 py-4 bg-white space-y-2">
+            <button
+              onClick={() => setShowShopCheckout(true)}
+              className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+              style={{ boxShadow: '4px 4px 0px 0px #ffe500' }}>
+              <ShoppingBag className="w-4 h-4" /> Valider mon panier
+            </button>
             <a href="/boutique"
-              className="w-full bg-citron-400 text-[#1A1040] py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
-              style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-              <ShoppingBag className="w-4 h-4" /> Voir la boutique
+              className="w-full text-xs text-gray-400 hover:text-[#1A1040] font-bold flex items-center justify-center gap-1 transition-colors">
+              Continuer mes achats
             </a>
           </div>
         )}
       </div>
+      {showShopCheckout && <ShopCheckout onClose={() => setShowShopCheckout(false)} />}
     </>
   )
 }
