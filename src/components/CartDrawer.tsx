@@ -143,13 +143,11 @@ export default function CartDrawer() {
   const [cbPaymentError,   setCbPaymentError]   = useState('')
   const [cgvUrl,           setCgvUrl]           = useState<string | null>(null)
   const [cgvAccepted,      setCgvAccepted]      = useState(false)
-  const [shippingCost,     setShippingCost]     = useState<number | null>(null)
-  const [shippingTranches, setShippingTranches] = useState<{ max_g: number; prix: number }[]>([])
   const [showShopCheckout, setShowShopCheckout] = useState(false)
 
   useEffect(() => {
     supabase.from('settings').select('key, value')
-      .in('key', ['stripe_public_key', 'cgv_url', 'mondial_relay_tarifs'])
+      .in('key', ['stripe_public_key', 'cgv_url'])
       .then(({ data }) => {
         const map: Record<string, string> = {}
         data?.forEach(r => { map[r.key] = r.value || '' })
@@ -158,24 +156,8 @@ export default function CartDrawer() {
           setStripeConfigured(true)
         }
         if (map['cgv_url']) setCgvUrl(map['cgv_url'])
-        if (map['mondial_relay_tarifs']) {
-          try { setShippingTranches(JSON.parse(map['mondial_relay_tarifs'])) } catch { /* ignore */ }
-        }
       })
   }, [])
-
-  // Recalcule les frais de port quand le panier boutique ou les tranches changent
-  useEffect(() => {
-    if (!shippingTranches.length || !shopItems.length) { setShippingCost(null); return }
-    const totalPoids = shopItems.reduce((sum, item) => {
-      const poids = item.product?.weight_g ?? 0
-      return sum + poids * item.quantity
-    }, 0)
-    if (totalPoids === 0) { setShippingCost(null); return }
-    const sorted = [...shippingTranches].sort((a, b) => a.max_g - b.max_g)
-    const tranche = sorted.find(t => totalPoids <= t.max_g) ?? sorted[sorted.length - 1]
-    setShippingCost(tranche?.prix ?? null)
-  }, [shopItems, shippingTranches])
 
   const totalAteliers = atelierItems.reduce((s, i) => s + i.total, 0)
   const hasItems = atelierItems.length > 0 || shopItems.length > 0
