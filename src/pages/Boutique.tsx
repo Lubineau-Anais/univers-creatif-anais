@@ -537,7 +537,7 @@ export default function Boutique() {
   }
 
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setBoutiquePolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+    setBoutiquePolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y, side: 'left' } : p))
   }
 
   useEffect(() => { loadShop(); loadBoutiquePolaroids() }, [])

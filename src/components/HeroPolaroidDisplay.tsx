@@ -11,25 +11,19 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
 }) {
   const elRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null)
-  // For right-side polaroids: computed left offset from the left edge of the container.
-  // Converted via: containerWidth - elementWidth + offset_x
-  // Using useLayoutEffect so the conversion happens before browser paint (no flash).
+  // rightToLeft: left-absolute equivalent of a right-side polaroid, computed once at mount.
+  // Never updated on resize — stable reference prevents drift when scrollbar appears/disappears.
   const [rightToLeft, setRightToLeft] = useState<number | null>(null)
   const start = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null)
 
-  // Hooks must come before any conditional return.
   useLayoutEffect(() => {
     if (polaroid.side !== 'right') { setRightToLeft(null); return }
     const el = elRef.current
     if (!el) return
-    const compute = () => {
-      const parent = el.offsetParent as HTMLElement | null
-      if (!parent) return
-      setRightToLeft(parent.offsetWidth - el.offsetWidth + polaroid.offset_x)
-    }
-    compute()
-    window.addEventListener('resize', compute)
-    return () => window.removeEventListener('resize', compute)
+    const parent = el.offsetParent as HTMLElement | null
+    if (!parent) return
+    // Compute once — no resize listener so scrollbar changes don't shift the polaroid
+    setRightToLeft(parent.offsetWidth - el.offsetWidth + polaroid.offset_x)
   }, [polaroid.side, polaroid.offset_x])
 
   if (!polaroid.is_visible && !isAdmin) return null
@@ -51,23 +45,27 @@ export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, 
 
   async function onPointerUp(e: React.PointerEvent) {
     if (!start.current) { start.current = null; return }
-    const x = start.current.ox + (e.clientX - start.current.px)
-    const y = start.current.oy + (e.clientY - start.current.py)
+    const rawX = start.current.ox + (e.clientX - start.current.px)
+    const rawY = start.current.oy + (e.clientY - start.current.py)
     start.current = null
     setDrag(null)
-    onMoved(polaroid.id, x, y)
-    await supabase.from(tableName).update({ offset_x: x, offset_y: y }).eq('id', polaroid.id)
+
+    // Always save as left-absolute — eliminates container-width dependency permanently.
+    // Right-side polaroids are converted once on first drag; side becomes 'left' in DB and state.
+    let finalX = rawX
+    if (polaroid.side === 'right' && rightToLeft !== null) {
+      finalX = rightToLeft + (rawX - polaroid.offset_x)
+    }
+
+    onMoved(polaroid.id, finalX, rawY)
+    await supabase.from(tableName).update({ offset_x: finalX, offset_y: rawY, side: 'left' }).eq('id', polaroid.id)
   }
 
-  // All polaroids use left: 0 as their CSS anchor.
-  // Right-side polaroids are converted to a left-absolute position so that
-  // scrollbar appearance/disappearance (which changes content width by ~15 px) no longer shifts them.
   const rawX = drag ? drag.x : polaroid.offset_x
   const rawY = drag ? drag.y : polaroid.offset_y
 
   let displayX: number
   if (polaroid.side === 'right' && rightToLeft !== null) {
-    // Apply drag delta on top of the stable computed left position.
     displayX = rightToLeft + (rawX - polaroid.offset_x)
   } else {
     displayX = rawX

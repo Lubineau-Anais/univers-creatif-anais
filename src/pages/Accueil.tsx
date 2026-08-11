@@ -330,7 +330,7 @@ export default function Accueil() {
   }
 
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+    setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y, side: 'left' } : p))
   }
 
 async function loadContent() {

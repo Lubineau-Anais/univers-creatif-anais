@@ -57,7 +57,7 @@ export default function Contact() {
   }
 
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setContactPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+    setContactPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y, side: 'left' } : p))
   }
 
   useEffect(() => {
