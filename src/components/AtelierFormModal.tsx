@@ -38,7 +38,15 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
   const [imagePreview, setImagePreview] = useState<string>('')
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState('')
+  const [priceMode,    setPriceMode]    = useState<'fixed' | 'percent'>('fixed')
+  const [discountPct,  setDiscountPct]  = useState('')
   const isEdit = !!atelier
+
+  const prixOriginal  = parseFloat(form.prix) || 0
+  const pct           = parseFloat(discountPct) || 0
+  const prixCalcule   = priceMode === 'percent' && prixOriginal > 0 && pct > 0
+    ? Math.round(prixOriginal * (1 - pct / 100) * 100) / 100
+    : null
 
   useEffect(() => {
     if (atelier) {
@@ -93,6 +101,16 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         image_url = supabase.storage.from('ateliers').getPublicUrl(fileName).data.publicUrl
       }
 
+      let finalPrix: number
+      let finalComparePrice: number | null
+      if (priceMode === 'percent' && prixCalcule !== null) {
+        finalPrix = prixCalcule
+        finalComparePrice = prixOriginal
+      } else {
+        finalPrix = parseFloat(form.prix)
+        finalComparePrice = form.compare_price ? parseFloat(form.compare_price) : null
+      }
+
       const payload = {
         titre:            form.titre,
         description:      form.description,
@@ -100,8 +118,8 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         heure:            form.heure,
         duree:            form.duree,
         lieu:             form.lieu,
-        prix:             parseFloat(form.prix),
-        compare_price:    form.compare_price ? parseFloat(form.compare_price) : null,
+        prix:             finalPrix,
+        compare_price:    finalComparePrice,
         prix_type:        form.prix_type,
         places_max:       parseInt(form.places_max),
         places_restantes: parseInt(form.places_max),
@@ -206,20 +224,50 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
             {field('📍 Lieu', 'lieu', 'text', 'Ex: 12 rue des Arts')}
           </div>
 
-          {/* Prix + prix barré + type */}
-          <div className="grid grid-cols-2 gap-3">
-            {field('💶 Prix actuel (€)', 'prix', 'number', '35')}
-            <div>
-              <label className="block text-sm font-black text-[#1A1040] mb-1">🏷️ Prix barré (€) <span className="text-gray-400 font-normal text-xs">optionnel</span></label>
-              <input
-                type="number" min="0" step="0.01"
-                value={form.compare_price}
-                placeholder="Ex: 45"
-                onChange={e => setForm(p => ({ ...p, compare_price: e.target.value }))}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy"
-              />
-              <p className="text-[10px] text-gray-400 mt-1">Laisse vide pour pas de réduction</p>
+          {/* Prix — toggle Montant fixe / Pourcentage */}
+          <div className="space-y-3">
+            <div className="flex rounded-xl overflow-hidden border-2 border-[#1A1040] h-[38px]">
+              {(['fixed', 'percent'] as const).map(mode => (
+                <button key={mode} type="button" onClick={() => setPriceMode(mode)}
+                  className={`flex-1 text-xs font-black transition-all ${
+                    priceMode === mode ? 'bg-[#1A1040] text-citron-400' : 'bg-candy text-[#1A1040] hover:bg-rose-50'
+                  }`}>
+                  {mode === 'fixed' ? '💶 Montant fixe' : '🏷️ % de réduction'}
+                </button>
+              ))}
             </div>
+
+            {priceMode === 'fixed' ? (
+              <div className="grid grid-cols-2 gap-3">
+                {field('💶 Prix actuel (€)', 'prix', 'number', '35')}
+                <div>
+                  <label className="block text-sm font-black text-[#1A1040] mb-1">Prix barré (€) <span className="text-gray-400 font-normal text-xs">optionnel</span></label>
+                  <input type="number" min="0" step="0.01" value={form.compare_price} placeholder="Ex: 45"
+                    onChange={e => setForm(p => ({ ...p, compare_price: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+                  <p className="text-[10px] text-gray-400 mt-1">Laisse vide si pas de réduction</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {field('💶 Prix original (€)', 'prix', 'number', '45')}
+                  <div>
+                    <label className="block text-sm font-black text-[#1A1040] mb-1">% de réduction</label>
+                    <input type="number" min="1" max="99" step="1" value={discountPct} placeholder="Ex: 20"
+                      onChange={e => setDiscountPct(e.target.value)}
+                      className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+                  </div>
+                </div>
+                {prixCalcule !== null && (
+                  <div className="bg-rose-50 border-2 border-rose-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs font-black text-gray-500 line-through">{prixOriginal.toFixed(2)}€</span>
+                    <span className="text-xs font-black text-rose-500">-{pct}%</span>
+                    <span className="text-base font-black text-[#1A1040]">→ {prixCalcule.toFixed(2)}€</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-black text-[#1A1040] mb-1">👤 Prix par</label>

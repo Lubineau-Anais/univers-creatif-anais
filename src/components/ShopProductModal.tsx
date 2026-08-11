@@ -25,7 +25,15 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
   const [isActive, setIsActive]   = useState(product?.is_active ?? true)
   const [saving, setSaving]       = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [priceMode, setPriceMode] = useState<'fixed' | 'percent'>('fixed')
+  const [discountPct, setDiscountPct] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const prixOriginal = parseFloat(price) || 0
+  const pct          = parseFloat(discountPct) || 0
+  const prixCalcule  = priceMode === 'percent' && prixOriginal > 0 && pct > 0
+    ? Math.round(prixOriginal * (1 - pct / 100) * 100) / 100
+    : null
 
   function addMontant() { setMontants(p => [...p, '']) }
   function updateMontant(i: number, v: string) { setMontants(p => p.map((m, j) => j === i ? v : m)) }
@@ -47,11 +55,20 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
     if (!name.trim() || !price) return
     setSaving(true)
     const montantsValides = montants.map(m => parseFloat(m)).filter(n => !isNaN(n) && n > 0)
+    let finalPrice: number
+    let finalComparePrice: number | null
+    if (priceMode === 'percent' && prixCalcule !== null) {
+      finalPrice = prixCalcule
+      finalComparePrice = prixOriginal
+    } else {
+      finalPrice = parseFloat(price)
+      finalComparePrice = comparePrice ? parseFloat(comparePrice) : null
+    }
     const payload = {
       name: name.trim(),
       description: desc.trim(),
-      price: parseFloat(price),
-      compare_price: comparePrice ? parseFloat(comparePrice) : null,
+      price: finalPrice,
+      compare_price: finalComparePrice,
       category_id: catId || null,
       stock: parseInt(stock) || 0,
       stock_illimite: stockIllimite,
@@ -89,19 +106,58 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
             <textarea value={desc} onChange={e=>setDesc(e.target.value)} rows={3}
               className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400 resize-none" />
           </div>
-          {/* Prix */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix (€) *</label>
-              <input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+          {/* Prix — toggle Montant fixe / Pourcentage */}
+          <div className="space-y-3">
+            <div className="flex rounded-xl overflow-hidden border-2 border-[#1A1040] h-[34px]">
+              {(['fixed', 'percent'] as const).map(mode => (
+                <button key={mode} type="button" onClick={() => setPriceMode(mode)}
+                  className={`flex-1 text-xs font-black transition-all ${
+                    priceMode === mode ? 'bg-[#1A1040] text-citron-400' : 'bg-white text-[#1A1040] hover:bg-gray-50'
+                  }`}>
+                  {mode === 'fixed' ? '💶 Montant fixe' : '🏷️ % de réduction'}
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix barré (€)</label>
-              <input type="number" min="0" step="0.01" value={comparePrice} onChange={e=>setComparePrice(e.target.value)}
-                placeholder="ex: 25.00"
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
-            </div>
+
+            {priceMode === 'fixed' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix (€) *</label>
+                  <input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix barré (€) <span className="font-normal text-gray-400">opt.</span></label>
+                  <input type="number" min="0" step="0.01" value={comparePrice} onChange={e=>setComparePrice(e.target.value)}
+                    placeholder="ex: 25.00"
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Prix original (€) *</label>
+                    <input type="number" min="0" step="0.01" value={price} onChange={e=>setPrice(e.target.value)}
+                      placeholder="ex: 25.00"
+                      className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">% de réduction *</label>
+                    <input type="number" min="1" max="99" step="1" value={discountPct} onChange={e=>setDiscountPct(e.target.value)}
+                      placeholder="ex: 20"
+                      className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                  </div>
+                </div>
+                {prixCalcule !== null && (
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl px-4 py-2 flex items-center justify-between">
+                    <span className="text-xs font-black text-gray-400 line-through">{prixOriginal.toFixed(2)}€</span>
+                    <span className="text-xs font-black text-amber-600">-{pct}%</span>
+                    <span className="text-base font-black text-[#1A1040]">→ {prixCalcule.toFixed(2)}€</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Catégorie + Stock */}
           <div className="grid grid-cols-2 gap-4">
