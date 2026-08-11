@@ -1,29 +1,59 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Scissors, Pencil, Upload, RefreshCw, X } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Scissors, Pencil, Upload, RefreshCw, X, Palette, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from './HeroTitleEditor'
+import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
+import BgEditor from './BgEditor'
 
 const DEFAULT_FOOTER_TEXT = "l'univers créatif d'Anaïs ✦"
 const DEFAULT_FOOTER_STYLE: HeroStyle = {
   ...DEFAULT_HERO_STYLE,
   font: 'sans', fontSize: 18, color: '#ffffff', bold: true, shadow: false,
 }
+const DEFAULT_FOOTER_BG: HeroBg = { ...DEFAULT_HERO_BG, type: 'color', color: '#1A1040' }
+
+function pageKeyFromPath(path: string): string {
+  if (path === '/' || path === '') return 'accueil'
+  return path.replace(/^\//, '').split('/')[0] || 'accueil'
+}
 
 export default function Footer() {
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
-  const [text,  setText]  = useState(DEFAULT_FOOTER_TEXT)
-  const [style, setStyle] = useState<HeroStyle>(DEFAULT_FOOTER_STYLE)
+  const { pathname } = useLocation()
+
+  const [text,    setText]    = useState(DEFAULT_FOOTER_TEXT)
+  const [style,   setStyle]   = useState<HeroStyle>(DEFAULT_FOOTER_STYLE)
   const [iconUrl, setIconUrl] = useState<string | null>(null)
   const [showEditor, setShowEditor] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploading,  setUploading]  = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { load() }, [])
+  // Fond par page
+  const [footerBg,      setFooterBg]      = useState<HeroBg>(DEFAULT_FOOTER_BG)
+  const [footerBgTab,   setFooterBgTab]   = useState<BgType>('color')
+  const [showBgEditor,  setShowBgEditor]  = useState(false)
+  const [bgUploading,   setBgUploading]   = useState(false)
+  const [bgUploadError, setBgUploadError] = useState('')
+  const bgFileRef = useRef<HTMLInputElement>(null)
 
-  async function load() {
+  const pageKey = pageKeyFromPath(pathname)
+
+  // Charge le texte/style/icône une seule fois
+  useEffect(() => {
+    loadStatic()
+  }, [])
+
+  // Recharge le fond à chaque changement de page
+  useEffect(() => {
+    setFooterBg(DEFAULT_FOOTER_BG)
+    setFooterBgTab('color')
+    loadPageBg(pageKey)
+  }, [pageKey])
+
+  async function loadStatic() {
     const [{ data: content }, { data: settings }] = await Promise.all([
       supabase.from('page_content').select('contenu').eq('page', 'accueil').eq('section', 'footer_titre').maybeSingle(),
       supabase.from('settings').select('key, value').in('key', ['footer_titre_style', 'footer_icon_url']),
@@ -33,6 +63,21 @@ export default function Footer() {
       if (s.key === 'footer_titre_style') { try { setStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
       if (s.key === 'footer_icon_url')    { setIconUrl(s.value || null) }
     })
+  }
+
+  async function loadPageBg(key: string) {
+    const { data } = await supabase.from('settings').select('value').eq('key', `footer_bg_${key}`).maybeSingle()
+    if (data?.value) {
+      try { setFooterBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch {}
+    }
+  }
+
+  async function saveBg() {
+    await supabase.from('settings').upsert(
+      { key: `footer_bg_${pageKey}`, value: JSON.stringify(footerBg) },
+      { onConflict: 'key' }
+    )
+    setShowBgEditor(false)
   }
 
   async function uploadIcon(file: File) {
@@ -54,8 +99,10 @@ export default function Footer() {
     await supabase.from('settings').upsert({ key: 'footer_icon_url', value: '' }, { onConflict: 'key' })
   }
 
+  const footerStyle = buildHeroBgStyle(footerBg)
+
   return (
-    <footer className="bg-[#1A1040] border-t-4 border-[#1A1040]">
+    <footer style={footerStyle} className="border-t-4 border-[#1A1040]">
       <div className="max-w-6xl mx-auto px-4 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="relative w-9 h-9 bg-rose-400 rounded-xl flex items-center justify-center border-2 border-white/30 overflow-hidden shrink-0 group"
@@ -82,6 +129,10 @@ export default function Footer() {
               <button onClick={() => setShowEditor(true)}
                 className="inline-flex items-center gap-1 bg-white/10 text-white px-2 py-1 rounded-full text-[10px] font-black border border-white/20 hover:bg-white/20 transition-all">
                 <Pencil className="w-3 h-3" /> Texte
+              </button>
+              <button onClick={() => setShowBgEditor(true)}
+                className="inline-flex items-center gap-1 bg-white/10 text-white px-2 py-1 rounded-full text-[10px] font-black border border-white/20 hover:bg-white/20 transition-all">
+                <Palette className="w-3 h-3" /> Fond
               </button>
               {iconUrl && (
                 <button onClick={resetIcon} title="Revenir à l'icône ciseaux par défaut"
@@ -117,6 +168,48 @@ export default function Footer() {
           onSave={(t, s) => { setText(t); setStyle(s); setShowEditor(false) }}
           onClose={() => setShowEditor(false)}
         />
+      )}
+
+      {/* ── Éditeur fond du bas de page ── */}
+      {showBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-4"
+          onClick={e => e.target === e.currentTarget && setShowBgEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg overflow-hidden"
+            style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <div className="bg-[#1A1040] px-6 py-4 flex items-center justify-between">
+              <h2 className="font-black text-citron-400">🎨 Fond du bas de page</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/60 font-bold uppercase tracking-wide">Page : {pageKey}</span>
+                <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all">
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <BgEditor
+                bg={footerBg}
+                setBg={setFooterBg}
+                activeTab={footerBgTab}
+                setActiveTab={setFooterBgTab}
+                fileRef={bgFileRef}
+                uploadError={bgUploadError}
+                setUploadError={setBgUploadError}
+                uploading={bgUploading}
+                setUploading={setBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3">
+              <button onClick={() => setShowBgEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">
+                Annuler
+              </button>
+              <button onClick={saveBg}
+                className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </footer>
   )
