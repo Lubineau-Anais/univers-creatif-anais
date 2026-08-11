@@ -699,12 +699,19 @@ export default function NosAteliers() {
                                 : `${atelier.places_restantes} place${atelier.places_restantes > 1 ? 's' : ''} restante${atelier.places_restantes > 1 ? 's' : ''}`}
                             </span>
                           </div>
-                          <span className="font-black text-[#1A1040] text-lg leading-none">
-                            {atelier.prix}€
-                            <span className="text-[10px] font-bold text-gray-400 ml-0.5">
-                              /{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+                          <div className="text-right leading-none">
+                            {atelier.compare_price && atelier.compare_price > atelier.prix && (
+                              <div className="text-xs text-gray-400 line-through font-bold">
+                                {atelier.compare_price}€
+                              </div>
+                            )}
+                            <span className={`font-black text-lg ${atelier.compare_price && atelier.compare_price > atelier.prix ? 'text-rose-500' : 'text-[#1A1040]'}`}>
+                              {atelier.prix}€
+                              <span className="text-[10px] font-bold text-gray-400 ml-0.5">
+                                /{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+                              </span>
                             </span>
-                          </span>
+                          </div>
                         </div>
                       </div>
 

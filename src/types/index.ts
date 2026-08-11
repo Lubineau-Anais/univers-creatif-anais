@@ -16,6 +16,7 @@ export interface Atelier {
   duree: string
   lieu: string
   prix: number
+  compare_price: number | null
   prix_type: 'personne' | 'duo'
   places_max: number
   places_restantes: number

@@ -25,7 +25,7 @@ export const NIVEAUX = [
 
 const EMPTY_FORM = {
   titre: '', description: '', date: '', heure: '',
-  duree: '', lieu: '', prix: '', places_max: '',
+  duree: '', lieu: '', prix: '', compare_price: '', places_max: '',
   prix_type: 'personne' as 'personne' | 'duo',
   modes_paiement: ['cheque', 'especes'] as string[],
   age_min: '0', age_min_duo_p1: '0', age_min_duo_p2: '0',
@@ -50,6 +50,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         duree:          atelier.duree,
         lieu:           atelier.lieu,
         prix:           String(atelier.prix),
+        compare_price:  atelier.compare_price ? String(atelier.compare_price) : '',
         places_max:     String(atelier.places_max),
         prix_type:      atelier.prix_type ?? 'personne',
         modes_paiement: atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes'],
@@ -100,6 +101,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
         duree:            form.duree,
         lieu:             form.lieu,
         prix:             parseFloat(form.prix),
+        compare_price:    form.compare_price ? parseFloat(form.compare_price) : null,
         prix_type:        form.prix_type,
         places_max:       parseInt(form.places_max),
         places_restantes: parseInt(form.places_max),
@@ -204,24 +206,35 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
             {field('📍 Lieu', 'lieu', 'text', 'Ex: 12 rue des Arts')}
           </div>
 
-          {/* Prix + type */}
+          {/* Prix + prix barré + type */}
           <div className="grid grid-cols-2 gap-3">
-            {field('💶 Prix (€)', 'prix', 'number', '35')}
+            {field('💶 Prix actuel (€)', 'prix', 'number', '35')}
             <div>
-              <label className="block text-sm font-black text-[#1A1040] mb-1">👤 Prix par</label>
-              <div className="flex rounded-xl overflow-hidden border-2 border-[#1A1040] h-[42px]">
-                {(['personne', 'duo'] as const).map(type => (
-                  <button key={type} type="button"
-                    onClick={() => setForm(p => ({ ...p, prix_type: type }))}
-                    className={`flex-1 text-sm font-black transition-all ${
-                      form.prix_type === type
-                        ? 'bg-[#1A1040] text-citron-400'
-                        : 'bg-candy text-[#1A1040] hover:bg-rose-50'
-                    }`}>
-                    {type === 'personne' ? '👤 Pers.' : '👥 Duo'}
-                  </button>
-                ))}
-              </div>
+              <label className="block text-sm font-black text-[#1A1040] mb-1">🏷️ Prix barré (€) <span className="text-gray-400 font-normal text-xs">optionnel</span></label>
+              <input
+                type="number" min="0" step="0.01"
+                value={form.compare_price}
+                placeholder="Ex: 45"
+                onChange={e => setForm(p => ({ ...p, compare_price: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Laisse vide pour pas de réduction</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-black text-[#1A1040] mb-1">👤 Prix par</label>
+            <div className="flex rounded-xl overflow-hidden border-2 border-[#1A1040] h-[42px]">
+              {(['personne', 'duo'] as const).map(type => (
+                <button key={type} type="button"
+                  onClick={() => setForm(p => ({ ...p, prix_type: type }))}
+                  className={`flex-1 text-sm font-black transition-all ${
+                    form.prix_type === type
+                      ? 'bg-[#1A1040] text-citron-400'
+                      : 'bg-candy text-[#1A1040] hover:bg-rose-50'
+                  }`}>
+                  {type === 'personne' ? '👤 Par personne' : '👥 Par duo'}
+                </button>
+              ))}
             </div>
           </div>
 
