@@ -247,7 +247,7 @@ export default function NosAteliers() {
   }
 
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setAtelierPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y, side: 'left' } : p))
+    setAtelierPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
   }
 
   useEffect(() => { loadCategories(); loadHero(); loadAtelierPolaroids() }, [])
