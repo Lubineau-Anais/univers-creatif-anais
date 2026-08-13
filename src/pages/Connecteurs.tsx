@@ -39,8 +39,9 @@ export default function Connecteurs() {
   const [saved, setSaved]   = useState<string | null>(null)
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [findingPlaceId, setFindingPlaceId] = useState(false)
-  const [placeResults, setPlaceResults] = useState<Array<{ id: string; displayName: { text: string } }>>([])
+  const [placeResults, setPlaceResults] = useState<Array<{ place_id: string; name: string }>>([])
   const [placeSearchError, setPlaceSearchError] = useState('')
+  const [placeQuery, setPlaceQuery] = useState("L'Univers Créatif d'Anaïs")
 
   useEffect(() => { loadSettings() }, [])
 
@@ -78,32 +79,39 @@ export default function Connecteurs() {
 
   async function findPlaceId() {
     const apiKey = settings['google_places_api_key']
-    if (!apiKey) { setPlaceSearchError('Entrez d\'abord votre clé API Google Places.'); return }
+    if (!apiKey) { setPlaceSearchError("Entrez d'abord votre clé API Google Places."); return }
+    if (!placeQuery.trim()) { setPlaceSearchError('Entrez un nom à rechercher.'); return }
     setFindingPlaceId(true)
     setPlaceSearchError('')
     setPlaceResults([])
     try {
-      const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-        method: 'POST',
-        headers: {
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          textQuery: "L'Univers Créatif d'Anaïs",
-          locationBias: {
-            circle: { center: { latitude: 47.3783788, longitude: -2.0239204 }, radius: 2000 },
-          },
-        }),
+      const params = new URLSearchParams({
+        input: placeQuery.trim(),
+        inputtype: 'textquery',
+        fields: 'place_id,name',
+        locationbias: 'point:47.3783788,-2.0239204',
+        language: 'fr',
+        key: apiKey,
       })
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${params}`
+      )
       const data = await res.json()
-      if (data.error) { setPlaceSearchError(data.error.message || 'Erreur API Google'); return }
-      const places = data.places || []
-      setPlaceResults(places)
-      if (places.length === 0) setPlaceSearchError('Aucun résultat. Vérifiez votre clé API et les restrictions de domaine.')
+      if (data.status === 'REQUEST_DENIED') {
+        setPlaceSearchError(`Accès refusé : ${data.error_message || 'vérifiez votre clé API et les restrictions de domaine.'}`)
+        return
+      }
+      if (data.status === 'ZERO_RESULTS' || !data.candidates?.length) {
+        setPlaceSearchError('Aucun résultat. Essayez un nom différent (ex: "univers créatif anais muzillac").')
+        return
+      }
+      if (data.status !== 'OK') {
+        setPlaceSearchError(`Erreur Google : ${data.status} — ${data.error_message || ''}`)
+        return
+      }
+      setPlaceResults(data.candidates)
     } catch {
-      setPlaceSearchError('Erreur réseau. Vérifiez que vous êtes sur le site en production (luniverscreatifdanais.fr).')
+      setPlaceSearchError('Erreur réseau. Assurez-vous d\'être sur le site en production (luniverscreatifdanais.fr).')
     } finally {
       setFindingPlaceId(false)
     }
@@ -470,52 +478,63 @@ export default function Connecteurs() {
             {/* Place ID + bouton de recherche automatique */}
             <div>
               <label className="block text-xs font-black text-[#1A1040] mb-1">📍 Place ID de votre établissement</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={settings['google_place_id'] || ''}
-                  onChange={e => set('google_place_id', e.target.value)}
-                  placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                  className="flex-1 border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
-                />
-                <button
-                  type="button"
-                  onClick={findPlaceId}
-                  disabled={findingPlaceId}
-                  title="Chercher automatiquement votre Place ID via l'API Google"
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-[#1A1040] bg-citron-400 hover:bg-citron-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-60 shrink-0">
-                  {findingPlaceId
-                    ? <RefreshCw className="w-4 h-4 animate-spin" />
-                    : <Search className="w-4 h-4" />}
-                  Trouver
-                </button>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                Le bouton "Trouver" utilise votre clé API pour chercher automatiquement le bon identifiant (fonctionne depuis le site en production).
-              </p>
+              <input
+                type="text"
+                value={settings['google_place_id'] || ''}
+                onChange={e => set('google_place_id', e.target.value)}
+                placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy mb-2"
+              />
 
-              {/* Résultats de la recherche */}
-              {placeResults.length > 0 && (
-                <div className="mt-2 border-2 border-lime-400 rounded-xl overflow-hidden">
-                  <p className="text-[10px] font-black text-[#1A1040] px-3 py-1.5 bg-lime-100">
-                    {placeResults.length} résultat(s) — Cliquez pour sélectionner :
-                  </p>
-                  {placeResults.map(p => (
-                    <button key={p.id} type="button"
-                      onClick={() => { set('google_place_id', p.id); setPlaceResults([]) }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-lime-50 border-t border-lime-200 flex items-center justify-between gap-2 transition-colors">
-                      <span className="font-bold text-[#1A1040]">{p.displayName?.text}</span>
-                      <span className="text-gray-400 font-mono text-[10px] truncate">{p.id}</span>
-                    </button>
-                  ))}
+              {/* Recherche automatique */}
+              <div className="bg-citron-400/10 border-2 border-citron-400/30 rounded-xl p-3 space-y-2">
+                <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🔍 Trouver automatiquement</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={placeQuery}
+                    onChange={e => setPlaceQuery(e.target.value)}
+                    placeholder="Nom de votre établissement"
+                    className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-citron-400 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={findPlaceId}
+                    disabled={findingPlaceId}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-citron-400 hover:bg-citron-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-60 shrink-0">
+                    {findingPlaceId
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <Search className="w-3.5 h-3.5" />}
+                    Chercher
+                  </button>
                 </div>
-              )}
-
-              {placeSearchError && (
-                <p className="mt-2 text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  ⚠️ {placeSearchError}
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Utilise votre clé API pour trouver le bon identifiant. Fonctionne depuis le site en production.
                 </p>
-              )}
+
+                {/* Résultats */}
+                {placeResults.length > 0 && (
+                  <div className="border-2 border-lime-400 rounded-lg overflow-hidden">
+                    <p className="text-[10px] font-black text-[#1A1040] px-3 py-1.5 bg-lime-100">
+                      {placeResults.length} résultat(s) — Cliquez pour sélectionner :
+                    </p>
+                    {placeResults.map(p => (
+                      <button key={p.place_id} type="button"
+                        onClick={() => { set('google_place_id', p.place_id); setPlaceResults([]); setPlaceSearchError('') }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-lime-50 border-t border-lime-200 flex items-center justify-between gap-2 transition-colors">
+                        <span className="font-bold text-[#1A1040]">{p.name}</span>
+                        <span className="text-gray-400 font-mono text-[10px] truncate max-w-[160px]">{p.place_id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {placeSearchError && (
+                  <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    ⚠️ {placeSearchError}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-4">
