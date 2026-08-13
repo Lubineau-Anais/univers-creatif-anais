@@ -83,22 +83,25 @@ export default function Connecteurs() {
     setMapsUrlError('')
     const match = mapsUrl.match(/!1s(0x[0-9a-f]+):(0x[0-9a-f]+)/i)
     if (!match) {
-      setMapsUrlError('URL non reconnue. Copiez l\'URL depuis Google Maps quand la fiche est ouverte.')
+      setMapsUrlError("URL non reconnue. Copiez l'URL depuis Google Maps quand la fiche est ouverte.")
       return
     }
-    const cidDecimal = BigInt(match[2]).toString(10)
+    const cid = BigInt(match[2]).toString(10)
     const apiKey = settings['google_places_api_key']
     if (!apiKey) { setMapsUrlError("Entrez d'abord votre clé API Google Places."); return }
     try {
-      const params = new URLSearchParams({ cid: cidDecimal, fields: 'place_id,name', key: apiKey })
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params}`)
+      const res = await fetch('https://bgodiiegxxlemofkfcsc.supabase.co/functions/v1/places-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, cid }),
+      })
       const data = await res.json()
-      if (data.status === 'OK' && data.result?.place_id) {
-        set('google_place_id', data.result.place_id)
+      if (data.placeId) {
+        set('google_place_id', data.placeId)
         setMapsUrl('')
         setMapsUrlError('')
       } else {
-        setMapsUrlError(`Erreur : ${data.status} — ${data.error_message || 'vérifiez votre clé API.'}`)
+        setMapsUrlError(`Erreur : ${data.error || 'inconnu'} — ${data.message || 'vérifiez votre clé API.'}`)
       }
     } catch {
       setMapsUrlError('Erreur réseau.')
@@ -113,33 +116,26 @@ export default function Connecteurs() {
     setPlaceSearchError('')
     setPlaceResults([])
     try {
-      const params = new URLSearchParams({
-        input: placeQuery.trim(),
-        inputtype: 'textquery',
-        fields: 'place_id,name',
-        locationbias: 'point:47.3783788,-2.0239204',
-        language: 'fr',
-        key: apiKey,
+      const res = await fetch('https://bgodiiegxxlemofkfcsc.supabase.co/functions/v1/places-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, query: placeQuery.trim() }),
       })
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?${params}`
-      )
       const data = await res.json()
-      if (data.status === 'REQUEST_DENIED') {
-        setPlaceSearchError(`Accès refusé : ${data.error_message || 'vérifiez votre clé API et les restrictions de domaine.'}`)
-        return
+      if (data.placeId) {
+        setPlaceResults([{ place_id: data.placeId, name: data.name || placeQuery }])
+      } else {
+        const errCode = data.error || ''
+        if (errCode === 'ZERO_RESULTS' || errCode === 'NOT_FOUND') {
+          setPlaceSearchError('Aucun résultat. Essayez un nom différent (ex: "univers creatif anais").')
+        } else if (errCode === 'REQUEST_DENIED') {
+          setPlaceSearchError(`Clé API refusée : ${data.message || 'vérifiez votre clé.'}`)
+        } else {
+          setPlaceSearchError(`Erreur : ${errCode} — ${data.message || ''}`)
+        }
       }
-      if (data.status === 'ZERO_RESULTS' || !data.candidates?.length) {
-        setPlaceSearchError('Aucun résultat. Essayez un nom différent (ex: "univers créatif anais muzillac").')
-        return
-      }
-      if (data.status !== 'OK') {
-        setPlaceSearchError(`Erreur Google : ${data.status} — ${data.error_message || ''}`)
-        return
-      }
-      setPlaceResults(data.candidates)
     } catch {
-      setPlaceSearchError('Erreur réseau. Assurez-vous d\'être sur le site en production (luniverscreatifdanais.fr).')
+      setPlaceSearchError('Erreur réseau.')
     } finally {
       setFindingPlaceId(false)
     }
