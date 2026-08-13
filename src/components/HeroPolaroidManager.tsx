@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Trash2, RefreshCw, Eye, EyeOff, Move, Lock, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -33,8 +33,16 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
   onChange: (id: string, patch: Partial<HeroPolaroid>) => void
   onDelete: (id: string) => void
 }) {
-  const [uploading, setUploading] = useState(false)
+  const [uploading,   setUploading]   = useState(false)
+  const [localTitle,  setLocalTitle]  = useState(polaroid.title ?? '')
+  const [localText,   setLocalText]   = useState(polaroid.text ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Resynchronise si on change de polaroïd (id différent)
+  useEffect(() => {
+    setLocalTitle(polaroid.title ?? '')
+    setLocalText(polaroid.text ?? '')
+  }, [polaroid.id])
 
   async function uploadImage(file: File) {
     setUploading(true)
@@ -111,7 +119,10 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
       {/* Titre (optionnel) + style */}
       <div className="border-t border-[#1A1040]/10 pt-3">
         <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Titre (optionnel)</label>
-        <input value={polaroid.title ?? ''} onChange={e => onChange(polaroid.id, { title: e.target.value || null })}
+        <input
+          value={localTitle}
+          onChange={e => setLocalTitle(e.target.value)}
+          onBlur={() => onChange(polaroid.id, { title: localTitle || null })}
           placeholder="Ex: Atelier macramé"
           className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-bold mb-2 focus:outline-none focus:ring-2 focus:ring-citron-400" />
         <div className="grid grid-cols-3 gap-2">
@@ -131,7 +142,11 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
       {/* Texte (optionnel) + style */}
       <div>
         <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte (optionnel)</label>
-        <textarea value={polaroid.text ?? ''} onChange={e => onChange(polaroid.id, { text: e.target.value || null })} rows={2}
+        <textarea
+          value={localText}
+          onChange={e => setLocalText(e.target.value)}
+          onBlur={() => onChange(polaroid.id, { text: localText || null })}
+          rows={2}
           placeholder="Une petite légende..."
           className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-medium resize-none mb-2 focus:outline-none focus:ring-2 focus:ring-citron-400" />
         <div className="grid grid-cols-3 gap-2">
