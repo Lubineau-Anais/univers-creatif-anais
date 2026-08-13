@@ -42,6 +42,8 @@ export default function Connecteurs() {
   const [placeResults, setPlaceResults] = useState<Array<{ place_id: string; name: string }>>([])
   const [placeSearchError, setPlaceSearchError] = useState('')
   const [placeQuery, setPlaceQuery] = useState("L'Univers Créatif d'Anaïs")
+  const [mapsUrl, setMapsUrl] = useState('')
+  const [mapsUrlError, setMapsUrlError] = useState('')
 
   useEffect(() => { loadSettings() }, [])
 
@@ -75,6 +77,32 @@ export default function Connecteurs() {
 
   function toggleShow(key: string) {
     setShowPasswords(p => ({ ...p, [key]: !p[key] }))
+  }
+
+  async function extractFromMapsUrl() {
+    setMapsUrlError('')
+    const match = mapsUrl.match(/!1s(0x[0-9a-f]+):(0x[0-9a-f]+)/i)
+    if (!match) {
+      setMapsUrlError('URL non reconnue. Copiez l\'URL depuis Google Maps quand la fiche est ouverte.')
+      return
+    }
+    const cidDecimal = BigInt(match[2]).toString(10)
+    const apiKey = settings['google_places_api_key']
+    if (!apiKey) { setMapsUrlError("Entrez d'abord votre clé API Google Places."); return }
+    try {
+      const params = new URLSearchParams({ cid: cidDecimal, fields: 'place_id,name', key: apiKey })
+      const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params}`)
+      const data = await res.json()
+      if (data.status === 'OK' && data.result?.place_id) {
+        set('google_place_id', data.result.place_id)
+        setMapsUrl('')
+        setMapsUrlError('')
+      } else {
+        setMapsUrlError(`Erreur : ${data.status} — ${data.error_message || 'vérifiez votre clé API.'}`)
+      }
+    } catch {
+      setMapsUrlError('Erreur réseau.')
+    }
   }
 
   async function findPlaceId() {
@@ -485,6 +513,35 @@ export default function Connecteurs() {
                 placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy mb-2"
               />
+
+              {/* Extraction depuis URL Google Maps */}
+              <div className="bg-turquoise-400/10 border-2 border-turquoise-400/30 rounded-xl p-3 space-y-2 mb-2">
+                <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🗺️ Depuis une URL Google Maps</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={mapsUrl}
+                    onChange={e => { setMapsUrl(e.target.value); setMapsUrlError('') }}
+                    placeholder="Collez ici l'URL Google Maps de votre fiche…"
+                    className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={extractFromMapsUrl}
+                    disabled={!mapsUrl.trim()}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-turquoise-400 hover:bg-turquoise-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-40 shrink-0">
+                    Extraire
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Sur Google Maps, ouvrez votre fiche → copiez l'URL dans la barre d'adresse → collez-la ici.
+                </p>
+                {mapsUrlError && (
+                  <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    ⚠️ {mapsUrlError}
+                  </p>
+                )}
+              </div>
 
               {/* Recherche automatique */}
               <div className="bg-citron-400/10 border-2 border-citron-400/30 rounded-xl p-3 space-y-2">
