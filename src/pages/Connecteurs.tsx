@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
-import { Mail, CreditCard, Check, Eye, EyeOff, Wifi, WifiOff, Settings } from 'lucide-react'
+import { Mail, CreditCard, Check, Eye, EyeOff, Wifi, WifiOff, Settings, Search, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CgvManager from '../components/CgvManager'
 import MondialRelayManager from '../components/MondialRelayManager'
@@ -38,6 +38,9 @@ export default function Connecteurs() {
   const [saving, setSaving] = useState<string | null>(null)
   const [saved, setSaved]   = useState<string | null>(null)
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
+  const [findingPlaceId, setFindingPlaceId] = useState(false)
+  const [placeResults, setPlaceResults] = useState<Array<{ id: string; displayName: { text: string } }>>([])
+  const [placeSearchError, setPlaceSearchError] = useState('')
 
   useEffect(() => { loadSettings() }, [])
 
@@ -71,6 +74,39 @@ export default function Connecteurs() {
 
   function toggleShow(key: string) {
     setShowPasswords(p => ({ ...p, [key]: !p[key] }))
+  }
+
+  async function findPlaceId() {
+    const apiKey = settings['google_places_api_key']
+    if (!apiKey) { setPlaceSearchError('Entrez d\'abord votre clé API Google Places.'); return }
+    setFindingPlaceId(true)
+    setPlaceSearchError('')
+    setPlaceResults([])
+    try {
+      const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          textQuery: "L'Univers Créatif d'Anaïs",
+          locationBias: {
+            circle: { center: { latitude: 47.3783788, longitude: -2.0239204 }, radius: 2000 },
+          },
+        }),
+      })
+      const data = await res.json()
+      if (data.error) { setPlaceSearchError(data.error.message || 'Erreur API Google'); return }
+      const places = data.places || []
+      setPlaceResults(places)
+      if (places.length === 0) setPlaceSearchError('Aucun résultat. Vérifiez votre clé API et les restrictions de domaine.')
+    } catch {
+      setPlaceSearchError('Erreur réseau. Vérifiez que vous êtes sur le site en production (luniverscreatifdanais.fr).')
+    } finally {
+      setFindingPlaceId(false)
+    }
   }
 
   const emailProvider  = (settings['email_provider']  || 'smtp') as EmailProvider
@@ -430,7 +466,57 @@ export default function Connecteurs() {
             </div>
 
             <Field label="🔑 Clé API Google Places" settingKey="google_places_api_key" placeholder="AIzaSy..." masked />
-            <Field label="📍 Place ID de votre établissement" settingKey="google_place_id" placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4" />
+
+            {/* Place ID + bouton de recherche automatique */}
+            <div>
+              <label className="block text-xs font-black text-[#1A1040] mb-1">📍 Place ID de votre établissement</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={settings['google_place_id'] || ''}
+                  onChange={e => set('google_place_id', e.target.value)}
+                  placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+                  className="flex-1 border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
+                />
+                <button
+                  type="button"
+                  onClick={findPlaceId}
+                  disabled={findingPlaceId}
+                  title="Chercher automatiquement votre Place ID via l'API Google"
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-[#1A1040] bg-citron-400 hover:bg-citron-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-60 shrink-0">
+                  {findingPlaceId
+                    ? <RefreshCw className="w-4 h-4 animate-spin" />
+                    : <Search className="w-4 h-4" />}
+                  Trouver
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1 font-medium">
+                Le bouton "Trouver" utilise votre clé API pour chercher automatiquement le bon identifiant (fonctionne depuis le site en production).
+              </p>
+
+              {/* Résultats de la recherche */}
+              {placeResults.length > 0 && (
+                <div className="mt-2 border-2 border-lime-400 rounded-xl overflow-hidden">
+                  <p className="text-[10px] font-black text-[#1A1040] px-3 py-1.5 bg-lime-100">
+                    {placeResults.length} résultat(s) — Cliquez pour sélectionner :
+                  </p>
+                  {placeResults.map(p => (
+                    <button key={p.id} type="button"
+                      onClick={() => { set('google_place_id', p.id); setPlaceResults([]) }}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-lime-50 border-t border-lime-200 flex items-center justify-between gap-2 transition-colors">
+                      <span className="font-bold text-[#1A1040]">{p.displayName?.text}</span>
+                      <span className="text-gray-400 font-mono text-[10px] truncate">{p.id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {placeSearchError && (
+                <p className="mt-2 text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  ⚠️ {placeSearchError}
+                </p>
+              )}
+            </div>
 
             <div className="flex flex-wrap gap-4">
               <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer"
