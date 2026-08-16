@@ -46,10 +46,11 @@ export default function Connecteurs() {
   const [mapsUrlError, setMapsUrlError] = useState('')
 
   // Avis manuels
-  interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string; sort_order: number }
+  interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string; sort_order: number; photo_url?: string }
   const [manualReviews, setManualReviews] = useState<ManualReview[]>([])
   const [editingReview, setEditingReview] = useState<Partial<ManualReview> | null>(null)
   const [savingReview, setSavingReview] = useState(false)
+  const [reviewPhotoUploading, setReviewPhotoUploading] = useState(false)
 
   const reviewsMode = (settings['google_reviews_mode'] || 'manual') as 'api' | 'manual'
 
@@ -106,6 +107,7 @@ export default function Connecteurs() {
         rating: editingReview.rating,
         review_text: editingReview.review_text,
         time_description: editingReview.time_description,
+        photo_url: editingReview.photo_url || null,
       }).eq('id', editingReview.id)
     } else {
       await supabase.from('google_reviews_manual').insert({
@@ -114,6 +116,7 @@ export default function Connecteurs() {
         review_text: editingReview.review_text || '',
         time_description: editingReview.time_description || '',
         sort_order: manualReviews.length,
+        photo_url: editingReview.photo_url || null,
       })
     }
     setEditingReview(null)
@@ -124,6 +127,18 @@ export default function Connecteurs() {
   async function deleteReview(id: string) {
     await supabase.from('google_reviews_manual').delete().eq('id', id)
     await loadManualReviews()
+  }
+
+  async function uploadReviewPhoto(file: File) {
+    setReviewPhotoUploading(true)
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const filename = `review-photo-${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('hero').upload(filename, file, { upsert: true, contentType: file.type })
+    if (!error) {
+      const { data } = supabase.storage.from('hero').getPublicUrl(filename)
+      setEditingReview(p => ({ ...p!, photo_url: data.publicUrl + '?t=' + Date.now() }))
+    }
+    setReviewPhotoUploading(false)
   }
 
   async function extractFromMapsUrl() {
@@ -614,6 +629,23 @@ export default function Connecteurs() {
                       <textarea value={editingReview.review_text || ''} onChange={e => setEditingReview(p => ({ ...p!, review_text: e.target.value }))}
                         rows={3} placeholder="Copier-coller le texte de l'avis Google ici…"
                         className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                    </div>
+                    {/* Photo optionnelle */}
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Photo (optionnelle)</label>
+                      {editingReview.photo_url && (
+                        <div className="relative mb-2">
+                          <img src={editingReview.photo_url} alt="" className="w-full h-28 object-cover rounded-lg border-2 border-[#1A1040]" />
+                          <button onClick={() => setEditingReview(p => ({ ...p!, photo_url: '' }))}
+                            className="absolute top-1 right-1 bg-white border border-[#1A1040] rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-black hover:bg-red-50">
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                      <label className={`flex items-center justify-center gap-1.5 border-2 border-dashed border-[#1A1040] rounded-lg py-2 text-xs font-black text-[#1A1040] cursor-pointer hover:bg-citron-400/10 transition-all ${reviewPhotoUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                        {reviewPhotoUploading ? '⏳ Upload…' : '📷 Choisir une photo'}
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadReviewPhoto(f) }} />
+                      </label>
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => setEditingReview(null)}

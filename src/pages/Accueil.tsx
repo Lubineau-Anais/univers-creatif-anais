@@ -55,9 +55,10 @@ interface GoogleReview {
   text?: { text: string; languageCode?: string }
   authorAttribution?: { displayName?: string; uri?: string; photoUri?: string }
   relativePublishTimeDescription?: string
+  photoUrl?: string
 }
 
-interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string }
+interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string; photo_url?: string }
 
 const DEFAULT_AVIS_TITLE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 30, color: '#ffffff',
@@ -152,6 +153,45 @@ const IconPinterest = () => (
   </svg>
 )
 
+// ─── Carte avis ────────────────────────────────────────────────────────────
+function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => void }) {
+  return (
+    <div
+      onClick={onClick}
+      className="w-80 bg-white rounded-2xl border-2 border-[#1A1040] p-6 shrink-0 flex flex-col gap-4 cursor-pointer hover:scale-[1.02] transition-transform"
+      style={{ boxShadow: '4px 4px 0px 0px rgba(255,181,200,0.8)' }}>
+      {/* Photo optionnelle */}
+      {review.photoUrl && (
+        <img src={review.photoUrl} alt="" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
+      )}
+      {/* Étoiles */}
+      <div className="flex gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className="w-5 h-5" style={{ fill: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb', color: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb' }} />
+        ))}
+      </div>
+      {/* Texte */}
+      <p className="text-gray-700 text-sm leading-relaxed line-clamp-4 flex-1">
+        {review.text?.text || ''}
+      </p>
+      {/* Auteur */}
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+        {review.authorAttribution?.photoUri ? (
+          <img src={review.authorAttribution.photoUri} alt="" className="w-9 h-9 rounded-full border-2 border-[#1A1040] shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-rose-400 border-2 border-[#1A1040] flex items-center justify-center text-white text-xs font-black shrink-0">
+            {(review.authorAttribution?.displayName || '?')[0].toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-black text-sm text-[#1A1040] truncate">{review.authorAttribution?.displayName || 'Anonyme'}</p>
+          <p className="text-gray-400 text-xs">{review.relativePublishTimeDescription || ''}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page Accueil ──────────────────────────────────────────────────────────
 export default function Accueil() {
   const { isAdmin } = useAuth()
@@ -219,6 +259,7 @@ export default function Accueil() {
   const [googleApiKey,      setGoogleApiKey]      = useState('')
   const [googlePlaceId,     setGooglePlaceId]     = useState('')
   const [reviewsMode,       setReviewsMode]       = useState<'api' | 'manual'>('manual')
+  const [selectedReview,    setSelectedReview]    = useState<GoogleReview | null>(null)
   const [showAvisTitleEditor, setShowAvisTitleEditor] = useState(false)
 
   // Section Réseaux sociaux
@@ -265,6 +306,7 @@ export default function Accueil() {
             text: { text: r.review_text },
             authorAttribution: { displayName: r.author_name },
             relativePublishTimeDescription: r.time_description,
+            photoUrl: r.photo_url || undefined,
           }))
           setGoogleReviews(reviews)
           setReviewsLoading(false)
@@ -990,52 +1032,30 @@ async function loadContent() {
               )}
             </div>
 
-            {/* Carrousel */}
+            {/* Avis : chargement / affichage */}
             {reviewsLoading ? (
               <div className="text-center py-8">
                 <div className="text-3xl mb-2 animate-pulse">⭐</div>
                 <p className="text-white/60 text-sm font-bold">Chargement des avis…</p>
               </div>
             ) : googleReviews.length > 0 ? (
-              <div className="overflow-hidden cursor-default select-none">
-                {/* On duplique pour le défilement sans coupure */}
-                <div className="avis-scroll-track flex gap-6" style={{ width: 'max-content' }}>
-                  {[...googleReviews, ...googleReviews].map((review, idx) => (
-                    <div key={idx}
-                      className="w-72 bg-white rounded-2xl border-2 border-[#1A1040] p-5 shrink-0 flex flex-col gap-3"
-                      style={{ boxShadow: '4px 4px 0px 0px rgba(255,181,200,0.8)' }}>
-                      {/* Étoiles */}
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4" style={{ fill: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb', color: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb' }} />
-                        ))}
-                      </div>
-                      {/* Texte */}
-                      <p className="text-gray-700 text-sm leading-relaxed line-clamp-4 flex-1">
-                        {review.text?.text || ''}
-                      </p>
-                      {/* Auteur */}
-                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                        {review.authorAttribution?.photoUri ? (
-                          <img
-                            src={review.authorAttribution.photoUri}
-                            alt=""
-                            className="w-8 h-8 rounded-full border-2 border-[#1A1040] shrink-0"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-rose-400 border-2 border-[#1A1040] flex items-center justify-center text-white text-xs font-black shrink-0">
-                            {(review.authorAttribution?.displayName || '?')[0].toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="font-black text-xs text-[#1A1040] truncate">{review.authorAttribution?.displayName || 'Anonyme'}</p>
-                          <p className="text-gray-400 text-[10px]">{review.relativePublishTimeDescription || ''}</p>
-                        </div>
-                      </div>
-                    </div>
+              googleReviews.length > 3 ? (
+                /* ── CARROUSEL (> 3 avis) ── */
+                <div className="overflow-hidden cursor-default select-none">
+                  <div className="avis-scroll-track flex gap-6" style={{ width: 'max-content' }}>
+                    {[...googleReviews, ...googleReviews].map((review, idx) => (
+                      <ReviewCard key={idx} review={review} onClick={() => setSelectedReview(review)} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* ── GRILLE FIXE (≤ 3 avis) ── */
+                <div className={`grid gap-6 ${googleReviews.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : googleReviews.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' : 'grid-cols-1 sm:grid-cols-3'}`}>
+                  {googleReviews.map((review, idx) => (
+                    <ReviewCard key={idx} review={review} onClick={() => setSelectedReview(review)} />
                   ))}
                 </div>
-              </div>
+              )
             ) : isAdmin ? (
               <div className="text-center py-12 border-4 border-dashed border-white/20 rounded-3xl">
                 <div className="text-5xl mb-3">⭐</div>
@@ -1049,6 +1069,48 @@ async function loadContent() {
             ) : null}
           </div>
         </section>
+      )}
+
+      {/* ===== ZOOM AVIS ===== */}
+      {selectedReview && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSelectedReview(null)}>
+          <div
+            className="bg-white rounded-3xl border-4 border-[#1A1040] p-8 max-w-lg w-full flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto"
+            style={{ boxShadow: '8px 8px 0px 0px rgba(255,181,200,0.9)' }}
+            onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setSelectedReview(null)}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full border-2 border-[#1A1040] bg-rose-100 flex items-center justify-center font-black text-[#1A1040] hover:bg-rose-200 transition-colors">
+              ✕
+            </button>
+            {selectedReview.photoUrl && (
+              <img src={selectedReview.photoUrl} alt="" className="w-full max-h-60 object-cover rounded-xl border-2 border-[#1A1040]" />
+            )}
+            <div className="flex gap-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="w-6 h-6" style={{ fill: i < (selectedReview.rating || 0) ? '#ffe500' : '#e5e7eb', color: i < (selectedReview.rating || 0) ? '#ffe500' : '#e5e7eb' }} />
+              ))}
+            </div>
+            <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
+              {selectedReview.text?.text || ''}
+            </p>
+            <div className="flex items-center gap-3 pt-3 border-t-2 border-gray-100">
+              {selectedReview.authorAttribution?.photoUri ? (
+                <img src={selectedReview.authorAttribution.photoUri} alt="" className="w-12 h-12 rounded-full border-2 border-[#1A1040] shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-rose-400 border-2 border-[#1A1040] flex items-center justify-center text-white font-black text-lg shrink-0">
+                  {(selectedReview.authorAttribution?.displayName || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="font-black text-[#1A1040]">{selectedReview.authorAttribution?.displayName || 'Anonyme'}</p>
+                <p className="text-gray-400 text-sm">{selectedReview.relativePublishTimeDescription || ''}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ===== ÉDITEUR TITRE AVIS CLIENTS ===== */}
