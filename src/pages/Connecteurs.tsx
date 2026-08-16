@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
-import { Mail, CreditCard, Check, Eye, EyeOff, Wifi, WifiOff, Settings, Search, RefreshCw } from 'lucide-react'
+import { Mail, CreditCard, Check, Eye, EyeOff, Wifi, WifiOff, Settings, Search, RefreshCw, Star, Plus, Trash2, Pencil, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CgvManager from '../components/CgvManager'
 import MondialRelayManager from '../components/MondialRelayManager'
@@ -45,7 +45,15 @@ export default function Connecteurs() {
   const [mapsUrl, setMapsUrl] = useState('')
   const [mapsUrlError, setMapsUrlError] = useState('')
 
-  useEffect(() => { loadSettings() }, [])
+  // Avis manuels
+  interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string; sort_order: number }
+  const [manualReviews, setManualReviews] = useState<ManualReview[]>([])
+  const [editingReview, setEditingReview] = useState<Partial<ManualReview> | null>(null)
+  const [savingReview, setSavingReview] = useState(false)
+
+  const reviewsMode = (settings['google_reviews_mode'] || 'manual') as 'api' | 'manual'
+
+  useEffect(() => { loadSettings(); loadManualReviews() }, [])
 
   async function loadSettings() {
     const { data } = await supabase.from('settings').select('key, value')
@@ -77,6 +85,45 @@ export default function Connecteurs() {
 
   function toggleShow(key: string) {
     setShowPasswords(p => ({ ...p, [key]: !p[key] }))
+  }
+
+  async function loadManualReviews() {
+    const { data } = await supabase.from('google_reviews_manual').select('*').order('sort_order')
+    setManualReviews(data || [])
+  }
+
+  async function saveMode(mode: 'api' | 'manual') {
+    set('google_reviews_mode', mode)
+    await supabase.from('settings').upsert({ key: 'google_reviews_mode', value: mode }, { onConflict: 'key' })
+  }
+
+  async function saveReview() {
+    if (!editingReview) return
+    setSavingReview(true)
+    if (editingReview.id) {
+      await supabase.from('google_reviews_manual').update({
+        author_name: editingReview.author_name,
+        rating: editingReview.rating,
+        review_text: editingReview.review_text,
+        time_description: editingReview.time_description,
+      }).eq('id', editingReview.id)
+    } else {
+      await supabase.from('google_reviews_manual').insert({
+        author_name: editingReview.author_name || 'Anonyme',
+        rating: editingReview.rating || 5,
+        review_text: editingReview.review_text || '',
+        time_description: editingReview.time_description || '',
+        sort_order: manualReviews.length,
+      })
+    }
+    setEditingReview(null)
+    await loadManualReviews()
+    setSavingReview(false)
+  }
+
+  async function deleteReview(id: string) {
+    await supabase.from('google_reviews_manual').delete().eq('id', id)
+    await loadManualReviews()
   }
 
   async function extractFromMapsUrl() {
@@ -463,154 +510,208 @@ export default function Connecteurs() {
 
           {/* En-tête */}
           <div className="bg-[#1A1040] px-6 py-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-citron-400 rounded-xl flex items-center justify-center border-2 border-citron-300 text-xl shrink-0">
-              ⭐
-            </div>
+            <div className="w-10 h-10 bg-citron-400 rounded-xl flex items-center justify-center border-2 border-citron-300 text-xl shrink-0">⭐</div>
             <div>
               <h2 className="font-serif text-lg font-black text-white">Avis Google</h2>
-              <p className="text-gray-400 text-xs">Affichez vos avis Google en défilement sur la page d'accueil</p>
+              <p className="text-gray-400 text-xs">Affichez vos avis en défilement sur la page d'accueil</p>
             </div>
             <div className="ml-auto">
-              {(settings['google_places_api_key'] && settings['google_place_id']) ? (
-                <div className="flex items-center gap-1.5 bg-lime-300/20 text-lime-400 px-3 py-1 rounded-full text-xs font-bold border border-lime-400/30">
-                  <Wifi className="w-3 h-3" /> Configuré
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 bg-red-400/20 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-400/30">
-                  <WifiOff className="w-3 h-3" /> Non configuré
-                </div>
-              )}
+              {reviewsMode === 'manual'
+                ? <div className="flex items-center gap-1.5 bg-citron-400/20 text-citron-400 px-3 py-1 rounded-full text-xs font-bold border border-citron-400/30"><Pencil className="w-3 h-3" /> Avis manuels</div>
+                : (settings['google_places_api_key'] && settings['google_place_id'])
+                  ? <div className="flex items-center gap-1.5 bg-lime-300/20 text-lime-400 px-3 py-1 rounded-full text-xs font-bold border border-lime-400/30"><Wifi className="w-3 h-3" /> Places API</div>
+                  : <div className="flex items-center gap-1.5 bg-red-400/20 text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-400/30"><WifiOff className="w-3 h-3" /> Non configuré</div>
+              }
             </div>
           </div>
 
           <div className="p-6 space-y-5">
 
-            {/* Info */}
-            <div className="bg-citron-400/15 border-2 border-citron-400/30 rounded-2xl px-4 py-3 flex gap-3">
-              <span className="text-xl shrink-0">💡</span>
-              <div className="text-xs text-[#1A1040] font-medium leading-relaxed space-y-1">
-                <p className="font-black">Pour afficher vos avis Google, il vous faut :</p>
-                <ol className="list-decimal list-inside space-y-0.5 font-normal">
-                  <li>Une <strong>clé API Google Places</strong> (Google Cloud Console)</li>
-                  <li>L'<strong>identifiant de votre établissement</strong> Google (Place ID)</li>
-                </ol>
-              </div>
-            </div>
-
-            <Field label="🔑 Clé API Google Places" settingKey="google_places_api_key" placeholder="AIzaSy..." masked />
-
-            {/* Place ID + bouton de recherche automatique */}
+            {/* Toggle mode */}
             <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">📍 Place ID de votre établissement</label>
-              <input
-                type="text"
-                value={settings['google_place_id'] || ''}
-                onChange={e => set('google_place_id', e.target.value)}
-                placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy mb-2"
-              />
-
-              {/* Extraction depuis URL Google Maps */}
-              <div className="bg-turquoise-400/10 border-2 border-turquoise-400/30 rounded-xl p-3 space-y-2 mb-2">
-                <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🗺️ Depuis une URL Google Maps</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={mapsUrl}
-                    onChange={e => { setMapsUrl(e.target.value); setMapsUrlError('') }}
-                    placeholder="Collez ici l'URL Google Maps de votre fiche…"
-                    className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={extractFromMapsUrl}
-                    disabled={!mapsUrl.trim()}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-turquoise-400 hover:bg-turquoise-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-40 shrink-0">
-                    Extraire
+              <p className="text-xs font-black text-[#1A1040] mb-2">Mode d'affichage</p>
+              <div className="flex gap-2">
+                {(['manual', 'api'] as const).map(mode => (
+                  <button key={mode} type="button" onClick={() => saveMode(mode)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-xs font-black transition-all ${
+                      reviewsMode === mode
+                        ? 'bg-[#1A1040] border-[#1A1040] text-citron-400'
+                        : 'bg-candy border-gray-200 text-gray-500 hover:border-[#1A1040]'
+                    }`}>
+                    {mode === 'manual' ? <><Pencil className="w-3.5 h-3.5" /> Avis manuels</> : <><Wifi className="w-3.5 h-3.5" /> Places API</>}
                   </button>
-                </div>
-                <p className="text-[10px] text-gray-500 font-medium">
-                  Sur Google Maps, ouvrez votre fiche → copiez l'URL dans la barre d'adresse → collez-la ici.
-                </p>
-                {mapsUrlError && (
-                  <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    ⚠️ {mapsUrlError}
-                  </p>
-                )}
+                ))}
               </div>
+            </div>
 
-              {/* Recherche automatique */}
-              <div className="bg-citron-400/10 border-2 border-citron-400/30 rounded-xl p-3 space-y-2">
-                <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🔍 Trouver automatiquement</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={placeQuery}
-                    onChange={e => setPlaceQuery(e.target.value)}
-                    placeholder="Nom de votre établissement"
-                    className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-citron-400 bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={findPlaceId}
-                    disabled={findingPlaceId}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-citron-400 hover:bg-citron-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-60 shrink-0">
-                    {findingPlaceId
-                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      : <Search className="w-3.5 h-3.5" />}
-                    Chercher
-                  </button>
+            {/* ── MODE MANUEL ── */}
+            {reviewsMode === 'manual' && (
+              <div className="space-y-3">
+                <div className="bg-citron-400/15 border-2 border-citron-400/30 rounded-2xl px-4 py-3 text-xs text-[#1A1040] font-medium">
+                  💡 Saisissez vos avis Google manuellement. Quand Google indexera votre fiche dans Places API, vous pourrez basculer en mode automatique.
                 </div>
-                <p className="text-[10px] text-gray-500 font-medium">
-                  Utilise votre clé API pour trouver le bon identifiant. Fonctionne depuis le site en production.
-                </p>
 
-                {/* Résultats */}
-                {placeResults.length > 0 && (
-                  <div className="border-2 border-lime-400 rounded-lg overflow-hidden">
-                    <p className="text-[10px] font-black text-[#1A1040] px-3 py-1.5 bg-lime-100">
-                      {placeResults.length} résultat(s) — Cliquez pour sélectionner :
-                    </p>
-                    {placeResults.map(p => (
-                      <button key={p.place_id} type="button"
-                        onClick={() => { set('google_place_id', p.place_id); setPlaceResults([]); setPlaceSearchError('') }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-lime-50 border-t border-lime-200 flex items-center justify-between gap-2 transition-colors">
-                        <span className="font-bold text-[#1A1040]">{p.name}</span>
-                        <span className="text-gray-400 font-mono text-[10px] truncate max-w-[160px]">{p.place_id}</span>
-                      </button>
-                    ))}
+                {/* Liste des avis */}
+                {manualReviews.map(r => (
+                  <div key={r.id} className="bg-candy rounded-2xl border-2 border-[#1A1040] p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="flex gap-0.5">
+                            {[1,2,3,4,5].map(i => (
+                              <Star key={i} className="w-3 h-3" style={{ fill: i <= r.rating ? '#ffe500' : '#e5e7eb', color: i <= r.rating ? '#ffe500' : '#e5e7eb' }} />
+                            ))}
+                          </div>
+                          <span className="text-xs font-black text-[#1A1040]">{r.author_name}</span>
+                          {r.time_description && <span className="text-[10px] text-gray-400">{r.time_description}</span>}
+                        </div>
+                        <p className="text-xs text-gray-600 line-clamp-2">{r.review_text}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => setEditingReview(r)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-[#1A1040] bg-white hover:bg-citron-50 transition-colors">
+                          <Pencil className="w-3 h-3 text-[#1A1040]" />
+                        </button>
+                        <button onClick={() => deleteReview(r.id)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-red-300 bg-white hover:bg-red-50 transition-colors">
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                )}
+                ))}
 
-                {placeSearchError && (
-                  <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    ⚠️ {placeSearchError}
-                  </p>
+                {/* Formulaire d'édition */}
+                {editingReview !== null ? (
+                  <div className="bg-white rounded-2xl border-4 border-[#1A1040] p-4 space-y-3" style={{ boxShadow: '4px 4px 0 #ffe500' }}>
+                    <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">
+                      {editingReview.id ? '✏️ Modifier l\'avis' : '➕ Nouvel avis'}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Auteur</label>
+                        <input value={editingReview.author_name || ''} onChange={e => setEditingReview(p => ({ ...p!, author_name: e.target.value }))}
+                          placeholder="Prénom Nom" className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Date</label>
+                        <input value={editingReview.time_description || ''} onChange={e => setEditingReview(p => ({ ...p!, time_description: e.target.value }))}
+                          placeholder="il y a 2 semaines" className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Note</label>
+                      <div className="flex gap-1">
+                        {[1,2,3,4,5].map(i => (
+                          <button key={i} type="button" onClick={() => setEditingReview(p => ({ ...p!, rating: i }))}>
+                            <Star className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform" style={{ fill: i <= (editingReview.rating || 5) ? '#ffe500' : '#e5e7eb', color: i <= (editingReview.rating || 5) ? '#ffe500' : '#e5e7eb' }} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte de l'avis</label>
+                      <textarea value={editingReview.review_text || ''} onChange={e => setEditingReview(p => ({ ...p!, review_text: e.target.value }))}
+                        rows={3} placeholder="Copier-coller le texte de l'avis Google ici…"
+                        className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-citron-400" />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => setEditingReview(null)}
+                        className="flex-1 flex items-center justify-center gap-1.5 border-2 border-[#1A1040] rounded-xl py-2 text-xs font-black text-[#1A1040] hover:bg-gray-50 transition-all">
+                        <X className="w-3.5 h-3.5" /> Annuler
+                      </button>
+                      <button onClick={saveReview} disabled={savingReview}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-[#1A1040] border-2 border-[#1A1040] rounded-xl py-2 text-xs font-black text-citron-400 hover:bg-[#2d2060] disabled:opacity-60 transition-all">
+                        {savingReview ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Enregistrer
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingReview({ author_name: '', rating: 5, review_text: '', time_description: '' })}
+                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-[#1A1040] rounded-2xl py-3 text-xs font-black text-[#1A1040] hover:bg-citron-400/10 transition-all">
+                    <Plus className="w-4 h-4" /> Ajouter un avis
+                  </button>
                 )}
               </div>
-            </div>
+            )}
 
-            <div className="flex flex-wrap gap-4">
-              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-turquoise-600 font-bold hover:underline">
-                🔗 Créer une clé API Google Cloud →
-              </a>
-              <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-turquoise-600 font-bold hover:underline">
-                🔗 Trouver votre Place ID →
-              </a>
-            </div>
+            {/* ── MODE PLACES API ── */}
+            {reviewsMode === 'api' && (
+              <div className="space-y-4">
+                <div className="bg-citron-400/15 border-2 border-citron-400/30 rounded-2xl px-4 py-3 flex gap-3">
+                  <span className="text-xl shrink-0">💡</span>
+                  <div className="text-xs text-[#1A1040] font-medium leading-relaxed space-y-1">
+                    <p className="font-black">Pour afficher vos avis automatiquement, il vous faut :</p>
+                    <ol className="list-decimal list-inside space-y-0.5 font-normal">
+                      <li>Une <strong>clé API Google Places</strong></li>
+                      <li>L'<strong>identifiant Place ID</strong> de votre établissement</li>
+                    </ol>
+                  </div>
+                </div>
 
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3 flex gap-3">
-              <span className="text-xl shrink-0">⚠️</span>
-              <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                Activez <strong>Places API (New)</strong> dans Google Cloud Console et ajoutez votre domaine aux restrictions de la clé.
-              </p>
-            </div>
+                <Field label="🔑 Clé API Google Places" settingKey="google_places_api_key" placeholder="AIzaSy..." masked />
 
-            <div className="flex justify-end">
-              <SaveButton section="google" keys={['google_places_api_key', 'google_place_id']} />
-            </div>
+                <div>
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">📍 Place ID de votre établissement</label>
+                  <input type="text" value={settings['google_place_id'] || ''} onChange={e => set('google_place_id', e.target.value)}
+                    placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy mb-2" />
+
+                  {/* Extraction URL Maps */}
+                  <div className="bg-turquoise-400/10 border-2 border-turquoise-400/30 rounded-xl p-3 space-y-2 mb-2">
+                    <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🗺️ Depuis une URL Google Maps</p>
+                    <div className="flex gap-2">
+                      <input type="text" value={mapsUrl} onChange={e => { setMapsUrl(e.target.value); setMapsUrlError('') }}
+                        placeholder="Collez ici l'URL Google Maps de votre fiche…"
+                        className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-white" />
+                      <button type="button" onClick={extractFromMapsUrl} disabled={!mapsUrl.trim()}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-turquoise-400 hover:bg-turquoise-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-40 shrink-0">
+                        Extraire
+                      </button>
+                    </div>
+                    {mapsUrlError && <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">⚠️ {mapsUrlError}</p>}
+                  </div>
+
+                  {/* Recherche auto */}
+                  <div className="bg-citron-400/10 border-2 border-citron-400/30 rounded-xl p-3 space-y-2">
+                    <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide">🔍 Trouver automatiquement</p>
+                    <div className="flex gap-2">
+                      <input type="text" value={placeQuery} onChange={e => setPlaceQuery(e.target.value)}
+                        placeholder="Nom de votre établissement"
+                        className="flex-1 border-2 border-[#1A1040] rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-citron-400 bg-white" />
+                      <button type="button" onClick={findPlaceId} disabled={findingPlaceId}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border-2 border-[#1A1040] bg-citron-400 hover:bg-citron-300 text-[#1A1040] font-black text-xs transition-all disabled:opacity-60 shrink-0">
+                        {findingPlaceId ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />} Chercher
+                      </button>
+                    </div>
+                    {placeResults.length > 0 && (
+                      <div className="border-2 border-lime-400 rounded-lg overflow-hidden">
+                        {placeResults.map(p => (
+                          <button key={p.place_id} type="button"
+                            onClick={() => { set('google_place_id', p.place_id); setPlaceResults([]); setPlaceSearchError('') }}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-lime-50 border-t border-lime-200 flex items-center justify-between gap-2 transition-colors">
+                            <span className="font-bold text-[#1A1040]">{p.name}</span>
+                            <span className="text-gray-400 font-mono text-[10px] truncate max-w-[160px]">{p.place_id}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {placeSearchError && <p className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2">⚠️ {placeSearchError}</p>}
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3 flex gap-3">
+                  <span className="text-xl shrink-0">⚠️</span>
+                  <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                    Activez <strong>Places API (New)</strong> dans Google Cloud Console et ajoutez votre domaine aux restrictions de la clé.
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <SaveButton section="google" keys={['google_places_api_key', 'google_place_id']} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -57,6 +57,8 @@ interface GoogleReview {
   relativePublishTimeDescription?: string
 }
 
+interface ManualReview { id: string; author_name: string; rating: number; review_text: string; time_description: string }
+
 const DEFAULT_AVIS_TITLE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 30, color: '#ffffff',
   outline: false, outlineColor: '#1A1040', outlineWidth: 2,
@@ -216,6 +218,7 @@ export default function Accueil() {
   const [reviewsLoading,    setReviewsLoading]    = useState(false)
   const [googleApiKey,      setGoogleApiKey]      = useState('')
   const [googlePlaceId,     setGooglePlaceId]     = useState('')
+  const [reviewsMode,       setReviewsMode]       = useState<'api' | 'manual'>('manual')
   const [showAvisTitleEditor, setShowAvisTitleEditor] = useState(false)
 
   // Section Réseaux sociaux
@@ -251,21 +254,36 @@ export default function Accueil() {
     if (heroVideoRef.current) heroVideoRef.current.muted = heroBg.videoMuted
   }, [heroBg.videoMuted, heroBg.videoUrl])
 
-  // Fetch des avis Google dès que l'API key + Place ID sont disponibles
+  // Charge les avis selon le mode
   useEffect(() => {
-    if (!googleApiKey || !googlePlaceId) return
-    let cancelled = false
-    setReviewsLoading(true)
-    fetch(
-      `https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}?languageCode=fr`,
-      { headers: { 'X-Goog-Api-Key': googleApiKey, 'X-Goog-FieldMask': 'reviews' } }
-    )
-      .then(r => r.json())
-      .then(data => { if (!cancelled) setGoogleReviews(data.reviews || []) })
-      .catch(() => { if (!cancelled) setGoogleReviews([]) })
-      .finally(() => { if (!cancelled) setReviewsLoading(false) })
-    return () => { cancelled = true }
-  }, [googleApiKey, googlePlaceId])
+    if (reviewsMode === 'manual') {
+      setReviewsLoading(true)
+      supabase.from('google_reviews_manual').select('*').order('sort_order')
+        .then(({ data }) => {
+          const reviews: GoogleReview[] = (data || []).map((r: ManualReview) => ({
+            rating: r.rating,
+            text: { text: r.review_text },
+            authorAttribution: { displayName: r.author_name },
+            relativePublishTimeDescription: r.time_description,
+          }))
+          setGoogleReviews(reviews)
+        })
+        .finally(() => setReviewsLoading(false))
+    } else {
+      if (!googleApiKey || !googlePlaceId) return
+      let cancelled = false
+      setReviewsLoading(true)
+      fetch(
+        `https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}?languageCode=fr`,
+        { headers: { 'X-Goog-Api-Key': googleApiKey, 'X-Goog-FieldMask': 'reviews' } }
+      )
+        .then(r => r.json())
+        .then(data => { if (!cancelled) setGoogleReviews(data.reviews || []) })
+        .catch(() => { if (!cancelled) setGoogleReviews([]) })
+        .finally(() => { if (!cancelled) setReviewsLoading(false) })
+      return () => { cancelled = true }
+    }
+  }, [reviewsMode, googleApiKey, googlePlaceId])
 
   useEffect(() => {
     Promise.all([loadContent(), loadActus()]).then(() => setHeroReady(true))
@@ -384,6 +402,7 @@ async function loadContent() {
       else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch {} }
       else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
       else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
+      else if (s.key === 'google_reviews_mode')      { setReviewsMode((s.value || 'manual') as 'api' | 'manual') }
       else if (s.key === 'nav_ateliers_visible')     { setNavAteliersVisible(s.value !== 'false') }
       else if (s.key === 'nav_contact_visible')      { setNavContactVisible(s.value !== 'false') }
       else if (s.key === 'hero_titre_style') {
@@ -934,7 +953,7 @@ async function loadContent() {
       )}
 
       {/* ===== AVIS CLIENTS ===== */}
-      {(googleReviews.length > 0 || reviewsLoading || isAdmin) && (
+      {(googleReviews.length > 0 || reviewsLoading || isAdmin || reviewsMode === 'manual') && (
         <section className="relative py-16 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(avisBg)}>
           {avisBg.type === 'video' && avisBg.videoUrl && (
             <>
@@ -1018,10 +1037,9 @@ async function loadContent() {
                 </div>
               </div>
             ) : isAdmin ? (
-              /* Placeholder admin si pas d'avis configurés */
               <div className="text-center py-12 border-4 border-dashed border-white/20 rounded-3xl">
                 <div className="text-5xl mb-3">⭐</div>
-                <p className="font-black text-white/40 mb-2">Aucun avis Google chargé</p>
+                <p className="font-black text-white/40 mb-2">Aucun avis configuré</p>
                 <Link to="/connecteurs"
                   className="inline-flex items-center gap-1.5 bg-citron-400 text-[#1A1040] px-4 py-2 rounded-xl text-sm font-black border-2 border-[#1A1040] hover:bg-yellow-300 transition-all"
                   style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
