@@ -267,8 +267,8 @@ export default function Accueil() {
             relativePublishTimeDescription: r.time_description,
           }))
           setGoogleReviews(reviews)
+          setReviewsLoading(false)
         })
-        .finally(() => setReviewsLoading(false))
     } else {
       if (!googleApiKey || !googlePlaceId) return
       let cancelled = false
