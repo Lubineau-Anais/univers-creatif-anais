@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Calendar, Users, Euro,
   ChevronDown, ChevronUp, RefreshCw,
   ChevronLeft, ChevronRight, Archive, TrendingUp, Download,
-  ShoppingBag, Package, Store,
+  ShoppingBag, Package, Store, Paintbrush,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { downloadCSV } from '../lib/csv'
@@ -70,6 +70,73 @@ const STATUT_OPTIONS = [
   { value: 'annule',     label: '❌ Annulé',     style: 'bg-gray-100 text-gray-500 border-gray-300' },
 ] as const
 
+// ─── Couleurs personnalisables des cartes ──────────────────────────────────
+const PALETTE = [
+  '#1A1040','#f87171','#fb923c','#ffe500','#b4ff39','#4ade80',
+  '#00d4c8','#22d3ee','#60a5fa','#a78bfa','#e879f9','#ffb5c8',
+  '#ff6b35','#ffffff',
+]
+
+const DEFAULT_TDB_COLORS: Record<string, string> = {
+  g_total:        '#1A1040',
+  g_ateliers:     '#ffb5c8',
+  g_magasin:      '#a78bfa',
+  a_reservations: '#00d4c8',
+  a_remplissage:  '#ffe500',
+  a_paiements:    '#b4ff39',
+  a_attente_at:   '#f87171',
+  a_ca:           '#ffb5c8',
+  m_commandes:    '#ffffff',
+  m_attente_mag:  '#f87171',
+  m_payees:       '#b4ff39',
+  m_ca:           '#a78bfa',
+}
+
+function textColorFor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.52 ? '#1A1040' : '#ffffff'
+}
+
+function TdbCard({ cardKey, bg, shadow, className, children, editingCard, setEditingCard, onSave }: {
+  cardKey: string; bg: string; shadow?: string; className?: string; children: React.ReactNode
+  editingCard: string | null; setEditingCard: (k: string | null) => void
+  onSave: (k: string, c: string) => void
+}) {
+  const tc = textColorFor(bg)
+  const isEditing = editingCard === cardKey
+  return (
+    <div className={`relative rounded-2xl border-2 border-[#1A1040] ${className ?? ''}`}
+      style={{ background: bg, color: tc, boxShadow: shadow ?? '3px 3px 0px 0px #1A1040' }}>
+      <button
+        onClick={e => { e.stopPropagation(); setEditingCard(isEditing ? null : cardKey) }}
+        title="Changer la couleur"
+        className="absolute top-2 right-2 w-6 h-6 rounded-full border border-[#1A1040]/30 bg-white/25 backdrop-blur-sm flex items-center justify-center hover:bg-white/50 transition-all z-10">
+        <Paintbrush className="w-3 h-3" style={{ color: tc }} />
+      </button>
+      {isEditing && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setEditingCard(null)} />
+          <div className="absolute top-10 right-0 z-30 bg-white border-2 border-[#1A1040] rounded-xl p-3"
+            style={{ boxShadow: '3px 3px 0 #1A1040', minWidth: '200px' }}
+            onClick={e => e.stopPropagation()}>
+            <p className="text-[10px] font-black text-[#1A1040] uppercase tracking-wide mb-2">🎨 Couleur de la carte</p>
+            <div className="grid grid-cols-7 gap-1.5">
+              {PALETTE.map(color => (
+                <button key={color} onClick={() => { onSave(cardKey, color); setEditingCard(null) }}
+                  className="w-7 h-7 rounded-lg border-2 transition-all hover:scale-110"
+                  style={{ background: color, borderColor: bg === color ? '#1A1040' : '#e5e7eb' }} />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+      {children}
+    </div>
+  )
+}
+
 type Vue = 'global' | 'ateliers' | 'magasin'
 
 // ─── Composant principal ───────────────────────────────────────────────────
@@ -90,6 +157,8 @@ export default function TableauDeBord() {
   const [isArchiving, setIsArchiving]         = useState(false)
   const [archiveSuccess, setArchiveSuccess]   = useState(false)
   const [vue, setVue]                         = useState<Vue>('global')
+  const [tdbColors, setTdbColors]             = useState<Record<string, string>>(DEFAULT_TDB_COLORS)
+  const [editingCard, setEditingCard]         = useState<string | null>(null)
 
   // ── Chargement des données ───────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -112,6 +181,22 @@ export default function TableauDeBord() {
   }, [])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // ── Couleurs personnalisées ──────────────────────────────────────────────
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'tdb_card_colors').maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          try { setTdbColors({ ...DEFAULT_TDB_COLORS, ...JSON.parse(data.value) }) } catch {}
+        }
+      })
+  }, [])
+
+  async function saveCardColor(key: string, color: string) {
+    const next = { ...tdbColors, [key]: color }
+    setTdbColors(next)
+    await supabase.from('settings').upsert({ key: 'tdb_card_colors', value: JSON.stringify(next) }, { onConflict: 'key' })
+  }
 
   // ── Détection d'année à archiver ─────────────────────────────────────────
   useEffect(() => {
@@ -580,28 +665,31 @@ export default function TableauDeBord() {
 
           {/* Résumé CA global */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-1 bg-[#1A1040] rounded-2xl p-6 border-2 border-[#1A1040] text-white flex flex-col gap-2"
-              style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
+            <TdbCard cardKey="g_total" bg={tdbColors.g_total} shadow="4px 4px 0px 0px #ffb5c8"
+              className="sm:col-span-1 p-6 flex flex-col gap-2"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <span className="text-xs font-black uppercase tracking-wide opacity-60 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> CA total {anneeSelectionnee}</span>
               <div className="text-4xl font-black">{totalCACombine.toLocaleString('fr-FR')} €</div>
               <div className="text-xs font-bold opacity-50">Ateliers + Magasin · Hors taxes</div>
-            </div>
-            <div className="bg-rose-400 rounded-2xl p-6 border-2 border-[#1A1040] text-white"
-              style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="g_ateliers" bg={tdbColors.g_ateliers} shadow="4px 4px 0px 0px #1A1040"
+              className="p-6"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-black uppercase tracking-wide opacity-70 flex items-center gap-1.5"><span>🎨</span> CA Ateliers</span>
               </div>
               <div className="text-3xl font-black">{totalCA.toLocaleString('fr-FR')} €</div>
               <div className="text-[10px] font-bold opacity-60 mt-1">{totalReservations} réservation{totalReservations > 1 ? 's' : ''} · {tauxRemplissage}% rempli</div>
-            </div>
-            <div className="bg-violet-400 rounded-2xl p-6 border-2 border-[#1A1040] text-white"
-              style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="g_magasin" bg={tdbColors.g_magasin} shadow="4px 4px 0px 0px #1A1040"
+              className="p-6"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-black uppercase tracking-wide opacity-70 flex items-center gap-1.5"><span>🛍️</span> CA Magasin</span>
               </div>
               <div className="text-3xl font-black">{shopCA.toLocaleString('fr-FR')} €</div>
               <div className="text-[10px] font-bold opacity-60 mt-1">{shopOrdersAnnee.length} commande{shopOrdersAnnee.length > 1 ? 's' : ''}</div>
-            </div>
+            </TdbCard>
           </div>
 
           {/* Alertes en attente */}
@@ -702,31 +790,36 @@ export default function TableauDeBord() {
 
           {/* Stats ateliers */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-turquoise-400 rounded-2xl p-5 border-2 border-[#1A1040] text-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Réservations</span><Users className="w-5 h-5" /></div>
+            <TdbCard cardKey="a_reservations" bg={tdbColors.a_reservations} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
+              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Réservations</span><Users className="w-5 h-5 opacity-70" /></div>
               <div className="text-3xl font-black">{totalReservations}</div>
-            </div>
-            <div className="bg-citron-400 rounded-2xl p-5 border-2 border-[#1A1040] text-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="a_remplissage" bg={tdbColors.a_remplissage} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Remplissage</span><span className="text-lg">🎯</span></div>
               <div className="text-3xl font-black">{tauxRemplissage}%</div>
-              <div className="mt-2 h-1.5 bg-[#1A1040]/20 rounded-full overflow-hidden">
-                <div className="h-full bg-[#1A1040] rounded-full transition-all duration-700" style={{ width: `${tauxRemplissage}%` }} />
+              <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: `${textColorFor(tdbColors.a_remplissage)}33` }}>
+                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${tauxRemplissage}%`, background: textColorFor(tdbColors.a_remplissage) }} />
               </div>
               <div className="text-[10px] font-bold opacity-60 mt-1">{totalInscrits}/{totalPlaces} places</div>
-            </div>
-            <div className="bg-lime-300 rounded-2xl p-5 border-2 border-[#1A1040] text-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="a_paiements" bg={tdbColors.a_paiements} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Paiements OK</span><span className="text-lg">✅</span></div>
               <div className="text-3xl font-black">{totalPaye}</div>
-            </div>
-            <div className="bg-red-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="a_attente_at" bg={tdbColors.a_attente_at} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">En attente</span><span className="text-lg">🔴</span></div>
               <div className="text-3xl font-black">{totalAttente}</div>
-            </div>
-            <div className="bg-rose-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">CA annuel HT</span><Euro className="w-5 h-5" /></div>
+            </TdbCard>
+            <TdbCard cardKey="a_ca" bg={tdbColors.a_ca} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
+              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">CA annuel HT</span><Euro className="w-5 h-5 opacity-70" /></div>
               <div className="text-3xl font-black">{totalCALabel} €</div>
               <div className="text-[10px] font-bold opacity-70 mt-1">Hors taxes</div>
-            </div>
+            </TdbCard>
           </div>
 
           {/* Graphique CA ateliers */}
@@ -954,22 +1047,26 @@ export default function TableauDeBord() {
 
           {/* Stats boutique */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl p-5 border-2 border-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide text-gray-500">Commandes</span><ShoppingBag className="w-5 h-5 text-[#1A1040]" /></div>
-              <div className="text-3xl font-black text-[#1A1040]">{shopOrdersAnnee.length}</div>
-            </div>
-            <div className="bg-red-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+            <TdbCard cardKey="m_commandes" bg={tdbColors.m_commandes} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
+              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Commandes</span><ShoppingBag className="w-5 h-5 opacity-70" /></div>
+              <div className="text-3xl font-black">{shopOrdersAnnee.length}</div>
+            </TdbCard>
+            <TdbCard cardKey="m_attente_mag" bg={tdbColors.m_attente_mag} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">En attente</span><span className="text-lg">🔴</span></div>
               <div className="text-3xl font-black">{shopEnAttente}</div>
-            </div>
-            <div className="bg-lime-300 rounded-2xl p-5 border-2 border-[#1A1040] text-[#1A1040]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+            </TdbCard>
+            <TdbCard cardKey="m_payees" bg={tdbColors.m_payees} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
               <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">Payées / expédiées</span><span className="text-lg">✅</span></div>
               <div className="text-3xl font-black">{shopPayees}</div>
-            </div>
-            <div className="bg-violet-400 rounded-2xl p-5 border-2 border-[#1A1040] text-white" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">CA boutique</span><Euro className="w-5 h-5" /></div>
+            </TdbCard>
+            <TdbCard cardKey="m_ca" bg={tdbColors.m_ca} className="p-5"
+              editingCard={editingCard} setEditingCard={setEditingCard} onSave={saveCardColor}>
+              <div className="flex items-center justify-between mb-2"><span className="text-xs font-black uppercase tracking-wide opacity-70">CA boutique</span><Euro className="w-5 h-5 opacity-70" /></div>
               <div className="text-3xl font-black">{shopCA.toLocaleString('fr-FR')} €</div>
-            </div>
+            </TdbCard>
           </div>
 
           {/* Graphique CA boutique */}
