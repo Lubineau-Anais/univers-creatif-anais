@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, Plus, Minus, UserPlus, ShoppingBag, Check } from 'lucide-react'
+import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, UserPlus, ShoppingBag, Check, Gift, Users, User } from 'lucide-react'
 import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'
 import type { Atelier } from '../types'
@@ -27,12 +27,6 @@ const MODES_INFO: Record<string, { label: string; icon: React.ReactNode; desc: s
   especes:  { label: 'Espèces',  icon: <Banknote   className="w-5 h-5" />, desc: 'Sur place' },
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function calcTotal(atelier: Atelier, nb: number) {
-  if (atelier.prix_type === 'duo') return atelier.prix * Math.ceil(nb / 2)
-  return atelier.prix * nb
-}
-
 function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -44,92 +38,72 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   const { addItem: addAtelierItem } = useAtelierCart()
   const { setIsOpen: openCart }     = useCart()
 
-  const isDuo = atelier.prix_type === 'duo'
-  const minPersonnes = isDuo ? 2 : 1
-
-  const [form, setForm]               = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
-  const [nbPersonnes, setNbPersonnes] = useState(minPersonnes)
-  const [personnesSup, setPersonnesSup] = useState<PersonneSup[]>(
-    Array(minPersonnes - 1).fill(null).map(() => ({ prenom: '', nom: '', age: '' }))
-  )
-  const [addedToCart, setAddedToCart] = useState(false)
-  const [error, setError]             = useState('')
-  const [isGift,    setIsGift]    = useState(false)
-  const [giftFrom,  setGiftFrom]  = useState('')
-  const [giftTo,    setGiftTo]    = useState('')
+  const [form, setForm]           = useState<FormData>({ prenom: '', nom: '', age: '', email: '', telephone: '', paiement: '' })
+  const [typeResa, setTypeResa]   = useState<'solo' | 'duo'>('solo')
+  const [duoParticipant, setDuoParticipant] = useState<PersonneSup>({ prenom: '', nom: '', age: '' })
+  const [hasGiftCard, setHasGiftCard]       = useState(false)
+  const [addedToCart, setAddedToCart]       = useState(false)
+  const [error, setError]                   = useState('')
+  const [isGift,  setIsGift]   = useState(false)
+  const [giftFrom, setGiftFrom] = useState('')
+  const [giftTo,   setGiftTo]   = useState('')
 
   const dateFormatted = formatDate(atelier.date)
   const modesDispos   = atelier.modes_paiement?.length ? atelier.modes_paiement : ['cheque', 'especes']
-  const total         = calcTotal(atelier, nbPersonnes)
-  const maxPlaces     = atelier.places_restantes
+  const prixBase      = atelier.prix
+  const remiseGiftCard = hasGiftCard ? 10 : 0
+  const resteAPayer   = Math.max(0, prixBase - remiseGiftCard)
 
-  // ── Gestion participants supplémentaires ──────────────────────────────────
-  function changeNbPersonnes(delta: number) {
-    const next = Math.max(minPersonnes, Math.min(maxPlaces, nbPersonnes + delta))
-    setNbPersonnes(next)
-    setPersonnesSup(prev => {
-      const needed = next - 1
-      if (needed > prev.length) return [...prev, ...Array(needed - prev.length).fill({ prenom: '', nom: '', age: '' })]
-      return prev.slice(0, needed)
-    })
-  }
-
-  function updatePersonneSup(idx: number, field: keyof PersonneSup, value: string) {
-    setPersonnesSup(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p))
-  }
-
-  // ── Ajouter au panier (tous les modes, y compris CB) ─────────────────────
+  // ── Ajouter au panier ─────────────────────────────────────────────────────
   function addToCart() {
+    const personnesSup: PersonneSup[] = typeResa === 'duo' ? [duoParticipant] : []
     addAtelierItem({
       atelier,
       form: {
         prenom: form.prenom, nom: form.nom, age: form.age,
         email: form.email, telephone: form.telephone,
-        paiement: form.paiement || 'especes',
+        paiement: resteAPayer === 0 ? 'carte_cadeau' : (form.paiement || 'especes'),
         is_gift: isGift,
         gift_from: isGift ? giftFrom : undefined,
         gift_to:   isGift ? giftTo   : undefined,
       },
-      nbPersonnes,
+      nbPersonnes: 1,
       personnesSup,
-      total,
+      total: resteAPayer,
     })
     setAddedToCart(true)
     onReserved()
   }
 
-  // ── Âge minimum requis selon la position du participant ────────────────────
-  function ageMinForPosition(position: number): number {
-    if (!isDuo) return atelier.age_min || 0
-    return position % 2 === 1 ? (atelier.age_min_duo_p1 || 0) : (atelier.age_min_duo_p2 || 0)
-  }
-
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.paiement) { setError('Veuillez choisir un mode de règlement.'); return }
 
-    const mainMin = ageMinForPosition(1)
-    if (mainMin > 0 && (!form.age || parseInt(form.age) < mainMin)) {
-      setError(`Âge minimum requis pour le participant 1 : ${mainMin} ans.`)
+    if (atelier.age_min && (!form.age || parseInt(form.age) < (atelier.age_min || 0))) {
+      setError(`Âge minimum requis : ${atelier.age_min} ans.`)
       return
     }
 
-    for (let i = 0; i < personnesSup.length; i++) {
-      const p = personnesSup[i]
-      if (!p.prenom.trim() || !p.nom.trim() || !p.age.trim()) {
-        setError('Merci de remplir les infos de chaque participant.')
+    if (typeResa === 'duo') {
+      if (!duoParticipant.prenom.trim() || !duoParticipant.nom.trim() || !duoParticipant.age.trim()) {
+        setError('Merci de remplir les informations du 2ème participant.')
         return
       }
-      const min = ageMinForPosition(i + 2)
-      if (min > 0 && parseInt(p.age) < min) {
-        setError(`Âge minimum requis pour le participant ${i + 2} : ${min} ans.`)
+      if (atelier.age_min_duo_p2 && parseInt(duoParticipant.age) < (atelier.age_min_duo_p2 || 0)) {
+        setError(`Âge minimum requis pour le participant 2 : ${atelier.age_min_duo_p2} ans.`)
         return
       }
     }
+
     if (isGift && (!giftFrom.trim() || !giftTo.trim())) {
       setError('Merci de renseigner "De la part de" et "Pour" pour la carte cadeau.')
       return
     }
+
+    if (resteAPayer > 0 && !form.paiement) {
+      setError('Veuillez choisir un mode de règlement.')
+      return
+    }
+
     setError('')
     addToCart()
   }
@@ -151,20 +125,20 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             Super {form.prenom} ! 🎊
           </h2>
           <p className="text-gray-500 font-medium mb-1">
-            {nbPersonnes > 1 ? `${nbPersonnes} places` : '1 place'} pour{' '}
+            1 place {typeResa === 'duo' ? '(duo)' : ''} pour{' '}
             <span className="text-rose-400 font-black">« {atelier.titre} »</span>
           </p>
-          <p className="text-[#1A1040] font-black text-lg mb-2">{total} €</p>
+          <p className="text-[#1A1040] font-black text-lg mb-2">{resteAPayer} €</p>
+          {hasGiftCard && <p className="text-xs text-emerald-600 font-bold mb-2">🎟️ Carte cadeau -10 € appliquée</p>}
           {form.paiement === 'cb' && (
             <p className="text-gray-400 text-xs mb-4">💳 Le paiement par carte sera demandé lors de la confirmation du panier.</p>
           )}
-
           <div className="space-y-3">
             <button
               onClick={() => { openCart(true); onClose() }}
               className="w-full bg-[#1A1040] text-citron-400 py-3.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
               style={{ boxShadow: '4px 4px 0px 0px #ffb5c8' }}>
-              <ShoppingCart className="w-4 h-4" /> Voir mon panier & confirmer
+              <ShoppingCart className="w-4 h-4" /> Voir mon panier &amp; confirmer
             </button>
             <button
               onClick={onClose}
@@ -187,7 +161,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" /><a href={`https://maps.google.com/maps?q=${encodeURIComponent(atelier.lieu)}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-citron-600 transition-colors">{atelier.lieu}</a></div>
         <div className="flex items-center gap-1.5">
           <Euro className="w-3.5 h-3.5 text-lime-600" />
-          <strong>{atelier.prix} €</strong>/{atelier.prix_type === 'duo' ? 'duo' : 'pers.'}
+          <strong>{atelier.prix} €</strong>/pers.
         </div>
       </div>
     </div>
@@ -218,121 +192,115 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             </div>
           )}
 
-          {/* Nom & Prénom */}
-          <div className="grid grid-cols-2 gap-3">
-            {([['Prénom *', 'prenom', 'Camille'], ['Nom *', 'nom', 'Dupont']] as const).map(([label, key, ph]) => (
-              <div key={key}>
-                <label className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
-                <input required value={form[key]} placeholder={ph}
-                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
-                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Âge */}
+          {/* ── Solo / Duo ── */}
           <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1">
-              Âge *
-              {ageMinForPosition(1) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(1)} ans)</span>}
+            <label className="block text-xs font-black text-[#1A1040] mb-2">
+              <UserPlus className="w-3.5 h-3.5 inline mr-1" />Je réserve pour…
             </label>
-            <input required type="number" min="5" max="120"
-              value={form.age} placeholder="Ex : 32"
-              onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
-              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
-            <input required type="email"
-              value={form.email} placeholder="votre@email.fr"
-              onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-            />
-          </div>
-
-          {/* Téléphone */}
-          <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
-            <input required type="tel"
-              value={form.telephone} placeholder="06 00 00 00 00"
-              onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
-              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
-            />
-          </div>
-
-          {/* ── Participants supplémentaires ── */}
-          <div className="border-2 border-dashed border-[#1A1040]/30 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-[#1A1040]">
-                  <UserPlus className="w-3.5 h-3.5 inline mr-1" />Nombre de participants
-                </p>
-                <p className="text-[10px] text-gray-400 mt-0.5">
-                  {isDuo
-                    ? `Atelier en duo — 2 personnes minimum · ${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`
-                    : `${maxPlaces} place${maxPlaces > 1 ? 's' : ''} restante${maxPlaces > 1 ? 's' : ''}`}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => changeNbPersonnes(-1)} disabled={nbPersonnes <= minPersonnes}
-                  className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Minus className="w-3.5 h-3.5" />
+            <div className="grid grid-cols-2 gap-3">
+              {([['solo', 'Moi seul(e)', <User className="w-5 h-5" />], ['duo', 'Un duo', <Users className="w-5 h-5" />]] as const).map(([val, label, icon]) => (
+                <button key={val} type="button"
+                  onClick={() => setTypeResa(val)}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
+                    typeResa === val
+                      ? 'bg-[#1A1040] text-white border-[#1A1040]'
+                      : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                  }`}>
+                  {icon}
+                  <span className="font-black">{label}</span>
+                  <span className={`text-[10px] font-medium ${typeResa === val ? 'text-white/60' : 'text-gray-400'}`}>
+                    {val === 'solo' ? '1 place comptée' : '1 place comptée'}
+                  </span>
                 </button>
-                <span className="w-8 text-center font-black text-[#1A1040] text-lg">{nbPersonnes}</span>
-                <button type="button" onClick={() => changeNbPersonnes(1)} disabled={nbPersonnes >= maxPlaces}
-                  className="w-8 h-8 rounded-xl border-2 border-[#1A1040] bg-candy flex items-center justify-center font-black hover:bg-lime-100 disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              ))}
+            </div>
+            {typeResa === 'duo' && (
+              <p className="text-[11px] text-gray-400 font-medium mt-2 text-center">
+                🤝 Le tarif reste le même — 1 seule place est décomptée.
+              </p>
+            )}
+          </div>
+
+          {/* ── Participant 1 ── */}
+          <div className="border-2 border-[#1A1040]/20 rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-black text-[#1A1040]">👤 {typeResa === 'duo' ? 'Participant 1 (vous)' : 'Vos informations'}</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {([['Prénom *', 'prenom', 'Camille'], ['Nom *', 'nom', 'Dupont']] as const).map(([label, key, ph]) => (
+                <div key={key}>
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
+                  <input required value={form[key]} placeholder={ph}
+                    onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+                  />
+                </div>
+              ))}
             </div>
 
-            {/* Prix total */}
-            <div className="bg-citron-400/20 rounded-xl px-3 py-2 flex items-center justify-between">
-              <span className="text-xs font-bold text-[#1A1040]">
-                {atelier.prix_type === 'duo'
-                  ? `${Math.ceil(nbPersonnes / 2)} duo${Math.ceil(nbPersonnes / 2) > 1 ? 's' : ''} × ${atelier.prix} €/duo`
-                  : `${nbPersonnes} × ${atelier.prix} €/pers.`}
-              </span>
-              <span className="font-black text-[#1A1040] text-base">Total : {total} €</span>
+            <div>
+              <label className="block text-xs font-black text-[#1A1040] mb-1">
+                Âge *
+                {(atelier.age_min || 0) > 0 && <span className="text-rose-500 font-bold"> (min. {atelier.age_min} ans)</span>}
+              </label>
+              <input required type="number" min="5" max="120"
+                value={form.age} placeholder="Ex : 32"
+                onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+              />
             </div>
 
-            {/* Infos participants supplémentaires */}
-            {personnesSup.map((p, idx) => (
-              <div key={idx} className="bg-rose-50 border-2 border-rose-200 rounded-xl p-3 space-y-2">
-                <p className="text-xs font-black text-rose-500">👤 Participant {idx + 2}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Prénom *</label>
-                    <input required value={p.prenom} placeholder="Marie"
-                      onChange={e => updatePersonneSup(idx, 'prenom', e.target.value)}
-                      className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-[#1A1040] mb-1">Nom *</label>
-                    <input required value={p.nom} placeholder="Martin"
-                      onChange={e => updatePersonneSup(idx, 'nom', e.target.value)}
-                      className="w-full border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
-                    />
-                  </div>
+            <div>
+              <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
+              <input required type="email"
+                value={form.email} placeholder="votre@email.fr"
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
+              <input required type="tel"
+                value={form.telephone} placeholder="06 00 00 00 00"
+                onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
+              />
+            </div>
+          </div>
+
+          {/* ── Participant 2 (duo uniquement) ── */}
+          {typeResa === 'duo' && (
+            <div className="border-2 border-rose-300 rounded-2xl p-4 space-y-3 bg-rose-50">
+              <p className="text-xs font-black text-rose-500">👥 Participant 2</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">Prénom *</label>
+                  <input required value={duoParticipant.prenom} placeholder="Marie"
+                    onChange={e => setDuoParticipant(p => ({ ...p, prenom: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"
+                  />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-[#1A1040] mb-1">
-                    Âge *
-                    {ageMinForPosition(idx + 2) > 0 && <span className="text-rose-500 font-bold"> (min. {ageMinForPosition(idx + 2)} ans)</span>}
-                  </label>
-                  <input required type="number" min="5" max="120" value={p.age} placeholder="28"
-                    onChange={e => updatePersonneSup(idx, 'age', e.target.value)}
-                    className="w-32 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rose-300"
+                  <label className="block text-xs font-black text-[#1A1040] mb-1">Nom *</label>
+                  <input required value={duoParticipant.nom} placeholder="Martin"
+                    onChange={e => setDuoParticipant(p => ({ ...p, nom: e.target.value }))}
+                    className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"
                   />
                 </div>
               </div>
-            ))}
-          </div>
+              <div>
+                <label className="block text-xs font-black text-[#1A1040] mb-1">
+                  Âge *
+                  {(atelier.age_min_duo_p2 || 0) > 0 && <span className="text-rose-500 font-bold"> (min. {atelier.age_min_duo_p2} ans)</span>}
+                </label>
+                <input required type="number" min="5" max="120"
+                  value={duoParticipant.age} placeholder="28"
+                  onChange={e => setDuoParticipant(p => ({ ...p, age: e.target.value }))}
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"
+                />
+              </div>
+            </div>
+          )}
 
           {/* ── Option cadeau ── */}
           <div className="border-2 border-dashed border-rose-200 rounded-2xl overflow-hidden">
@@ -347,25 +315,18 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                 <p className="text-[11px] text-gray-400 font-medium mt-0.5">Une carte cadeau personnalisée sera jointe à la confirmation</p>
               </div>
             </label>
-
             {isGift && (
               <div className="px-4 pb-4 pt-2 bg-rose-50 border-t-2 border-dashed border-rose-200 space-y-3">
                 <div>
                   <label className="block text-xs font-black text-[#1A1040] mb-1">De la part de *</label>
-                  <input
-                    required={isGift}
-                    value={giftFrom}
-                    onChange={e => setGiftFrom(e.target.value)}
+                  <input required={isGift} value={giftFrom} onChange={e => setGiftFrom(e.target.value)}
                     placeholder="Votre prénom ou signature"
                     className="w-full border-2 border-rose-300 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-[#1A1040] mb-1">Pour *</label>
-                  <input
-                    required={isGift}
-                    value={giftTo}
-                    onChange={e => setGiftTo(e.target.value)}
+                  <input required={isGift} value={giftTo} onChange={e => setGiftTo(e.target.value)}
                     placeholder="Prénom du bénéficiaire"
                     className="w-full border-2 border-rose-300 rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 bg-white"
                   />
@@ -374,29 +335,76 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             )}
           </div>
 
-          {/* ── Mode de règlement ── */}
-          <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-2">Mode de règlement *</label>
-            <div className={`grid gap-2 ${modesDispos.length <= 2 ? 'grid-cols-2' : modesDispos.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              {modesDispos.map(mode => {
-                const info = MODES_INFO[mode]
-                if (!info) return null
-                return (
-                  <button key={mode} type="button"
-                    onClick={() => setForm(p => ({ ...p, paiement: mode as ModePaiement }))}
-                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
-                      form.paiement === mode
-                        ? 'bg-[#1A1040] text-white border-[#1A1040]'
-                        : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
-                    }`}>
-                    {info.icon}
-                    <span className="font-black">{info.label}</span>
-                    <span className={`text-[10px] font-medium ${form.paiement === mode ? 'text-white/60' : 'text-gray-400'}`}>{info.desc}</span>
-                  </button>
-                )
-              })}
+          {/* ── Carte cadeau 10€ ── */}
+          <div className={`border-2 rounded-2xl overflow-hidden transition-all ${hasGiftCard ? 'border-emerald-400 bg-emerald-50' : 'border-dashed border-emerald-300'}`}>
+            <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-emerald-50 transition-colors">
+              <div
+                onClick={() => setHasGiftCard(p => !p)}
+                className={`w-5 h-5 rounded-lg border-2 shrink-0 flex items-center justify-center transition-colors cursor-pointer ${hasGiftCard ? 'bg-emerald-500 border-emerald-600' : 'bg-white border-gray-300 hover:border-emerald-400'}`}>
+                {hasGiftCard && <Check className="w-3 h-3 text-white" />}
+              </div>
+              <div className="flex-1" onClick={() => setHasGiftCard(p => !p)}>
+                <p className="font-black text-[#1A1040] text-sm flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-emerald-500" /> J'ai une carte cadeau de 10 €
+                </p>
+                <p className="text-[11px] text-gray-500 font-medium mt-0.5">Le bon de remise sera déduit du tarif</p>
+              </div>
+              {hasGiftCard && (
+                <span className="shrink-0 bg-emerald-500 text-white text-xs font-black px-2 py-0.5 rounded-full">−10 €</span>
+              )}
+            </label>
+          </div>
+
+          {/* ── Récap tarif ── */}
+          <div className="bg-citron-400/20 rounded-xl px-4 py-3 space-y-1">
+            <div className="flex items-center justify-between text-xs font-bold text-[#1A1040]">
+              <span>Tarif atelier</span>
+              <span>{prixBase} €</span>
+            </div>
+            {hasGiftCard && (
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-600">
+                <span>🎟️ Carte cadeau</span>
+                <span>−10 €</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between border-t border-[#1A1040]/20 pt-1 mt-1">
+              <span className="text-sm font-black text-[#1A1040]">Reste à payer</span>
+              <span className="text-base font-black text-[#1A1040]">{resteAPayer} €</span>
             </div>
           </div>
+
+          {/* ── Mode de règlement ── */}
+          {resteAPayer > 0 && (
+            <div>
+              <label className="block text-xs font-black text-[#1A1040] mb-2">Mode de règlement *</label>
+              <div className={`grid gap-2 ${modesDispos.length <= 2 ? 'grid-cols-2' : modesDispos.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {modesDispos.map(mode => {
+                  const info = MODES_INFO[mode]
+                  if (!info) return null
+                  return (
+                    <button key={mode} type="button"
+                      onClick={() => setForm(p => ({ ...p, paiement: mode as ModePaiement }))}
+                      className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 font-bold text-xs transition-all ${
+                        form.paiement === mode
+                          ? 'bg-[#1A1040] text-white border-[#1A1040]'
+                          : 'bg-candy text-[#1A1040] border-gray-200 hover:border-[#1A1040]'
+                      }`}>
+                      {info.icon}
+                      <span className="font-black">{info.label}</span>
+                      <span className={`text-[10px] font-medium ${form.paiement === mode ? 'text-white/60' : 'text-gray-400'}`}>{info.desc}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {resteAPayer === 0 && (
+            <div className="bg-emerald-50 border-2 border-emerald-400 rounded-xl px-4 py-3 text-xs text-emerald-800 font-medium">
+              <p className="font-black">✅ Aucun reste à payer</p>
+              <p>La carte cadeau couvre l'intégralité du tarif.</p>
+            </div>
+          )}
 
           {/* Messages spécifiques aux modes */}
           {form.paiement === 'cb' && (
@@ -405,7 +413,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <p>Vos coordonnées bancaires seront demandées lors de la confirmation du panier.</p>
             </div>
           )}
-
           {form.paiement === 'especes' && (
             <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-xs text-amber-800 font-medium space-y-1">
               <p className="font-black">💵 Règlement en espèces sur place</p>
@@ -413,7 +420,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <p>🎲 Les billets de Monopoli ne sont pas autorisés 😄</p>
             </div>
           )}
-
           {form.paiement === 'virement' && (
             <div className="bg-blue-50 border-2 border-blue-300 rounded-xl px-4 py-3 text-xs text-blue-800 font-medium space-y-1">
               <p className="font-black">🏦 Règlement par virement bancaire</p>
@@ -421,7 +427,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <p>📧 Les coordonnées bancaires seront présentes sur le mail de confirmation de réservation.</p>
             </div>
           )}
-
           {form.paiement === 'cheque' && (
             <div className="bg-purple-50 border-2 border-purple-300 rounded-xl px-4 py-3 text-xs text-purple-800 font-medium">
               <p className="font-black">📝 Règlement par chèque sur place</p>
@@ -437,7 +442,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             <button type="submit"
               className="flex-1 bg-turquoise-400 text-[#1A1040] py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
               style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              🛒 Ajouter au panier — {total} €
+              🛒 Ajouter au panier — {resteAPayer} €
             </button>
           </div>
         </form>
