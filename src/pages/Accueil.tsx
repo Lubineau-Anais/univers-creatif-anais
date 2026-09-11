@@ -286,6 +286,7 @@ export default function Accueil() {
   // Polaroïds du Hero
   const [polaroids, setPolaroids] = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
+  const [zoomedPolaroid, setZoomedPolaroid] = useState<HeroPolaroid | null>(null)
 
   // Évite d'afficher le fond/titre par défaut avant le chargement des vrais réglages
   const [heroReady, setHeroReady] = useState(false)
@@ -647,7 +648,8 @@ async function loadContent() {
               const rot  = rots[i % rots.length]
               return (
                 <div key={p.id}
-                  className="shrink-0 bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm"
+                  onClick={() => setZoomedPolaroid(p)}
+                  className="shrink-0 bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm cursor-pointer active:scale-95 transition-transform"
                   style={{ width: '140px', boxShadow: '3px 3px 0px 0px #1A1040', transform: `rotate(${rot})` }}>
                   <div className="w-full aspect-square bg-candy border border-gray-200 overflow-hidden">
                     {p.image_url
@@ -666,6 +668,34 @@ async function loadContent() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox zoom polaroïd mobile */}
+      {zoomedPolaroid && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm md:hidden"
+          onClick={() => setZoomedPolaroid(null)}>
+          <div className="bg-white p-3 pb-5 border-4 border-[#1A1040] rounded-sm w-full max-w-xs"
+            style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}
+            onClick={e => e.stopPropagation()}>
+            <button onClick={() => setZoomedPolaroid(null)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#1A1040] text-white flex items-center justify-center text-sm font-black leading-none">✕</button>
+            <div className="w-full aspect-square bg-candy border border-gray-200 overflow-hidden rounded-sm">
+              {zoomedPolaroid.image_url
+                ? <img src={zoomedPolaroid.image_url} alt="" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-5xl">📷</div>}
+            </div>
+            {(zoomedPolaroid.title || zoomedPolaroid.text) && (
+              <div className="pt-3 text-center px-1">
+                {zoomedPolaroid.title && (
+                  <p className="font-bold text-sm text-[#1A1040] leading-tight">{zoomedPolaroid.title}</p>
+                )}
+                {zoomedPolaroid.text && (
+                  <p className="text-xs text-[#1A1040] leading-snug mt-1">{zoomedPolaroid.text}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
