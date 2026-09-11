@@ -7,6 +7,7 @@ import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../
 import BgEditor from '../components/BgEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
 
 interface ContentBlock { section: string; contenu: string }
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
@@ -310,10 +311,12 @@ export default function Contact() {
         </div>
       </section>
 
-        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
-        {contactPolaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="contact_polaroids" />
-        ))}
+        {/* Polaroïds flottants — desktop uniquement */}
+        <div className="hidden md:contents">
+          {contactPolaroids.map((p, i) => (
+            <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="contact_polaroids" />
+          ))}
+        </div>
 
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
@@ -323,6 +326,8 @@ export default function Contact() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
+
+      <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
 
       {/* ===== ÉDITEUR TITRE ===== */}
       {showTitreEditor && (

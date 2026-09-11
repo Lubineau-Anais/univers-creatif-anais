@@ -10,6 +10,7 @@ import ReservationModal from '../components/ReservationModal'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
 
 // ─── Hero éditable ────────────────────────────────────────────────────────────
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
@@ -757,10 +758,12 @@ export default function NosAteliers() {
         )}
       </section>
 
-        {/* Polaroïds flottants — rendus après les sections pour être toujours au-dessus */}
-        {atelierPolaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="atelier_polaroids" />
-        ))}
+        {/* Polaroïds flottants — desktop uniquement */}
+        <div className="hidden md:contents">
+          {atelierPolaroids.map((p, i) => (
+            <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="atelier_polaroids" />
+          ))}
+        </div>
 
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
@@ -770,6 +773,8 @@ export default function NosAteliers() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
+
+      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
 
       {/* ── ÉDITEUR FOND HERO ── */}
       {showBgEditor && (

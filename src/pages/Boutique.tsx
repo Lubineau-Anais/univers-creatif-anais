@@ -14,6 +14,7 @@ import ShopProductModal from '../components/ShopProductModal'
 import ShopCheckout from '../components/ShopCheckout'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
+import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
 import { Image as ImageIcon } from 'lucide-react'
 
 // ─── Défauts ───────────────────────────────────────────────────────────────────
@@ -980,10 +981,12 @@ export default function Boutique() {
         </div>
       </section>
 
-        {/* Polaroïds flottants */}
-        {boutiquePolaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
-        ))}
+        {/* Polaroïds flottants — desktop uniquement */}
+        <div className="hidden md:contents">
+          {boutiquePolaroids.map((p, i) => (
+            <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} tableName="boutique_polaroids" />
+          ))}
+        </div>
 
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
@@ -993,6 +996,8 @@ export default function Boutique() {
         )}
 
       </div>{/* fin wrapper hero + contenu + polaroïds */}
+
+      <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
 
       {/* BOUTON PANIER FLOTTANT */}
       <button
