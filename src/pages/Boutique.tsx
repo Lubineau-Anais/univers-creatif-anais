@@ -681,6 +681,8 @@ export default function Boutique() {
   return (
     <main className="flex-1 bg-candy">
 
+      <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
+
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
@@ -705,8 +707,6 @@ export default function Boutique() {
             <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="leading-tight"/>
           </div>
         </section>
-
-        <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
 
         {/* CONTENU : SIDEBAR + GRILLE */}
       <section className="max-w-6xl mx-auto px-4 py-8">

@@ -355,6 +355,8 @@ export default function NosAteliers() {
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
 
+      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
+
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
@@ -432,8 +434,6 @@ export default function NosAteliers() {
           )}
         </div>
       </section>
-
-      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
 
       {/* ── CONTENU ── */}
       <section className="max-w-6xl mx-auto px-4 py-16">
