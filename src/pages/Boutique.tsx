@@ -681,6 +681,8 @@ export default function Boutique() {
   return (
     <main className="flex-1 bg-candy">
 
+      <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
+
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
@@ -996,8 +998,6 @@ export default function Boutique() {
         )}
 
       </div>{/* fin wrapper hero + contenu + polaroïds */}
-
-      <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
 
       {/* BOUTON PANIER FLOTTANT */}
       <button

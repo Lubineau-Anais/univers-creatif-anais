@@ -147,6 +147,8 @@ export default function Contact() {
   return (
     <main className="flex-1">
 
+      <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
+
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
@@ -326,8 +328,6 @@ export default function Contact() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
-
-      <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
 
       {/* ===== ÉDITEUR TITRE ===== */}
       {showTitreEditor && (

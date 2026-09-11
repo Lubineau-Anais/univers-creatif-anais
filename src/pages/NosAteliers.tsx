@@ -355,6 +355,8 @@ export default function NosAteliers() {
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
 
+      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
+
       {/* Enveloppe Hero + Contenu pour que les polaroïds flottent entre les deux */}
       <div className="relative">
 
@@ -773,8 +775,6 @@ export default function NosAteliers() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
-
-      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
 
       {/* ── ÉDITEUR FOND HERO ── */}
       {showBgEditor && (
