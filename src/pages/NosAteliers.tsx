@@ -433,6 +433,8 @@ export default function NosAteliers() {
         </div>
       </section>
 
+      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
+
       {/* ── CONTENU ── */}
       <section className="max-w-6xl mx-auto px-4 py-16">
 
@@ -773,8 +775,6 @@ export default function NosAteliers() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
-
-      <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
 
       {/* ── ÉDITEUR FOND HERO ── */}
       {showBgEditor && (

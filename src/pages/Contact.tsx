@@ -311,6 +311,8 @@ export default function Contact() {
         </div>
       </section>
 
+      <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
+
         {/* Polaroïds flottants — desktop uniquement */}
         <div className="hidden md:contents">
           {contactPolaroids.map((p, i) => (
@@ -326,8 +328,6 @@ export default function Contact() {
         )}
 
       </div>{/* fin wrapper hero+contenu polaroïds */}
-
-      <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
 
       {/* ===== ÉDITEUR TITRE ===== */}
       {showTitreEditor && (

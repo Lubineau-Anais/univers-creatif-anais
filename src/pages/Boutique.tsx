@@ -706,6 +706,8 @@ export default function Boutique() {
           </div>
         </section>
 
+        <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
+
         {/* CONTENU : SIDEBAR + GRILLE */}
       <section className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex gap-6 items-start">
@@ -996,8 +998,6 @@ export default function Boutique() {
         )}
 
       </div>{/* fin wrapper hero + contenu + polaroïds */}
-
-      <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
 
       {/* BOUTON PANIER FLOTTANT */}
       <button
