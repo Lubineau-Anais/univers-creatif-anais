@@ -514,10 +514,12 @@ async function loadContent() {
           </>
         )}
 
-        {/* Polaroïds décoratifs gauche/droite */}
-        {polaroids.map((p, i) => (
-          <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} />
-        ))}
+        {/* Polaroïds décoratifs gauche/droite — desktop uniquement */}
+        <div className="hidden md:contents">
+          {polaroids.map((p, i) => (
+            <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} />
+          ))}
+        </div>
 
         {/* Boutons admin hero */}
         {isAdmin && (
@@ -635,6 +637,38 @@ async function loadContent() {
           )}
         </div>
       </section>
+
+      {/* ===== POLAROÏDS MOBILE (bande défilante sous le hero) ===== */}
+      {polaroids.filter(p => p.is_visible || isAdmin).length > 0 && (
+        <div className="md:hidden bg-candy border-b-4 border-[#1A1040] py-6 px-4 overflow-x-auto">
+          <div className="flex gap-5 w-max mx-auto">
+            {polaroids.filter(p => p.is_visible || isAdmin).map((p, i) => {
+              const rots = ['-3deg','2deg','-1deg','3deg','-2deg','1deg']
+              const rot  = rots[i % rots.length]
+              return (
+                <div key={p.id}
+                  className="shrink-0 bg-white p-2 pb-3 border-2 border-[#1A1040] rounded-sm"
+                  style={{ width: '140px', boxShadow: '3px 3px 0px 0px #1A1040', transform: `rotate(${rot})` }}>
+                  <div className="w-full aspect-square bg-candy border border-gray-200 overflow-hidden">
+                    {p.image_url
+                      ? <img src={p.image_url} alt="" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">📷</div>}
+                  </div>
+                  {(p.title || p.text) && (
+                    <div className="pt-1.5 text-center">
+                      {p.title && <p className="font-bold text-[10px] text-[#1A1040] leading-tight">{p.title}</p>}
+                      {p.text  && <p className="text-[9px] text-[#1A1040] leading-snug mt-0.5">{p.text}</p>}
+                    </div>
+                  )}
+                  {isAdmin && !p.is_visible && (
+                    <p className="text-[8px] text-center font-black text-red-500 mt-0.5">MASQUÉ</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ===== ACTU DU MOMENT ===== */}
       {(() => {
