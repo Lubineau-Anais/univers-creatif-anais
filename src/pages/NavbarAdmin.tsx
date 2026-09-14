@@ -126,7 +126,7 @@ export default function NavbarAdmin() {
   const [hovered, setHovered] = useState<number | null>(null)
 
   // Section saves
-  const [tabVisible, setTabVisible] = useState({ ateliers: true, contact: true, galerie: true, boutique: true })
+  const [tabVisible, setTabVisible] = useState({ ateliers: true, contact: true, galerie: true, boutique: true, informations: true })
   const [savingTab, setSavingTab] = useState<string | null>(null)
 
   const [s1Saving, setS1Saving] = useState(false); const [s1Saved, setS1Saved] = useState(false)
@@ -145,7 +145,7 @@ export default function NavbarAdmin() {
       'navbar_inactive_text', 'navbar_hover_bg',
       'navbar_mobile_bg', 'navbar_public_labels',
       'nav_ateliers_visible', 'nav_contact_visible',
-      'nav_galerie_visible', 'nav_boutique_visible',
+      'nav_galerie_visible', 'nav_boutique_visible', 'nav_informations_visible',
     ])
     if (!data) return
     const map: Record<string, string> = {}
@@ -173,7 +173,8 @@ export default function NavbarAdmin() {
       ateliers: map['nav_ateliers_visible'] !== 'false',
       contact:  map['nav_contact_visible']  !== 'false',
       galerie:  map['nav_galerie_visible']  !== 'false',
-      boutique: map['nav_boutique_visible'] !== 'false',
+      boutique:     map['nav_boutique_visible']     !== 'false',
+      informations: map['nav_informations_visible'] !== 'false',
     })
   }
 
@@ -275,10 +276,11 @@ export default function NavbarAdmin() {
           <SectionHeader icon={<span className="text-lg">👁️</span>} title="Visibilité des onglets" sub="Choisir quels onglets sont affichés aux visiteurs" />
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {([
-              { key: 'ateliers', label: 'Nos Ateliers', icon: '🎨', href: '/ateliers' },
-              { key: 'contact',  label: 'Contact',      icon: '✉️',  href: '/contact'  },
-              { key: 'galerie',  label: 'Galerie',       icon: '🖼️', href: '/galerie'  },
-              { key: 'boutique', label: 'Boutique',      icon: '🛍️', href: '/boutique' },
+              { key: 'ateliers',     label: 'Nos Ateliers',  icon: '🎨', href: '/ateliers'      },
+              { key: 'contact',      label: 'Contact',       icon: '✉️',  href: '/contact'       },
+              { key: 'galerie',      label: 'Galerie',       icon: '🖼️', href: '/galerie'        },
+              { key: 'boutique',     label: 'Boutique',      icon: '🛍️', href: '/boutique'      },
+              { key: 'informations', label: 'Informations',  icon: 'ℹ️', href: '/informations'  },
             ] as const).map(tab => {
               const isVisible = tabVisible[tab.key]
               const isSaving  = savingTab === tab.key

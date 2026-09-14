@@ -25,6 +25,8 @@ import PromosAdmin from './pages/PromosAdmin'
 import Galerie from './pages/Galerie'
 import GalerieAdmin from './pages/GalerieAdmin'
 import CommandesAdmin from './pages/CommandesAdmin'
+import Informations from './pages/Informations'
+import InformationsAdmin from './pages/InformationsAdmin'
 
 export default function App() {
   return (
@@ -43,6 +45,10 @@ export default function App() {
                 <Route path="/connexion" element={<Connexion />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/galerie" element={<Galerie />} />
+                <Route path="/informations" element={<Informations />} />
+                <Route path="/informations-admin" element={
+                  <ProtectedRoute><InformationsAdmin /></ProtectedRoute>
+                } />
                 <Route path="/connecteurs" element={
                   <ProtectedRoute><Connecteurs /></ProtectedRoute>
                 } />

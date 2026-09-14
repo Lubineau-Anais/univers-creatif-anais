@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images } from 'lucide-react'
+import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images, Info } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { useCart } from '../context/CartContext'
@@ -29,7 +29,7 @@ const DEFAULT_NAV: NavSettings = {
   inactiveText: '#1A1040',
   hoverBg:      '#ffe4e6',
   mobileBg:     '#ffb5c8',
-  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique'],
+  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique', 'ℹ️ Informations'],
 }
 
 const FONT_MAP: Record<string, string> = {
@@ -39,10 +39,10 @@ const FONT_MAP: Record<string, string> = {
   cursive: 'cursive',
 }
 
-const NAV_HREFS = ['/', '/ateliers', '/contact', '/galerie', '/boutique']
-const DEFAULT_TAB_VISIBLE = { ateliers: true, contact: true, galerie: true, boutique: true }
+const NAV_HREFS = ['/', '/ateliers', '/contact', '/galerie', '/boutique', '/informations']
+const DEFAULT_TAB_VISIBLE = { ateliers: true, contact: true, galerie: true, boutique: true, informations: true }
 const TAB_KEY_BY_HREF: Record<string, keyof typeof DEFAULT_TAB_VISIBLE> = {
-  '/ateliers': 'ateliers', '/contact': 'contact', '/galerie': 'galerie', '/boutique': 'boutique',
+  '/ateliers': 'ateliers', '/contact': 'contact', '/galerie': 'galerie', '/boutique': 'boutique', '/informations': 'informations',
 }
 
 export default function Navbar() {
@@ -77,7 +77,7 @@ export default function Navbar() {
       'navbar_inactive_text', 'navbar_hover_bg',
       'navbar_mobile_bg', 'navbar_public_labels',
       'nav_ateliers_visible', 'nav_contact_visible',
-      'nav_galerie_visible', 'nav_boutique_visible',
+      'nav_galerie_visible', 'nav_boutique_visible', 'nav_informations_visible',
     ])
     if (!data) return
     const map: Record<string, string> = {}
@@ -105,7 +105,8 @@ export default function Navbar() {
       ateliers: map['nav_ateliers_visible'] !== 'false',
       contact:  map['nav_contact_visible']  !== 'false',
       galerie:  map['nav_galerie_visible']  !== 'false',
-      boutique: map['nav_boutique_visible'] !== 'false',
+      boutique:      map['nav_boutique_visible']      !== 'false',
+      informations:  map['nav_informations_visible']  !== 'false',
     })
   }
 
@@ -225,6 +226,7 @@ export default function Navbar() {
               { to: '/boutique-admin',  icon: <ShoppingBag      className="w-3.5 h-3.5" />, label: 'Boutique', match: ['/boutique-admin', '/produits-admin', '/promos-admin'] },
               { to: '/galerie-admin',   icon: <Images           className="w-3.5 h-3.5" />, label: 'Galerie', match: ['/galerie-admin'] },
               { to: '/archives',        icon: <Archive          className="w-3.5 h-3.5" />, label: 'Archives', match: ['/archives'] },
+              { to: '/informations-admin', icon: <Info           className="w-3.5 h-3.5" />, label: 'Infos', match: ['/informations-admin'] },
               { to: '/connecteurs',     icon: <Settings         className="w-3.5 h-3.5" />, label: 'Connecteurs', match: ['/connecteurs'] },
             ] as const).map(({ to, icon, label, match }) => (
               <Link key={to} to={to}
@@ -311,6 +313,10 @@ export default function Navbar() {
               <Link to="/archives" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
                 <Archive className="w-4 h-4" /> Archives
+              </Link>
+              <Link to="/informations-admin" onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
+                <Info className="w-4 h-4" /> Infos page
               </Link>
               <Link to="/connecteurs" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
