@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import type { ShopCartItem, ShopPromoCode } from '../lib/shop'
-import { calcPromoDiscount } from '../lib/shop'
+import type { ShopCartItem, ShopPromoCode, BundlePromoConfig } from '../lib/shop'
+import { calcPromoDiscount, calcBundleDiscount, DEFAULT_BUNDLE_PROMO } from '../lib/shop'
 
 // ─── Session ID ────────────────────────────────────────────────────────────────
 function getSessionId(): string {
@@ -13,16 +13,18 @@ function getSessionId(): string {
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface CartContextType {
-  cartId:       string | null
-  items:        ShopCartItem[]
-  itemCount:    number
-  subtotal:     number
-  discount:     number
-  total:        number
-  expiresAt:    Date | null
-  appliedCode:  ShopPromoCode | null
-  isOpen:       boolean
-  loading:      boolean
+  cartId:         string | null
+  items:          ShopCartItem[]
+  itemCount:      number
+  subtotal:       number
+  discount:       number
+  bundleDiscount: number
+  bundleConfig:   BundlePromoConfig
+  total:          number
+  expiresAt:      Date | null
+  appliedCode:    ShopPromoCode | null
+  isOpen:         boolean
+  loading:        boolean
   addItem:      (productId: string, qty?: number, chosenPrice?: number) => Promise<{ success: boolean; error?: string }>
   removeItem:   (itemId: string, qty?: number) => Promise<void>
   clearCart:    () => Promise<void>
@@ -39,9 +41,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartId,      setCartId]      = useState<string | null>(null)
   const [items,       setItems]       = useState<ShopCartItem[]>([])
   const [expiresAt,   setExpiresAt]   = useState<Date | null>(null)
-  const [appliedCode, setAppliedCode] = useState<ShopPromoCode | null>(null)
-  const [isOpen,      setIsOpen]      = useState(false)
-  const [loading,     setLoading]     = useState(true)
+  const [appliedCode,  setAppliedCode]  = useState<ShopPromoCode | null>(null)
+  const [bundleConfig, setBundleConfig] = useState<BundlePromoConfig>(DEFAULT_BUNDLE_PROMO)
+  const [isOpen,       setIsOpen]       = useState(false)
+  const [loading,      setLoading]      = useState(true)
   const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cartIdRef   = useRef<string | null>(null)
 
@@ -82,6 +85,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const sessionId = getSessionId()
 
     await cleanupExpiredCarts()
+    // Charger la config promo bundle
+    const { data: bpData } = await supabase.from('settings').select('value').eq('key', 'bundle_promo_config').maybeSingle()
+    if (bpData?.value) { try { setBundleConfig({ ...DEFAULT_BUNDLE_PROMO, ...JSON.parse(bpData.value) }) } catch {} }
+
 
     const now = new Date().toISOString()
     const { data: existing } = await supabase
@@ -224,14 +231,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ── Calculs ───────────────────────────────────────────────────────────────────
-  const subtotal  = items.reduce((s, i) => s + (i.chosen_price ?? i.product?.price ?? 0) * i.quantity, 0)
-  const discount  = appliedCode ? calcPromoDiscount(subtotal, appliedCode) : 0
-  const total     = Math.max(0, subtotal - discount)
-  const itemCount = items.reduce((s, i) => s + i.quantity, 0)
+  const subtotal       = items.reduce((s, i) => s + (i.chosen_price ?? i.product?.price ?? 0) * i.quantity, 0)
+  const discount       = appliedCode ? calcPromoDiscount(subtotal, appliedCode) : 0
+  const bundleDiscount = calcBundleDiscount(items, bundleConfig)
+  const total          = Math.max(0, subtotal - discount - bundleDiscount)
+  const itemCount      = items.reduce((s, i) => s + i.quantity, 0)
 
   return (
     <CartContext.Provider value={{
-      cartId, items, itemCount, subtotal, discount, total,
+      cartId, items, itemCount, subtotal, discount, bundleDiscount, bundleConfig, total,
       expiresAt, appliedCode, isOpen, loading,
       addItem, removeItem, clearCart, applyPromoCode, removePromoCode,
       setIsOpen, refreshCart,

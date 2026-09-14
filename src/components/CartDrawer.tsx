@@ -132,7 +132,7 @@ function StripeCartForm({ cbItems, onSuccess, onError, stripeConfigured }: {
 
 // ─── CartDrawer ───────────────────────────────────────────────────────────────
 export default function CartDrawer() {
-  const { isOpen, setIsOpen, items: shopItems, itemCount: shopCount, removeItem: removeShopItem } = useCart()
+  const { isOpen, setIsOpen, items: shopItems, itemCount: shopCount, removeItem: removeShopItem, bundleDiscount, bundleConfig } = useCart()
   const { items: atelierItems, itemCount: atelierCount, removeItem, clearItems } = useAtelierCart()
 
   const [checkingOut,      setCheckingOut]      = useState(false)
@@ -528,6 +528,17 @@ export default function CartDrawer() {
                         </div>
                       </div>
                     ))}
+                    {bundleDiscount > 0 && (
+                      <div className="border-t border-dashed border-emerald-200 pt-2">
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                          <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-black">
+                            <span>🎁</span>
+                            <span>2 articles → le moins cher à -{bundleConfig.percent}%</span>
+                          </div>
+                          <span className="text-emerald-700 font-black text-sm">−{bundleDiscount.toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="border-t border-dashed border-[#1A1040]/20 pt-2">
                       <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium bg-gray-50 rounded-lg px-2 py-1.5">
                         <span>🚚</span>

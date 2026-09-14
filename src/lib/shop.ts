@@ -117,3 +117,45 @@ export function isSale(promo: ShopPromotion): boolean {
   if (promo.discount_type === 'percentage' && promo.discount_value >= 20) return true
   return false
 }
+
+// ─── Promo "2 articles = le moins cher à -X%" ─────────────────────────────────
+
+export interface BundlePromoConfig {
+  active:       boolean
+  percent:      number         // 0–100
+  category_ids: string[]       // liste d'IDs de catégories ; [] = toutes catégories
+  expires_at:   string | null  // ISO string ou null (permanent)
+}
+
+export const DEFAULT_BUNDLE_PROMO: BundlePromoConfig = {
+  active: false, percent: 50, category_ids: [], expires_at: null,
+}
+
+export function calcBundleDiscount(items: ShopCartItem[], config: BundlePromoConfig): number {
+  if (!config.active || config.percent <= 0) return 0
+  if (config.expires_at && new Date(config.expires_at) < new Date()) return 0
+
+  const eligible = items.filter(item => {
+    if (!item.product) return false
+    if (config.category_ids.length === 0) return true
+    return config.category_ids.includes(item.product.category_id ?? '')
+  })
+
+  const totalUnits = eligible.reduce((s, i) => s + i.quantity, 0)
+  if (totalUnits < 2) return 0
+
+  // Expansion par quantité → prix unitaires triés par ordre croissant
+  const prices: number[] = []
+  for (const item of eligible) {
+    const p = item.chosen_price ?? item.product?.price ?? 0
+    for (let q = 0; q < item.quantity; q++) prices.push(p)
+  }
+  prices.sort((a, b) => a - b)
+
+  // Chaque pair : l'article le moins cher est remisé
+  let discount = 0
+  for (let i = 0; i < prices.length - 1; i += 2) {
+    discount += Math.round(prices[i] * config.percent / 100 * 100) / 100
+  }
+  return Math.round(discount * 100) / 100
+}

@@ -169,7 +169,7 @@ function StripePayForm({ amount, onSuccess, onError, stripeConfigured }: {
 // ── ShopCheckout ──────────────────────────────────────────────────────────────
 
 export default function ShopCheckout({ onClose }: { onClose: () => void }) {
-  const { items, subtotal, discount, total, appliedCode, clearCart } = useCart()
+  const { items, subtotal, discount, bundleDiscount, bundleConfig, total, appliedCode, clearCart } = useCart()
 
   const [step,    setStep]    = useState<CheckoutStep>('method')
   const [method,  setMethod]  = useState<ShippingMethod | null>(null)
@@ -246,7 +246,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
       articles,
       sous_total:               subtotal,
       frais_livraison:          shippingCost,
-      remise:                   discount,
+      remise:                   discount + bundleDiscount,
       total:                    totalFinal,
       code_promo:               appliedCode?.code ?? null,
       stripe_payment_intent_id: paymentIntentId === 'demo' ? null : paymentIntentId,
@@ -267,7 +267,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
         articles,
         sous_total:      subtotal,
         frais_livraison: shippingCost,
-        remise:          discount,
+        remise:          discount + bundleDiscount,
         total:           totalFinal,
         code_promo:      appliedCode?.code ?? null,
         relay_nom:       relay?.nom     ?? null,
@@ -434,6 +434,11 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>Sous-total</span><span className="font-bold">{formatPrice(subtotal)}</span>
                   </div>
+                  {bundleDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-emerald-600 font-bold">
+                      <span>🎁 2 articles → le moins cher à -{bundleConfig.percent}%</span><span>-{formatPrice(bundleDiscount)}</span>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between text-sm text-green-600 font-bold">
                       <span>Réduction ({appliedCode?.code})</span><span>-{formatPrice(discount)}</span>

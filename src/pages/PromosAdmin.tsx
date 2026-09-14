@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Tag, Plus, Pencil, Trash2, Check, X, RefreshCw, Percent, DollarSign } from 'lucide-react'
+import { Tag, Plus, Pencil, Trash2, Check, X, RefreshCw, Percent, DollarSign, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import type { ShopCategory, ShopPromotion, ShopPromoCode } from '../lib/shop'
-import { formatPrice } from '../lib/shop'
+import type { ShopCategory, ShopPromotion, ShopPromoCode, BundlePromoConfig } from '../lib/shop'
+import { formatPrice, DEFAULT_BUNDLE_PROMO } from '../lib/shop'
 
 function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
   return (
@@ -246,7 +246,7 @@ function CodeModal({ code, onSave, onClose }: {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PromosAdmin() {
-  const [tab, setTab]             = useState<'promotions'|'codes'>('promotions')
+  const [tab, setTab]             = useState<'promotions'|'codes'|'bundle'>('promotions')
   const [promotions, setPromos]   = useState<ShopPromotion[]>([])
   const [codes, setCodes]         = useState<ShopPromoCode[]>([])
   const [categories, setCategories] = useState<ShopCategory[]>([])
@@ -254,19 +254,56 @@ export default function PromosAdmin() {
   const [editPromo, setEditPromo] = useState<ShopPromotion | null | undefined>(undefined)
   const [editCode, setEditCode]   = useState<ShopPromoCode | null | undefined>(undefined)
 
+  const [bundleConfig, setBundleConfig] = useState<BundlePromoConfig>(DEFAULT_BUNDLE_PROMO)
+  const [bundleSaving, setBundleSaving] = useState(false)
+  const [bundleSaved,  setBundleSaved]  = useState(false)
+  const [bundleExpiry, setBundleExpiry] = useState(false)
+  const [bundleExpiryDate, setBundleExpiryDate] = useState('')
+
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: promos }, { data: cds }, { data: cats }] = await Promise.all([
+    const [{ data: promos }, { data: cds }, { data: cats }, { data: bpData }] = await Promise.all([
       supabase.from('shop_promotions').select('*').order('created_at', { ascending: false }),
       supabase.from('shop_promo_codes').select('*').order('created_at', { ascending: false }),
       supabase.from('shop_categories').select('*').order('name'),
+      supabase.from('settings').select('value').eq('key', 'bundle_promo_config').maybeSingle(),
     ])
     setPromos((promos as ShopPromotion[]) || [])
     setCodes((cds as ShopPromoCode[]) || [])
     setCategories((cats as ShopCategory[]) || [])
+    if (bpData?.value) {
+      try {
+        const cfg: BundlePromoConfig = { ...DEFAULT_BUNDLE_PROMO, ...JSON.parse(bpData.value) }
+        setBundleConfig(cfg)
+        if (cfg.expires_at) { setBundleExpiry(true); setBundleExpiryDate(cfg.expires_at.slice(0, 10)) }
+      } catch {}
+    }
     setLoading(false)
+  }
+
+  function toggleBundleCategory(id: string) {
+    setBundleConfig(prev => ({
+      ...prev,
+      category_ids: prev.category_ids.includes(id)
+        ? prev.category_ids.filter(c => c !== id)
+        : [...prev.category_ids, id],
+    }))
+  }
+
+  async function saveBundleConfig() {
+    setBundleSaving(true)
+    const cfg: BundlePromoConfig = {
+      ...bundleConfig,
+      expires_at: bundleExpiry && bundleExpiryDate
+        ? new Date(bundleExpiryDate + 'T23:59:59').toISOString()
+        : null,
+    }
+    await supabase.from('settings').upsert({ key: 'bundle_promo_config', value: JSON.stringify(cfg) }, { onConflict: 'key' })
+    setBundleConfig(cfg)
+    setBundleSaving(false); setBundleSaved(true)
+    setTimeout(() => setBundleSaved(false), 3000)
   }
 
   async function togglePromo(p: ShopPromotion) {
@@ -307,8 +344,8 @@ export default function PromosAdmin() {
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* TABS */}
-        <div className="flex gap-2">
-          {[{id:'promotions',label:'🏷️ Promotions'},{id:'codes',label:'🎟️ Codes promo'}].map(t=>(
+        <div className="flex flex-wrap gap-2">
+          {[{id:'promotions',label:'🏷️ Promotions'},{id:'codes',label:'🎟️ Codes promo'},{id:'bundle',label:'🎁 Offre 2 articles'}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id as typeof tab)}
               className={`px-5 py-2.5 rounded-2xl font-black text-sm border-2 transition-all ${tab===t.id?'bg-[#1A1040] text-citron-400 border-[#1A1040]':'bg-white text-[#1A1040] border-[#1A1040] hover:bg-candy'}`}>
               {t.label}
@@ -423,6 +460,93 @@ export default function PromosAdmin() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        {/* ═══ OFFRE BUNDLE ═══ */}
+        {tab === 'bundle' && (
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow:'5px 5px 0px 0px #b4ff39' }}>
+            <SectionHeader icon={<Package className="w-5 h-5 text-[#1A1040]"/>} title="Offre 2 articles — le moins cher à -X%" sub="Dès 2 articles éligibles dans le panier, le moins cher est remisé" />
+            <div className="p-6 space-y-6">
+
+              {/* Activer / désactiver */}
+              <div className="flex items-center gap-3">
+                <button onClick={()=>setBundleConfig(p=>({...p,active:!p.active}))}
+                  className={`w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors relative ${bundleConfig.active?'bg-green-400':'bg-gray-200'}`}>
+                  <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${bundleConfig.active?'translate-x-6':'translate-x-0'}`}/>
+                </button>
+                <span className="font-black text-[#1A1040] text-sm">{bundleConfig.active ? 'Offre active' : 'Offre inactive'}</span>
+                {bundleConfig.active && <span className="text-[10px] font-black text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-300">EN LIGNE</span>}
+              </div>
+
+              {/* Pourcentage */}
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1.5 block">Remise sur le moins cher (%)</label>
+                <div className="flex items-center gap-3">
+                  <input type="number" min="1" max="100" value={bundleConfig.percent}
+                    onChange={e=>setBundleConfig(p=>({...p,percent:Math.min(100,Math.max(1,parseInt(e.target.value)||1))}))}
+                    className="w-28 border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-lg font-black text-center focus:outline-none focus:ring-2 focus:ring-lime-300"/>
+                  <span className="font-black text-[#1A1040] text-2xl">%</span>
+                  <span className="text-sm text-gray-500 font-medium">de remise sur l'article le moins cher de chaque paire</span>
+                </div>
+                <div className="mt-2 bg-lime-50 border border-lime-300 rounded-xl px-3 py-2 text-xs text-lime-700 font-medium">
+                  Exemple : 2 articles à 20 € et 15 € → le moins cher (15 €) est à −{bundleConfig.percent}% = {(15 * (1 - bundleConfig.percent / 100)).toFixed(2)} €
+                </div>
+              </div>
+
+              {/* Catégories */}
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1.5 block">Catégories éligibles</label>
+                <p className="text-xs text-gray-500 mb-3">Laissez tout décoché = tous les articles sont éligibles.</p>
+                {loading ? (
+                  <div className="text-sm text-gray-400">Chargement des catégories…</div>
+                ) : categories.length === 0 ? (
+                  <div className="text-sm text-gray-400">Aucune catégorie trouvée.</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(cat => {
+                      const selected = bundleConfig.category_ids.includes(cat.id)
+                      return (
+                        <button key={cat.id} onClick={()=>toggleBundleCategory(cat.id)}
+                          className={`px-3 py-1.5 rounded-xl border-2 font-black text-xs transition-all ${selected ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'bg-white text-[#1A1040] border-[#1A1040]/30 hover:border-[#1A1040]'}`}>
+                          {selected && <span className="mr-1">✓</span>}{cat.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {bundleConfig.category_ids.length === 0 && (
+                  <p className="text-xs text-emerald-600 font-bold mt-2">✓ Tous les articles sont éligibles</p>
+                )}
+              </div>
+
+              {/* Expiration */}
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1.5 block">Durée de l'offre</label>
+                <div className="flex gap-3 mb-3">
+                  {[{v:false,l:'Permanente'},{v:true,l:'Avec date de fin'}].map(opt=>(
+                    <button key={String(opt.v)} onClick={()=>setBundleExpiry(opt.v)}
+                      className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${bundleExpiry===opt.v?'bg-[#1A1040] text-citron-400 border-[#1A1040]':'bg-white text-[#1A1040] border-[#1A1040]/30 hover:border-[#1A1040]'}`}>
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+                {bundleExpiry && (
+                  <input type="date" value={bundleExpiryDate} onChange={e=>setBundleExpiryDate(e.target.value)}
+                    className="border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-lime-300"/>
+                )}
+              </div>
+
+              {/* Save */}
+              <button onClick={saveBundleConfig} disabled={bundleSaving}
+                className="flex items-center gap-2 bg-lime-300 text-[#1A1040] px-6 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all disabled:opacity-60"
+                style={{ boxShadow:'3px 3px 0 #1A1040' }}>
+                {bundleSaving
+                  ? <><RefreshCw className="w-4 h-4 animate-spin"/>Sauvegarde…</>
+                  : bundleSaved
+                    ? '✅ Sauvegardé !'
+                    : <><Check className="w-4 h-4"/>Sauvegarder la configuration</>}
+              </button>
             </div>
           </div>
         )}
