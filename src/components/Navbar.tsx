@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images, Info } from 'lucide-react'
+import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images, Info, Tag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useSiteSettings } from '../context/SiteSettingsContext'
 import { useCart } from '../context/CartContext'
@@ -223,7 +223,8 @@ export default function Navbar() {
               { to: '/actu-moment',     icon: <Newspaper        className="w-3.5 h-3.5" />, label: 'Actu', match: ['/actu-moment'] },
               { to: '/contact-admin',   icon: <Phone            className="w-3.5 h-3.5" />, label: 'Contact', match: ['/contact-admin'] },
               { to: '/navbar-admin',    icon: <Navigation       className="w-3.5 h-3.5" />, label: 'Navbar', match: ['/navbar-admin'] },
-              { to: '/boutique-admin',  icon: <ShoppingBag      className="w-3.5 h-3.5" />, label: 'Boutique', match: ['/boutique-admin', '/produits-admin', '/promos-admin'] },
+              { to: '/boutique-admin',  icon: <ShoppingBag      className="w-3.5 h-3.5" />, label: 'Boutique', match: ['/boutique-admin', '/produits-admin'] },
+              { to: '/promos-admin',    icon: <Tag              className="w-3.5 h-3.5" />, label: 'Promos', match: ['/promos-admin'] },
               { to: '/galerie-admin',   icon: <Images           className="w-3.5 h-3.5" />, label: 'Galerie', match: ['/galerie-admin'] },
               { to: '/archives',        icon: <Archive          className="w-3.5 h-3.5" />, label: 'Archives', match: ['/archives'] },
               { to: '/informations-admin', icon: <Info           className="w-3.5 h-3.5" />, label: 'Infos', match: ['/informations-admin'] },
@@ -305,6 +306,10 @@ export default function Navbar() {
               <Link to="/boutique-admin" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
                 <ShoppingBag className="w-4 h-4" /> Boutique
+              </Link>
+              <Link to="/promos-admin" onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
+                <Tag className="w-4 h-4" /> Promos
               </Link>
               <Link to="/galerie-admin" onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-4 py-3 rounded-xl text-sm font-bold border-2 border-[#1A1040]">
