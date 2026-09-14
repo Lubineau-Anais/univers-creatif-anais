@@ -14,13 +14,14 @@ function formatDate(d: string) {
 }
 
 const MODE_ICON: Record<string, React.ReactNode> = {
-  cb:       <CreditCard className="w-3.5 h-3.5" />,
-  virement: <Landmark   className="w-3.5 h-3.5" />,
-  cheque:   <BookCheck  className="w-3.5 h-3.5" />,
-  especes:  <Banknote   className="w-3.5 h-3.5" />,
+  cb:           <CreditCard className="w-3.5 h-3.5" />,
+  virement:     <Landmark   className="w-3.5 h-3.5" />,
+  cheque:       <BookCheck  className="w-3.5 h-3.5" />,
+  especes:      <Banknote   className="w-3.5 h-3.5" />,
+  carte_cadeau: <span className="text-xs">🎟️</span>,
 }
 const MODE_LABEL: Record<string, string> = {
-  cb: 'CB', virement: 'Virement', cheque: 'Chèque', especes: 'Espèces',
+  cb: 'CB', virement: 'Virement', cheque: 'Chèque', especes: 'Espèces', carte_cadeau: 'Carte cadeau',
 }
 
 // ─── Formulaire Stripe pour paiement CB depuis le panier ──────────────────────
@@ -477,6 +478,14 @@ export default function CartDrawer() {
                             )}
                           </div>
 
+                          {item.form.has_gift_card && (
+                            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1">
+                              <span className="text-xs">🎟️</span>
+                              <div className="text-[10px] text-emerald-700 font-bold flex-1">
+                                Bon cadeau −10 € <span className="font-normal text-emerald-600">(sur présentation le jour de l'atelier)</span>
+                              </div>
+                            </div>
+                          )}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1 bg-white/70 text-[#1A1040] text-[10px] font-black px-2 py-1 rounded-lg border border-[#1A1040]/20">
                               {MODE_ICON[item.form.paiement]}

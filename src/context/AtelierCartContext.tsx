@@ -11,6 +11,7 @@ export interface AtelierReservationForm {
   is_gift?: boolean
   gift_from?: string
   gift_to?: string
+  has_gift_card?: boolean
 }
 
 export interface AtelierCartItem {

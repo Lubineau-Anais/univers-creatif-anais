@@ -66,6 +66,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         is_gift: isGift,
         gift_from: isGift ? giftFrom : undefined,
         gift_to:   isGift ? giftTo   : undefined,
+        has_gift_card: hasGiftCard,
       },
       nbPersonnes: 1,
       personnesSup,
@@ -347,7 +348,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                 <p className="font-black text-[#1A1040] text-sm flex items-center gap-1.5">
                   <Gift className="w-4 h-4 text-emerald-500" /> J'ai une carte cadeau de 10 €
                 </p>
-                <p className="text-[11px] text-gray-500 font-medium mt-0.5">Le bon de remise sera déduit du tarif</p>
+                <p className="text-[11px] text-gray-500 font-medium mt-0.5">sur présentation du bon cadeau le jour de l'atelier</p>
               </div>
               {hasGiftCard && (
                 <span className="shrink-0 bg-emerald-500 text-white text-xs font-black px-2 py-0.5 rounded-full">−10 €</span>
