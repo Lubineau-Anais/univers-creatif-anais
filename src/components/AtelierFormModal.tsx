@@ -38,14 +38,19 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
   const [imagePreview, setImagePreview] = useState<string>('')
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState('')
-  const [priceMode,    setPriceMode]    = useState<'fixed' | 'percent'>('fixed')
+  const [priceMode,    setPriceMode]    = useState<'fixed' | 'percent' | 'euro'>('fixed')
   const [discountPct,  setDiscountPct]  = useState('')
+  const [discountEuro, setDiscountEuro] = useState('')
   const isEdit = !!atelier
 
   const prixOriginal  = parseFloat(form.prix) || 0
   const pct           = parseFloat(discountPct) || 0
-  const prixCalcule   = priceMode === 'percent' && prixOriginal > 0 && pct > 0
-    ? Math.round(prixOriginal * (1 - pct / 100) * 100) / 100
+  const remiseEuro    = parseFloat(discountEuro) || 0
+  const prixCalcule   =
+    priceMode === 'percent' && prixOriginal > 0 && pct > 0
+      ? Math.round(prixOriginal * (1 - pct / 100) * 100) / 100
+    : priceMode === 'euro' && prixOriginal > 0 && remiseEuro > 0
+      ? Math.max(0, Math.round((prixOriginal - remiseEuro) * 100) / 100)
     : null
 
   useEffect(() => {
@@ -103,7 +108,7 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
 
       let finalPrix: number
       let finalComparePrice: number | null
-      if (priceMode === 'percent' && prixCalcule !== null) {
+      if ((priceMode === 'percent' || priceMode === 'euro') && prixCalcule !== null) {
         finalPrix = prixCalcule
         finalComparePrice = prixOriginal
       } else {
@@ -224,20 +229,20 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
             {field('📍 Lieu', 'lieu', 'text', 'Ex: 12 rue des Arts')}
           </div>
 
-          {/* Prix — toggle Montant fixe / Pourcentage */}
+          {/* Prix — toggle Montant fixe / % de réduction / € de remise */}
           <div className="space-y-3">
             <div className="flex rounded-xl overflow-hidden border-2 border-[#1A1040] h-[38px]">
-              {(['fixed', 'percent'] as const).map(mode => (
+              {(['fixed', 'percent', 'euro'] as const).map(mode => (
                 <button key={mode} type="button" onClick={() => setPriceMode(mode)}
-                  className={`flex-1 text-xs font-black transition-all ${
+                  className={`flex-1 text-xs font-black transition-all border-r border-[#1A1040]/20 last:border-r-0 ${
                     priceMode === mode ? 'bg-[#1A1040] text-citron-400' : 'bg-candy text-[#1A1040] hover:bg-rose-50'
                   }`}>
-                  {mode === 'fixed' ? '💶 Montant fixe' : '🏷️ % de réduction'}
+                  {mode === 'fixed' ? '💶 Fixe' : mode === 'percent' ? '🏷️ % remise' : '✂️ € remise'}
                 </button>
               ))}
             </div>
 
-            {priceMode === 'fixed' ? (
+            {priceMode === 'fixed' && (
               <div className="grid grid-cols-2 gap-3">
                 {field('💶 Prix actuel (€)', 'prix', 'number', '35')}
                 <div>
@@ -248,7 +253,9 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
                   <p className="text-[10px] text-gray-400 mt-1">Laisse vide si pas de réduction</p>
                 </div>
               </div>
-            ) : (
+            )}
+
+            {priceMode === 'percent' && (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-3">
                   {field('💶 Prix original (€)', 'prix', 'number', '45')}
@@ -261,9 +268,30 @@ export default function AtelierFormModal({ atelier, categoryId, onClose, onSaved
                 </div>
                 {prixCalcule !== null && (
                   <div className="bg-rose-50 border-2 border-rose-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
-                    <span className="text-xs font-black text-gray-500 line-through">{prixOriginal.toFixed(2)}€</span>
-                    <span className="text-xs font-black text-rose-500">-{pct}%</span>
-                    <span className="text-base font-black text-[#1A1040]">→ {prixCalcule.toFixed(2)}€</span>
+                    <span className="text-xs font-black text-gray-500 line-through">{prixOriginal.toFixed(2)} €</span>
+                    <span className="text-xs font-black text-rose-500">−{pct} %</span>
+                    <span className="text-base font-black text-[#1A1040]">→ {prixCalcule.toFixed(2)} €</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {priceMode === 'euro' && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {field('💶 Prix original (€)', 'prix', 'number', '45')}
+                  <div>
+                    <label className="block text-sm font-black text-[#1A1040] mb-1">Remise (€)</label>
+                    <input type="number" min="1" step="0.01" value={discountEuro} placeholder="Ex: 10"
+                      onChange={e => setDiscountEuro(e.target.value)}
+                      className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 bg-candy" />
+                  </div>
+                </div>
+                {prixCalcule !== null && (
+                  <div className="bg-rose-50 border-2 border-rose-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs font-black text-gray-500 line-through">{prixOriginal.toFixed(2)} €</span>
+                    <span className="text-xs font-black text-rose-500">−{remiseEuro.toFixed(2)} €</span>
+                    <span className="text-base font-black text-[#1A1040]">→ {prixCalcule.toFixed(2)} €</span>
                   </div>
                 )}
               </div>
