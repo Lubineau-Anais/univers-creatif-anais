@@ -24,8 +24,8 @@ export default function InformationsAdmin() {
     e.preventDefault()
     setMapsSaving(true)
     await Promise.all([
-      supabase.from('page_content').upsert({ section: 'infos_maps_src', contenu: mapsUrl.trim() }, { onConflict: 'section' }),
-      supabase.from('page_content').upsert({ section: 'infos_adresse',  contenu: adresse.trim()  }, { onConflict: 'section' }),
+      supabase.from('page_content').upsert({ page: 'informations', section: 'infos_maps_src', contenu: mapsUrl.trim() }, { onConflict: 'page,section' }),
+      supabase.from('page_content').upsert({ page: 'informations', section: 'infos_adresse',  contenu: adresse.trim()  }, { onConflict: 'page,section' }),
     ])
     setMapsSaving(false); setMapsSaved(true)
     setTimeout(() => setMapsSaved(false), 3000)

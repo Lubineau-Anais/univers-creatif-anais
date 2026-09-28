@@ -112,7 +112,7 @@ export default function Informations() {
 
   async function loadContent() {
     const { data } = await supabase.from('page_content').select('section, contenu')
-      .in('section', Object.keys(DEFAULT_CONTENT))
+      .eq('page', 'informations').in('section', Object.keys(DEFAULT_CONTENT))
     if (!data) return
     const map: Record<string, string> = {}
     data.forEach(r => { map[r.section] = r.contenu })
@@ -135,7 +135,7 @@ export default function Informations() {
   }
 
   async function saveContent(section: string, contenu: string) {
-    await supabase.from('page_content').upsert({ section, contenu }, { onConflict: 'section' })
+    await supabase.from('page_content').upsert({ page: 'informations', section, contenu }, { onConflict: 'page,section' })
     setContent(prev => ({ ...prev, [section]: contenu }))
   }
 
