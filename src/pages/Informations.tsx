@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Pencil, Check, X, Clock, MapPin, ParkingCircle, Scissors, ExternalLink, Palette } from 'lucide-react'
+import { Pencil, Check, X, Clock, MapPin, ParkingCircle, Scissors, ExternalLink, Palette, Bold, Italic } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
@@ -22,6 +22,138 @@ const DEFAULT_CONTENT: Record<string, string> = {
   infos_adresse:       '',
   infos_stationnement: 'Parking gratuit devant l\'atelier.',
   infos_materiel:      'Aucun matériel spécifique requis, tout est fourni sur place !',
+}
+
+export interface CardStyle {
+  headerBg:        string
+  headerTextColor: string
+  contentColor:    string
+  fontFamily:      string
+  fontSize:        number
+  bold:            boolean
+  italic:          boolean
+}
+type CardKey = 'horaires' | 'maps' | 'stationnement' | 'materiel'
+type CardsStyle = Record<CardKey, CardStyle>
+
+const DEFAULT_CARD_STYLES: CardsStyle = {
+  horaires:      { headerBg: '#ffe500', headerTextColor: '#1A1040', contentColor: '#374151', fontFamily: 'sans-serif', fontSize: 14, bold: false, italic: false },
+  maps:          { headerBg: '#00d4c8', headerTextColor: '#1A1040', contentColor: '#374151', fontFamily: 'sans-serif', fontSize: 14, bold: false, italic: false },
+  stationnement: { headerBg: '#b4ff39', headerTextColor: '#1A1040', contentColor: '#374151', fontFamily: 'sans-serif', fontSize: 14, bold: false, italic: false },
+  materiel:      { headerBg: '#ffb5c8', headerTextColor: '#1A1040', contentColor: '#374151', fontFamily: 'sans-serif', fontSize: 14, bold: false, italic: false },
+}
+
+const FONTS = [
+  { value: 'sans-serif',  label: 'Sans-serif' },
+  { value: 'serif',       label: 'Serif' },
+  { value: 'monospace',   label: 'Monospace' },
+  { value: "'Pacifico', cursive",     label: 'Pacifico' },
+  { value: "'Playfair Display', serif", label: 'Playfair' },
+]
+
+function CardStyleEditor({ style, onSave, onClose }: {
+  style: CardStyle
+  onSave: (s: CardStyle) => Promise<void>; onClose: () => void
+}) {
+  const [draft, setDraft] = useState<CardStyle>({ ...style })
+  const [saving, setSaving] = useState(false)
+
+  const up = (patch: Partial<CardStyle>) => setDraft(p => ({ ...p, ...patch }))
+
+  async function save() {
+    setSaving(true); await onSave(draft); setSaving(false); onClose()
+  }
+
+  return (
+    <div className="bg-white border-2 border-[#1A1040] rounded-2xl shadow-xl p-4 space-y-3 text-[#1A1040]"
+      style={{ boxShadow: '4px 4px 0 #1A1040' }}>
+
+      {/* Aperçu */}
+      <div className="rounded-xl overflow-hidden border-2 border-[#1A1040]">
+        <div className="px-4 py-2 text-xs font-black uppercase tracking-wide"
+          style={{ backgroundColor: draft.headerBg, color: draft.headerTextColor }}>
+          Aperçu du bandeau
+        </div>
+        <div className="px-4 py-2 text-gray-400"
+          style={{ color: draft.contentColor, fontFamily: draft.fontFamily, fontSize: draft.fontSize,
+            fontWeight: draft.bold ? 700 : 400, fontStyle: draft.italic ? 'italic' : 'normal' }}>
+          Texte d'exemple
+        </div>
+      </div>
+
+      {/* Couleurs bandeau */}
+      <div className="grid grid-cols-2 gap-3">
+        {([
+          { label: 'Fond bandeau',  field: 'headerBg'        as const },
+          { label: 'Texte bandeau', field: 'headerTextColor' as const },
+        ]).map(({ label, field }) => (
+          <div key={field}>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">{label}</label>
+            <div className="flex items-center gap-2">
+              <input type="color" value={draft[field]} onChange={e => up({ [field]: e.target.value })}
+                className="w-8 h-8 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5 shrink-0" />
+              <input type="text" value={draft[field]} maxLength={7}
+                onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) up({ [field]: e.target.value }) }}
+                className="flex-1 border-2 border-[#1A1040]/30 rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-[#1A1040]" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Couleur contenu */}
+      <div>
+        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Couleur du texte</label>
+        <div className="flex items-center gap-2">
+          <input type="color" value={draft.contentColor} onChange={e => up({ contentColor: e.target.value })}
+            className="w-8 h-8 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5 shrink-0" />
+          <input type="text" value={draft.contentColor} maxLength={7}
+            onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) up({ contentColor: e.target.value }) }}
+            className="flex-1 border-2 border-[#1A1040]/30 rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-[#1A1040]" />
+        </div>
+      </div>
+
+      {/* Police */}
+      <div>
+        <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Police</label>
+        <select value={draft.fontFamily} onChange={e => up({ fontFamily: e.target.value })}
+          className="w-full border-2 border-[#1A1040]/30 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#1A1040] bg-white">
+          {FONTS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+        </select>
+      </div>
+
+      {/* Taille + style */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille (px)</label>
+          <input type="number" min={10} max={32} value={draft.fontSize}
+            onChange={e => up({ fontSize: Math.min(32, Math.max(10, parseInt(e.target.value) || 14)) })}
+            className="w-full border-2 border-[#1A1040]/30 rounded-xl px-3 py-2 text-sm text-center font-black focus:outline-none focus:border-[#1A1040]" />
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button onClick={() => up({ bold: !draft.bold })}
+            className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center font-black text-sm transition-all ${draft.bold ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-[#1A1040]/30 text-gray-500 hover:border-[#1A1040]'}`}>
+            <Bold className="w-4 h-4" />
+          </button>
+          <button onClick={() => up({ italic: !draft.italic })}
+            className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-all ${draft.italic ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-[#1A1040]/30 text-gray-500 hover:border-[#1A1040]'}`}>
+            <Italic className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2 pt-1">
+        <button onClick={onClose}
+          className="flex-1 border-2 border-[#1A1040] rounded-xl py-2 text-xs font-black hover:bg-gray-50">
+          Annuler
+        </button>
+        <button onClick={save} disabled={saving}
+          className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-xl py-2 text-xs font-black flex items-center justify-center gap-1 disabled:opacity-60">
+          <Check className="w-3.5 h-3.5" /> {saving ? 'Sauvegarde…' : 'Appliquer'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function EditableBlock({
@@ -87,6 +219,8 @@ export default function Informations() {
   const [content,         setContent]         = useState<Record<string, string>>(DEFAULT_CONTENT)
   const [heroBg,          setHeroBg]          = useState<HeroBg>(DEFAULT_BG)
   const [titreStyle,      setTitreStyle]      = useState<HeroStyle>(DEFAULT_TITRE_STYLE)
+  const [cardStyles,      setCardStyles]      = useState<CardsStyle>(DEFAULT_CARD_STYLES)
+  const [editingCard,     setEditingCard]     = useState<CardKey | null>(null)
   const [showBgEditor,    setShowBgEditor]    = useState(false)
   const [showTitreEditor, setShowTitreEditor] = useState(false)
   const [bgUploading,     setBgUploading]     = useState(false)
@@ -121,12 +255,19 @@ export default function Informations() {
 
   async function loadSettings() {
     const { data } = await supabase.from('settings').select('key, value')
-      .in('key', ['infos_hero_bg', 'infos_titre_style'])
+      .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style'])
     if (!data) return
     data.forEach(r => {
       if (r.key === 'infos_hero_bg')     { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
       if (r.key === 'infos_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
+      if (r.key === 'infos_cards_style') { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
     })
+  }
+
+  async function saveCardStyle(key: CardKey, style: CardStyle) {
+    const updated = { ...cardStyles, [key]: style }
+    await supabase.from('settings').upsert({ key: 'infos_cards_style', value: JSON.stringify(updated) }, { onConflict: 'key' })
+    setCardStyles(updated)
   }
 
   async function loadPolaroids() {
@@ -208,11 +349,29 @@ export default function Informations() {
           {/* Horaires */}
           <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
-            <div className="bg-citron-400 px-5 py-3 border-b-2 border-[#1A1040] flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#1A1040]" />
-              <h2 className="font-black text-[#1A1040] text-sm uppercase tracking-wide">Horaires d'ouverture</h2>
+            <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
+              style={{ backgroundColor: cardStyles.horaires.headerBg }}>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" style={{ color: cardStyles.horaires.headerTextColor }} />
+                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.horaires.headerTextColor }}>Horaires d'ouverture</h2>
+              </div>
+              {isAdmin && (
+                <button onClick={() => setEditingCard(editingCard === 'horaires' ? null : 'horaires')}
+                  className="w-6 h-6 rounded-lg border-2 border-[#1A1040]/30 flex items-center justify-center hover:bg-black/10 transition-colors">
+                  <Palette className="w-3.5 h-3.5" style={{ color: cardStyles.horaires.headerTextColor }} />
+                </button>
+              )}
             </div>
-            <div className="px-5 py-4">
+            {editingCard === 'horaires' && (
+              <div className="px-5 pt-4">
+                <CardStyleEditor style={cardStyles.horaires}
+                  onSave={s => saveCardStyle('horaires', s)} onClose={() => setEditingCard(null)} />
+              </div>
+            )}
+            <div className="px-5 py-4"
+              style={{ color: cardStyles.horaires.contentColor, fontFamily: cardStyles.horaires.fontFamily,
+                fontSize: cardStyles.horaires.fontSize, fontWeight: cardStyles.horaires.bold ? 700 : 400,
+                fontStyle: cardStyles.horaires.italic ? 'italic' : 'normal' }}>
               <EditableBlock value={content.infos_horaires}
                 onSave={v => saveContent('infos_horaires', v)}
                 placeholder="Ex: Lundi – Vendredi : 9h – 18h" isAdmin={isAdmin} />
@@ -222,19 +381,35 @@ export default function Informations() {
           {/* Carte Google Maps — 2 lignes sur desktop */}
           <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden md:row-span-2"
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
-            <div className="bg-[#00d4c8] px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2">
+            <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
+              style={{ backgroundColor: cardStyles.maps.headerBg }}>
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#1A1040]" />
-                <h2 className="font-black text-[#1A1040] text-sm uppercase tracking-wide">Plan d'accès</h2>
+                <MapPin className="w-4 h-4" style={{ color: cardStyles.maps.headerTextColor }} />
+                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.maps.headerTextColor }}>Plan d'accès</h2>
               </div>
-              {adresse && (
-                <a href={`https://maps.google.com/maps?q=${encodeURIComponent(adresse)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-black text-[#1A1040] bg-white/60 px-2 py-1 rounded-lg border border-[#1A1040]/30 hover:bg-white transition-colors">
-                  <ExternalLink className="w-3 h-3" /> Ouvrir
-                </a>
-              )}
+              <div className="flex items-center gap-2">
+                {adresse && (
+                  <a href={`https://maps.google.com/maps?q=${encodeURIComponent(adresse)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] font-black bg-white/60 px-2 py-1 rounded-lg border border-[#1A1040]/30 hover:bg-white transition-colors"
+                    style={{ color: cardStyles.maps.headerTextColor }}>
+                    <ExternalLink className="w-3 h-3" /> Ouvrir
+                  </a>
+                )}
+                {isAdmin && (
+                  <button onClick={() => setEditingCard(editingCard === 'maps' ? null : 'maps')}
+                    className="w-6 h-6 rounded-lg border-2 border-[#1A1040]/30 flex items-center justify-center hover:bg-black/10 transition-colors">
+                    <Palette className="w-3.5 h-3.5" style={{ color: cardStyles.maps.headerTextColor }} />
+                  </button>
+                )}
+              </div>
             </div>
+            {editingCard === 'maps' && (
+              <div className="px-5 pt-4">
+                <CardStyleEditor style={cardStyles.maps}
+                  onSave={s => saveCardStyle('maps', s)} onClose={() => setEditingCard(null)} />
+              </div>
+            )}
 
             {mapsUrl ? (
               <div className="relative" style={{ paddingBottom: '75%' }}>
@@ -270,11 +445,29 @@ export default function Informations() {
           {/* Stationnement */}
           <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
-            <div className="bg-lime-300 px-5 py-3 border-b-2 border-[#1A1040] flex items-center gap-2">
-              <ParkingCircle className="w-4 h-4 text-[#1A1040]" />
-              <h2 className="font-black text-[#1A1040] text-sm uppercase tracking-wide">Stationnement</h2>
+            <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
+              style={{ backgroundColor: cardStyles.stationnement.headerBg }}>
+              <div className="flex items-center gap-2">
+                <ParkingCircle className="w-4 h-4" style={{ color: cardStyles.stationnement.headerTextColor }} />
+                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.stationnement.headerTextColor }}>Stationnement</h2>
+              </div>
+              {isAdmin && (
+                <button onClick={() => setEditingCard(editingCard === 'stationnement' ? null : 'stationnement')}
+                  className="w-6 h-6 rounded-lg border-2 border-[#1A1040]/30 flex items-center justify-center hover:bg-black/10 transition-colors">
+                  <Palette className="w-3.5 h-3.5" style={{ color: cardStyles.stationnement.headerTextColor }} />
+                </button>
+              )}
             </div>
-            <div className="px-5 py-4">
+            {editingCard === 'stationnement' && (
+              <div className="px-5 pt-4">
+                <CardStyleEditor style={cardStyles.stationnement}
+                  onSave={s => saveCardStyle('stationnement', s)} onClose={() => setEditingCard(null)} />
+              </div>
+            )}
+            <div className="px-5 py-4"
+              style={{ color: cardStyles.stationnement.contentColor, fontFamily: cardStyles.stationnement.fontFamily,
+                fontSize: cardStyles.stationnement.fontSize, fontWeight: cardStyles.stationnement.bold ? 700 : 400,
+                fontStyle: cardStyles.stationnement.italic ? 'italic' : 'normal' }}>
               <EditableBlock value={content.infos_stationnement}
                 onSave={v => saveContent('infos_stationnement', v)}
                 placeholder="Ex: Parking gratuit devant l'atelier." isAdmin={isAdmin} />
@@ -285,11 +478,29 @@ export default function Informations() {
         {/* Matériel nécessaire — pleine largeur */}
         <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
           style={{ boxShadow: '4px 4px 0 #1A1040' }}>
-          <div className="bg-rose-400 px-5 py-3 border-b-2 border-[#1A1040] flex items-center gap-2">
-            <Scissors className="w-4 h-4 text-white" />
-            <h2 className="font-black text-white text-sm uppercase tracking-wide">Matériel nécessaire</h2>
+          <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
+            style={{ backgroundColor: cardStyles.materiel.headerBg }}>
+            <div className="flex items-center gap-2">
+              <Scissors className="w-4 h-4" style={{ color: cardStyles.materiel.headerTextColor }} />
+              <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.materiel.headerTextColor }}>Matériel nécessaire</h2>
+            </div>
+            {isAdmin && (
+              <button onClick={() => setEditingCard(editingCard === 'materiel' ? null : 'materiel')}
+                className="w-6 h-6 rounded-lg border-2 border-[#1A1040]/30 flex items-center justify-center hover:bg-black/10 transition-colors">
+                <Palette className="w-3.5 h-3.5" style={{ color: cardStyles.materiel.headerTextColor }} />
+              </button>
+            )}
           </div>
-          <div className="px-5 py-4">
+          {editingCard === 'materiel' && (
+            <div className="px-5 pt-4">
+              <CardStyleEditor style={cardStyles.materiel}
+                onSave={s => saveCardStyle('materiel', s)} onClose={() => setEditingCard(null)} />
+            </div>
+          )}
+          <div className="px-5 py-4"
+            style={{ color: cardStyles.materiel.contentColor, fontFamily: cardStyles.materiel.fontFamily,
+              fontSize: cardStyles.materiel.fontSize, fontWeight: cardStyles.materiel.bold ? 700 : 400,
+              fontStyle: cardStyles.materiel.italic ? 'italic' : 'normal' }}>
             <EditableBlock value={content.infos_materiel}
               onSave={v => saveContent('infos_materiel', v)}
               placeholder="Listez le matériel à apporter..." isAdmin={isAdmin} />
