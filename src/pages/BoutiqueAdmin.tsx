@@ -341,21 +341,6 @@ export default function BoutiqueAdmin() {
           </div>
         </div>
 
-        {/* RACCOURCIS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <a href="/produits-admin"
-            className="flex items-center gap-4 bg-white rounded-3xl border-4 border-[#1A1040] p-5 hover:bg-candy transition-all"
-            style={{ boxShadow:'4px 4px 0px 0px #1A1040' }}>
-            <span className="text-3xl">📦</span>
-            <div><div className="font-black text-[#1A1040]">Produits & catégories</div><div className="text-xs text-gray-500">Créer, modifier, gérer le stock</div></div>
-          </a>
-          <a href="/promos-admin"
-            className="flex items-center gap-4 bg-white rounded-3xl border-4 border-[#1A1040] p-5 hover:bg-candy transition-all"
-            style={{ boxShadow:'4px 4px 0px 0px #ffe500' }}>
-            <span className="text-3xl">🏷️</span>
-            <div><div className="font-black text-[#1A1040]">Promotions & codes promo</div><div className="text-xs text-gray-500">Soldes, réductions, codes</div></div>
-          </a>
-        </div>
 
       </div>
 
