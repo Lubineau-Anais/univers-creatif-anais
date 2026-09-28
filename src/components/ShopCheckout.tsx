@@ -184,10 +184,12 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
   const [shippingTranches, setShippingTranches] = useState<{ max_g: number; prix: number }[]>([])
   const [mrEnseigne,       setMrEnseigne]       = useState('')
   const [collectInfo,      setCollectInfo]      = useState('')
+  const [livraisonActive,    setLivraisonActive]    = useState(true)
+  const [clickCollectActive, setClickCollectActive] = useState(true)
 
   useEffect(() => {
     supabase.from('settings').select('key, value')
-      .in('key', ['stripe_public_key', 'mondial_relay_tarifs', 'mondial_relay_code_enseigne', 'click_collect_info'])
+      .in('key', ['stripe_public_key', 'mondial_relay_tarifs', 'mondial_relay_code_enseigne', 'click_collect_info', 'shop_livraison_active', 'shop_click_collect_active'])
       .then(({ data }) => {
         const m: Record<string, string> = {}
         data?.forEach(r => { m[r.key] = r.value || '' })
@@ -195,6 +197,8 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
         if (m['mondial_relay_tarifs'])        { try { setShippingTranches(JSON.parse(m['mondial_relay_tarifs'])) } catch {} }
         if (m['mondial_relay_code_enseigne']) setMrEnseigne(m['mondial_relay_code_enseigne'])
         if (m['click_collect_info'])          setCollectInfo(m['click_collect_info'])
+        if ('shop_livraison_active'     in m) setLivraisonActive(m['shop_livraison_active'] !== 'false')
+        if ('shop_click_collect_active' in m) setClickCollectActive(m['shop_click_collect_active'] !== 'false')
       })
   }, [])
 
@@ -328,24 +332,33 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
           {step === 'method' && (
             <div className="space-y-3">
               <p className="text-sm text-gray-500 font-medium">Comment souhaitez-vous recevoir votre commande ?</p>
-              {[
-                { value: 'mondial_relay'    as ShippingMethod, emoji: '📦', title: 'Mondial Relay',   sub: 'Livraison en point relais • Frais selon le poids' },
-                { value: 'click_and_collect' as ShippingMethod, emoji: '🏪', title: 'Click & Collect', sub: 'Retrait en boutique • Gratuit' },
-              ].map(opt => (
-                <button key={opt.value}
-                  onClick={() => { setMethod(opt.value); setStep('info') }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl border-4 border-[#1A1040] hover:bg-candy transition-all text-left group"
-                  style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl ${opt.value === 'mondial_relay' ? 'bg-[#1A1040]' : 'bg-citron-400'}`}>
-                    {opt.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-[#1A1040]">{opt.title}</div>
-                    <div className="text-sm text-gray-500 font-medium mt-0.5">{opt.sub}</div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-[#1A1040]/40 shrink-0 group-hover:translate-x-1 transition-transform" />
-                </button>
-              ))}
+              {([
+                { value: 'mondial_relay'     as ShippingMethod, emoji: '📦', title: 'Mondial Relay',   sub: 'Livraison en point relais • Frais selon le poids', enabled: livraisonActive },
+                { value: 'click_and_collect' as ShippingMethod, emoji: '🏪', title: 'Click & Collect', sub: 'Retrait en boutique • Gratuit',                    enabled: clickCollectActive },
+              ] as const).filter(opt => opt.enabled).length === 0 ? (
+                <div className="text-center py-6 text-gray-400 font-bold text-sm">
+                  🚫 Aucun mode de livraison disponible pour le moment.
+                </div>
+              ) : (
+                ([
+                  { value: 'mondial_relay'     as ShippingMethod, emoji: '📦', title: 'Mondial Relay',   sub: 'Livraison en point relais • Frais selon le poids', enabled: livraisonActive },
+                  { value: 'click_and_collect' as ShippingMethod, emoji: '🏪', title: 'Click & Collect', sub: 'Retrait en boutique • Gratuit',                    enabled: clickCollectActive },
+                ] as const).filter(opt => opt.enabled).map(opt => (
+                  <button key={opt.value}
+                    onClick={() => { setMethod(opt.value); setStep('info') }}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl border-4 border-[#1A1040] hover:bg-candy transition-all text-left group"
+                    style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl ${opt.value === 'mondial_relay' ? 'bg-[#1A1040]' : 'bg-citron-400'}`}>
+                      {opt.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-black text-[#1A1040]">{opt.title}</div>
+                      <div className="text-sm text-gray-500 font-medium mt-0.5">{opt.sub}</div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#1A1040]/40 shrink-0 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                ))
+              )}
             </div>
           )}
 

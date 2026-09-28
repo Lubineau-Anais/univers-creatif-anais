@@ -22,6 +22,8 @@ export default function MondialRelayManager() {
   const [showCle,       setShowCle]       = useState(false)
   const [tranches,      setTranches]      = useState<Tranche[]>(TRANCHES_DEFAUT)
   const [collectInfo,   setCollectInfo]   = useState('')
+  const [livraisonActive,    setLivraisonActive]    = useState(true)
+  const [clickCollectActive, setClickCollectActive] = useState(true)
   const [saving,        setSaving]        = useState(false)
   const [saved,         setSaved]         = useState(false)
   const [loading,       setLoading]       = useState(true)
@@ -30,7 +32,7 @@ export default function MondialRelayManager() {
 
   async function load() {
     const { data } = await supabase.from('settings').select('key, value')
-      .in('key', ['mondial_relay_code_enseigne', 'mondial_relay_cle_api', 'mondial_relay_tarifs', 'click_collect_info'])
+      .in('key', ['mondial_relay_code_enseigne', 'mondial_relay_cle_api', 'mondial_relay_tarifs', 'click_collect_info', 'shop_livraison_active', 'shop_click_collect_active'])
     const map: Record<string, string> = {}
     data?.forEach(r => { map[r.key] = r.value || '' })
     if (map['mondial_relay_code_enseigne']) setEnseigne(map['mondial_relay_code_enseigne'])
@@ -39,6 +41,8 @@ export default function MondialRelayManager() {
       try { setTranches(JSON.parse(map['mondial_relay_tarifs'])) } catch { /* keep default */ }
     }
     if (map['click_collect_info']) setCollectInfo(map['click_collect_info'])
+    if ('shop_livraison_active'     in map) setLivraisonActive(map['shop_livraison_active'] !== 'false')
+    if ('shop_click_collect_active' in map) setClickCollectActive(map['shop_click_collect_active'] !== 'false')
     setLoading(false)
   }
 
@@ -59,10 +63,12 @@ export default function MondialRelayManager() {
     setSaving(true)
     const tranchesTriees = [...tranches].sort((a, b) => a.max_g - b.max_g)
     await supabase.from('settings').upsert([
-      { key: 'mondial_relay_code_enseigne', value: enseigne },
-      { key: 'mondial_relay_cle_api',       value: cleApi },
-      { key: 'mondial_relay_tarifs',         value: JSON.stringify(tranchesTriees) },
-      { key: 'click_collect_info',           value: collectInfo },
+      { key: 'mondial_relay_code_enseigne',  value: enseigne },
+      { key: 'mondial_relay_cle_api',        value: cleApi },
+      { key: 'mondial_relay_tarifs',          value: JSON.stringify(tranchesTriees) },
+      { key: 'click_collect_info',            value: collectInfo },
+      { key: 'shop_livraison_active',         value: String(livraisonActive) },
+      { key: 'shop_click_collect_active',     value: String(clickCollectActive) },
     ], { onConflict: 'key' })
     setTranches(tranchesTriees)
     setSaving(false)
@@ -74,6 +80,29 @@ export default function MondialRelayManager() {
 
   return (
     <div className="space-y-6">
+
+      {/* Activer / désactiver les modes de livraison */}
+      <div className="bg-gray-50 border-2 border-[#1A1040] rounded-2xl p-4 space-y-3">
+        <h4 className="text-xs font-black text-gray-500 uppercase tracking-wide">Modes de livraison disponibles</h4>
+        {[
+          { label: '📦 Livraison Mondial Relay', sub: 'Livraison en point relais avec frais de port', active: livraisonActive, setActive: setLivraisonActive },
+          { label: '🏪 Click & Collect',         sub: 'Retrait sur place gratuit',                   active: clickCollectActive, setActive: setClickCollectActive },
+        ].map(opt => (
+          <div key={opt.label} className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black text-[#1A1040]">{opt.label}</p>
+              <p className="text-[11px] text-gray-400">{opt.sub}</p>
+            </div>
+            <button onClick={() => opt.setActive(!opt.active)}
+              className={`w-12 h-6 rounded-full border-2 border-[#1A1040] transition-colors relative shrink-0 ${opt.active ? 'bg-green-400' : 'bg-gray-200'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white border-2 border-[#1A1040] absolute top-0 transition-transform ${opt.active ? 'translate-x-6' : 'translate-x-0'}`} />
+            </button>
+          </div>
+        ))}
+        {!livraisonActive && !clickCollectActive && (
+          <p className="text-xs text-red-600 font-bold">⚠️ Aucun mode actif — les clients ne pourront pas commander !</p>
+        )}
+      </div>
 
       {/* Identifiants */}
       <div className="space-y-4">
