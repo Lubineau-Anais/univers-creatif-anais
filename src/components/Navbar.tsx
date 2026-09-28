@@ -55,6 +55,7 @@ export default function Navbar() {
   const itemCount = shopCount + atelierCount
 
   const [nav, setNav]           = useState<NavSettings>(DEFAULT_NAV)
+  const [navOrder, setNavOrder] = useState<number[]>(NAV_HREFS.map((_, i) => i))
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
   const [tabVisible, setTabVisible]   = useState(DEFAULT_TAB_VISIBLE)
 
@@ -75,7 +76,7 @@ export default function Navbar() {
       'navbar_bg_color', 'navbar_border_color', 'navbar_link_font',
       'navbar_active_bg', 'navbar_active_text',
       'navbar_inactive_text', 'navbar_hover_bg',
-      'navbar_mobile_bg', 'navbar_public_labels',
+      'navbar_mobile_bg', 'navbar_public_labels', 'navbar_nav_order',
       'nav_ateliers_visible', 'nav_contact_visible',
       'nav_galerie_visible', 'nav_boutique_visible', 'nav_informations_visible',
     ])
@@ -101,6 +102,12 @@ export default function Navbar() {
           })()
         : prev.labels,
     }))
+    if (map['navbar_nav_order']) {
+      try {
+        const order = JSON.parse(map['navbar_nav_order']) as number[]
+        if (Array.isArray(order) && order.length === NAV_HREFS.length) setNavOrder(order)
+      } catch {}
+    }
     setTabVisible({
       ateliers: map['nav_ateliers_visible'] !== 'false',
       contact:  map['nav_contact_visible']  !== 'false',
@@ -124,7 +131,7 @@ export default function Navbar() {
     }
   }
 
-  const navLinks = nav.labels.map((label, i) => ({ label, href: NAV_HREFS[i] }))
+  const navLinks = navOrder.map(i => ({ label: nav.labels[i], href: NAV_HREFS[i] }))
 
   return (
     <nav className="border-b-4 sticky top-0 z-50"

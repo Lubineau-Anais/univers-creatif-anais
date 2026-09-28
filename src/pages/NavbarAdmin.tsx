@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Check, RefreshCw, Navigation, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Check, RefreshCw, Navigation, X, GripVertical } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -15,6 +15,10 @@ interface NavSettings {
   labels:        string[]
 }
 
+const NAV_HREFS = ['/', '/ateliers', '/contact', '/galerie', '/boutique', '/informations']
+const NAV_NAMES = ['Accueil', 'Ateliers', 'Contact', 'Galerie', 'Boutique', 'Informations']
+const DEFAULT_ORDER = NAV_HREFS.map((_, i) => i)
+
 const DEFAULT_NAV: NavSettings = {
   bgColor:      '#ffffff',
   borderColor:  '#1A1040',
@@ -24,7 +28,7 @@ const DEFAULT_NAV: NavSettings = {
   inactiveText: '#1A1040',
   hoverBg:      '#ffe4e6',
   mobileBg:     '#ffb5c8',
-  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique'],
+  labels:       ['🏠 Accueil', '🎨 Nos Ateliers', '✉️ Contact', '🖼️ Galerie', '🛍️ Boutique', 'ℹ️ Informations'],
 }
 
 const FONT_OPTIONS = [
@@ -124,6 +128,9 @@ function NavPreview({ nav, hovered, setHovered }: {
 export default function NavbarAdmin() {
   const [nav, setNav]         = useState<NavSettings>(DEFAULT_NAV)
   const [hovered, setHovered] = useState<number | null>(null)
+  const [navOrder, setNavOrder] = useState<number[]>(DEFAULT_ORDER)
+  const dragIdx  = useRef<number | null>(null)
+  const dragOver = useRef<number | null>(null)
 
   // Section saves
   const [tabVisible, setTabVisible] = useState({ ateliers: true, contact: true, galerie: true, boutique: true, informations: true })
@@ -143,7 +150,7 @@ export default function NavbarAdmin() {
       'navbar_bg_color', 'navbar_border_color', 'navbar_link_font',
       'navbar_active_bg', 'navbar_active_text',
       'navbar_inactive_text', 'navbar_hover_bg',
-      'navbar_mobile_bg', 'navbar_public_labels',
+      'navbar_mobile_bg', 'navbar_public_labels', 'navbar_nav_order',
       'nav_ateliers_visible', 'nav_contact_visible',
       'nav_galerie_visible', 'nav_boutique_visible', 'nav_informations_visible',
     ])
@@ -169,6 +176,12 @@ export default function NavbarAdmin() {
           })()
         : prev.labels,
     }))
+    if (map['navbar_nav_order']) {
+      try {
+        const order = JSON.parse(map['navbar_nav_order']) as number[]
+        if (Array.isArray(order) && order.length === NAV_HREFS.length) setNavOrder(order)
+      } catch {}
+    }
     setTabVisible({
       ateliers: map['nav_ateliers_visible'] !== 'false',
       contact:  map['nav_contact_visible']  !== 'false',
@@ -240,8 +253,21 @@ export default function NavbarAdmin() {
 
   async function saveLabels() {
     setS6Saving(true)
-    await upsertMany([{ key: 'navbar_public_labels', value: JSON.stringify(nav.labels) }])
+    await upsertMany([
+      { key: 'navbar_public_labels', value: JSON.stringify(nav.labels) },
+      { key: 'navbar_nav_order',     value: JSON.stringify(navOrder) },
+    ])
     setS6Saving(false); flash(setS6Saved)
+  }
+
+  function handleDrop(dropPos: number) {
+    if (dragIdx.current === null || dragIdx.current === dropPos) return
+    const newOrder = [...navOrder]
+    const [moved] = newOrder.splice(dragIdx.current, 1)
+    newOrder.splice(dropPos, 0, moved)
+    setNavOrder(newOrder)
+    dragIdx.current = null
+    dragOver.current = null
   }
 
   return (
@@ -422,23 +448,37 @@ export default function NavbarAdmin() {
           </div>
         </div>
 
-        {/* INTITULÉS DES LIENS */}
+        {/* INTITULÉS & ORDRE DES LIENS */}
         <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden" style={{ boxShadow: '5px 5px 0px 0px #86efac' }}>
-          <SectionHeader icon={<span className="text-lg">🏷️</span>} title="Intitulés des liens" sub="Texte affiché dans les 5 onglets publics" />
-          <div className="p-6 space-y-4">
-            {nav.labels.map((label, i) => (
-              <div key={i}>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Lien {i + 1}</label>
-                <input type="text" value={label}
+          <SectionHeader icon={<span className="text-lg">🏷️</span>} title="Intitulés & ordre des liens" sub="Glisse pour réordonner · modifie le texte de chaque onglet" />
+          <div className="p-6 space-y-2">
+            <p className="text-[11px] text-gray-400 font-bold mb-3">⟺ Glisse les rangées pour changer l'ordre d'affichage dans la barre de navigation</p>
+            {navOrder.map((origIdx, displayPos) => (
+              <div key={origIdx}
+                draggable
+                onDragStart={() => { dragIdx.current = displayPos }}
+                onDragOver={e => { e.preventDefault(); dragOver.current = displayPos }}
+                onDrop={() => handleDrop(displayPos)}
+                onDragEnd={() => { dragIdx.current = null; dragOver.current = null }}
+                className="flex items-center gap-3 bg-gray-50 border-2 border-[#1A1040]/20 hover:border-[#1A1040] rounded-2xl px-3 py-2.5 cursor-grab active:cursor-grabbing transition-colors group">
+                <GripVertical className="w-4 h-4 text-gray-300 group-hover:text-gray-500 shrink-0 transition-colors" />
+                <span className="text-[10px] font-black text-gray-400 w-6 shrink-0">{displayPos + 1}</span>
+                <span className="text-[10px] font-mono bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded shrink-0">{NAV_HREFS[origIdx]}</span>
+                <input type="text" value={nav.labels[origIdx]}
                   onChange={e => setNav(p => {
                     const labels = [...p.labels]
-                    labels[i] = e.target.value
+                    labels[origIdx] = e.target.value
                     return { ...p, labels }
                   })}
-                  className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-400" />
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                  className="flex-1 bg-white border-2 border-[#1A1040]/20 rounded-xl px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-[#1A1040]" />
+                <span className="text-[10px] font-black text-gray-300 shrink-0">{NAV_NAMES[origIdx]}</span>
               </div>
             ))}
-            <SaveBtn onClick={saveLabels} saving={s6Saving} saved={s6Saved} label="Enregistrer les intitulés" shadow="#86efac" />
+            <div className="pt-2">
+              <SaveBtn onClick={saveLabels} saving={s6Saving} saved={s6Saved} label="Enregistrer les intitulés & l'ordre" shadow="#86efac" />
+            </div>
           </div>
         </div>
 
