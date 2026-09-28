@@ -491,8 +491,9 @@ async function loadContent() {
 
       {/* ===== HERO ===== */}
       <section
-        className="relative min-h-screen px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex flex-col"
+        className="relative px-4 text-center overflow-hidden border-b-4 border-[#1A1040] flex flex-col"
         style={{
+          minHeight: '80vh',
           ...(heroReady ? buildHeroBgStyle(heroBg) : { backgroundColor: '#ffffff' }),
           opacity: heroReady ? 1 : 0,
           transition: 'opacity 0.25s ease-in',
