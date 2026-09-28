@@ -16,12 +16,16 @@ const DEFAULT_TITRE_STYLE: HeroStyle = {
   shadow: false, shadowColor: '#00000033', shadowBlur: 4, shadowX: 2, shadowY: 2,
 }
 const DEFAULT_CONTENT: Record<string, string> = {
-  infos_titre:         'Informations pratiques 📍',
-  infos_horaires:      'Lundi – Vendredi : 9h – 18h\nSamedi : 10h – 16h\nDimanche : Fermé',
-  infos_maps_src:      '',
-  infos_adresse:       '',
-  infos_stationnement: 'Parking gratuit devant l\'atelier.',
-  infos_materiel:      'Aucun matériel spécifique requis, tout est fourni sur place !',
+  infos_titre:              'Informations pratiques 📍',
+  infos_horaires:           'Lundi – Vendredi : 9h – 18h\nSamedi : 10h – 16h\nDimanche : Fermé',
+  infos_maps_src:           '',
+  infos_adresse:            '',
+  infos_stationnement:      'Parking gratuit devant l\'atelier.',
+  infos_materiel:           'Aucun matériel spécifique requis, tout est fourni sur place !',
+  infos_titre_horaires:     'Horaires d\'ouverture',
+  infos_titre_maps:         'Plan d\'accès',
+  infos_titre_stationnement:'Stationnement',
+  infos_titre_materiel:     'Matériel nécessaire',
 }
 
 export interface CardStyle {
@@ -214,6 +218,52 @@ function EditableBlock({
   )
 }
 
+function EditableTitle({ value, onSave, isAdmin, textColor }: {
+  value: string; onSave: (v: string) => Promise<void>
+  isAdmin: boolean; textColor: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft,   setDraft]   = useState(value)
+  const [saving,  setSaving]  = useState(false)
+
+  useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
+
+  async function save() {
+    if (!draft.trim()) return
+    setSaving(true); await onSave(draft.trim()); setSaving(false); setEditing(false)
+  }
+
+  if (!isAdmin) {
+    return <span className="font-black text-sm uppercase tracking-wide" style={{ color: textColor }}>{value}</span>
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 flex-1 min-w-0">
+        <input autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+          className="flex-1 min-w-0 bg-white/80 text-[#1A1040] text-xs font-black uppercase tracking-wide border-2 border-[#1A1040] rounded-lg px-2 py-0.5 focus:outline-none" />
+        <button onClick={save} disabled={saving}
+          className="w-5 h-5 rounded-md bg-lime-300 border border-[#1A1040] flex items-center justify-center shrink-0 disabled:opacity-50">
+          <Check className="w-3 h-3 text-[#1A1040]" />
+        </button>
+        <button onClick={() => setEditing(false)}
+          className="w-5 h-5 rounded-md bg-white border border-[#1A1040] flex items-center justify-center shrink-0">
+          <X className="w-3 h-3 text-[#1A1040]" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button onClick={() => setEditing(true)}
+      className="group flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+      <span className="font-black text-sm uppercase tracking-wide" style={{ color: textColor }}>{value}</span>
+      <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" style={{ color: textColor }} />
+    </button>
+  )
+}
+
 export default function Informations() {
   const { isAdmin } = useAuth()
   const [content,         setContent]         = useState<Record<string, string>>(DEFAULT_CONTENT)
@@ -351,9 +401,11 @@ export default function Informations() {
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.horaires.headerBg }}>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" style={{ color: cardStyles.horaires.headerTextColor }} />
-                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.horaires.headerTextColor }}>Horaires d'ouverture</h2>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Clock className="w-4 h-4 shrink-0" style={{ color: cardStyles.horaires.headerTextColor }} />
+                <EditableTitle value={content.infos_titre_horaires}
+                  onSave={v => saveContent('infos_titre_horaires', v)}
+                  isAdmin={isAdmin} textColor={cardStyles.horaires.headerTextColor} />
               </div>
               {isAdmin && (
                 <button onClick={() => setEditingCard(editingCard === 'horaires' ? null : 'horaires')}
@@ -383,9 +435,11 @@ export default function Informations() {
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.maps.headerBg }}>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" style={{ color: cardStyles.maps.headerTextColor }} />
-                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.maps.headerTextColor }}>Plan d'accès</h2>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <MapPin className="w-4 h-4 shrink-0" style={{ color: cardStyles.maps.headerTextColor }} />
+                <EditableTitle value={content.infos_titre_maps}
+                  onSave={v => saveContent('infos_titre_maps', v)}
+                  isAdmin={isAdmin} textColor={cardStyles.maps.headerTextColor} />
               </div>
               <div className="flex items-center gap-2">
                 {adresse && (
@@ -447,9 +501,11 @@ export default function Informations() {
             style={{ boxShadow: '4px 4px 0 #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.stationnement.headerBg }}>
-              <div className="flex items-center gap-2">
-                <ParkingCircle className="w-4 h-4" style={{ color: cardStyles.stationnement.headerTextColor }} />
-                <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.stationnement.headerTextColor }}>Stationnement</h2>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <ParkingCircle className="w-4 h-4 shrink-0" style={{ color: cardStyles.stationnement.headerTextColor }} />
+                <EditableTitle value={content.infos_titre_stationnement}
+                  onSave={v => saveContent('infos_titre_stationnement', v)}
+                  isAdmin={isAdmin} textColor={cardStyles.stationnement.headerTextColor} />
               </div>
               {isAdmin && (
                 <button onClick={() => setEditingCard(editingCard === 'stationnement' ? null : 'stationnement')}
@@ -480,9 +536,11 @@ export default function Informations() {
           style={{ boxShadow: '4px 4px 0 #1A1040' }}>
           <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
             style={{ backgroundColor: cardStyles.materiel.headerBg }}>
-            <div className="flex items-center gap-2">
-              <Scissors className="w-4 h-4" style={{ color: cardStyles.materiel.headerTextColor }} />
-              <h2 className="font-black text-sm uppercase tracking-wide" style={{ color: cardStyles.materiel.headerTextColor }}>Matériel nécessaire</h2>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Scissors className="w-4 h-4 shrink-0" style={{ color: cardStyles.materiel.headerTextColor }} />
+              <EditableTitle value={content.infos_titre_materiel}
+                onSave={v => saveContent('infos_titre_materiel', v)}
+                isAdmin={isAdmin} textColor={cardStyles.materiel.headerTextColor} />
             </div>
             {isAdmin && (
               <button onClick={() => setEditingCard(editingCard === 'materiel' ? null : 'materiel')}
