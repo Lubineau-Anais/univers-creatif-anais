@@ -347,26 +347,46 @@ export default function Informations() {
 
       <PolaroidMobileStrip polaroids={polaroids} isAdmin={isAdmin} />
 
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b-4 border-[#1A1040]"
-        style={{ ...buildHeroBgStyle(heroBg), minHeight: '220px' }}>
-        {heroBg.type === 'video' && heroBg.videoUrl && (
-          <video ref={videoRef} src={heroBg.videoUrl} autoPlay muted={heroBg.videoMuted}
-            loop={heroBg.videoLoop} playsInline
-            className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
-        )}
-        {heroBg.type === 'video' && heroBg.videoOverlay !== 'transparent' && (
-          <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay, zIndex: 1 }} />
-        )}
+      {/* Enveloppe Hero + Contenu pour que les polaroïds flottent sur toute la page */}
+      <div className="relative">
 
-        {isAdmin && (
-          <button onClick={() => setShowBgEditor(true)}
-            className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-            <Palette className="w-3.5 h-3.5" /> Fond du hero
-          </button>
-        )}
+        {/* ── Hero ── */}
+        <section className="relative overflow-hidden border-b-4 border-[#1A1040]"
+          style={{ ...buildHeroBgStyle(heroBg), minHeight: '220px' }}>
+          {heroBg.type === 'video' && heroBg.videoUrl && (
+            <video ref={videoRef} src={heroBg.videoUrl} autoPlay muted={heroBg.videoMuted}
+              loop={heroBg.videoLoop} playsInline
+              className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
+          )}
+          {heroBg.type === 'video' && heroBg.videoOverlay !== 'transparent' && (
+            <div className="absolute inset-0" style={{ backgroundColor: heroBg.videoOverlay, zIndex: 1 }} />
+          )}
 
-        {/* Polaroids desktop */}
+          {isAdmin && (
+            <button onClick={() => setShowBgEditor(true)}
+              className="absolute top-4 left-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+              <Palette className="w-3.5 h-3.5" /> Fond du hero
+            </button>
+          )}
+
+          <div className="relative z-10 max-w-5xl mx-auto px-6 py-14 flex flex-col items-center text-center gap-4">
+            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: content.infos_titre }} />
+            {isAdmin && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                <button onClick={() => setShowTitreEditor(true)}
+                  className="flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3.5 h-3.5" /> Modifier le titre
+                </button>
+                <button onClick={() => setShowPolaroidManager(true)}
+                  className="flex items-center gap-1.5 bg-rose-400 text-white px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-rose-500 transition-all">
+                  📸 Polaroids
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Polaroïds flottants — desktop uniquement, positionnés par rapport à la page entière */}
         <div className="hidden md:contents">
           {polaroids.filter(p => p.is_visible || isAdmin).map((p, i) => (
             <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin}
@@ -374,25 +394,8 @@ export default function Informations() {
           ))}
         </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6 py-14 flex flex-col items-center text-center gap-4">
-          <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: content.infos_titre }} />
-          {isAdmin && (
-            <div className="flex flex-wrap gap-2 mt-1">
-              <button onClick={() => setShowTitreEditor(true)}
-                className="flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-                <Pencil className="w-3.5 h-3.5" /> Modifier le titre
-              </button>
-              <button onClick={() => setShowPolaroidManager(true)}
-                className="flex items-center gap-1.5 bg-rose-400 text-white px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-rose-500 transition-all">
-                📸 Polaroids
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Contenu ── */}
-      <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+        {/* ── Contenu ── */}
+        <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -565,6 +568,8 @@ export default function Informations() {
           </div>
         </div>
       </div>
+
+      </div>{/* fin div.relative */}
 
       {/* ── Éditeur titre ── */}
       {showTitreEditor && (
