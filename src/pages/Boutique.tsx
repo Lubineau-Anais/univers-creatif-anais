@@ -25,8 +25,12 @@ const DEFAULT_TITRE: HeroStyle = {
   shadow: false, shadowColor: '#00000033', shadowBlur: 4, shadowX: 2, shadowY: 2,
 }
 
+// ─── Constantes polaroïd ──────────────────────────────────────────────────────
+const PROD_ROTS  = ['-rotate-2', 'rotate-1', 'rotate-3', '-rotate-1', 'rotate-2', '-rotate-3']
+const PROD_TAPES = ['bg-citron-400/60', 'bg-rose-400/60', 'bg-turquoise-400/60', 'bg-lime-300/60', 'bg-orange-400/60', 'bg-violet-400/60']
+
 // ─── Composant : Carte produit ─────────────────────────────────────────────────
-function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit, onDelete }: {
+function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit, onDelete, index }: {
   product: ShopProduct
   promotions: ShopPromotion[]
   onAddToCart: (productId: string, chosenPrice?: number) => Promise<void>
@@ -34,14 +38,16 @@ function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit
   isAdmin?: boolean
   onEdit?: (product: ShopProduct) => void
   onDelete?: (productId: string) => void
+  index: number
 }) {
   const [adding, setAdding] = useState(false)
   const [added, setAdded]   = useState(false)
-  const [hovered, setHovered] = useState(false)
   const promo = getActivePromoForProduct(product, promotions)
   const discountedPrice = getDiscountedPrice(product, promotions)
   const isOutOfStock = !product.stock_illimite && !product.sur_commande && product.stock === 0
   const hasMontants = !!product.montants_disponibles?.length
+  const rot  = PROD_ROTS[index % PROD_ROTS.length]
+  const tape = PROD_TAPES[index % PROD_TAPES.length]
 
   async function handleAdd() {
     if (hasMontants) { onOpen(product); return }
@@ -53,97 +59,99 @@ function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit
   }
 
   return (
-    <div className="bg-white rounded-3xl border-4 border-[#1A1040] overflow-hidden flex flex-col transition-all hover:-translate-y-1"
-      style={{ boxShadow: hovered ? '6px 6px 0px 0px #1A1040' : '4px 4px 0px 0px #1A1040' }}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div className={`${rot} hover:rotate-0 transition-all duration-300 relative`}
+      style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+      {/* Scotch */}
+      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
+      <div className="bg-white p-3 pb-4 border-2 border-[#1A1040] rounded-sm flex flex-col"
+        style={{ width: '200px', boxShadow: '5px 5px 0px 0px #1A1040' }}>
 
-      {/* Image */}
-      <div className="relative h-44 bg-candy border-b-2 border-[#1A1040] overflow-hidden cursor-pointer" onClick={() => onOpen(product)}>
-        {product.images?.[0]
-          ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover"/>
-          : <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>}
+        {/* Image */}
+        <div className="relative bg-candy border border-gray-200 overflow-hidden mb-3 cursor-pointer"
+          style={{ height: '170px' }} onClick={() => onOpen(product)}>
+          {product.images?.[0]
+            ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover"/>
+            : <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>}
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {isOutOfStock && (
-            <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-red-600">Rupture de stock</span>
-          )}
-          {product.sur_commande && !isOutOfStock && (
-            <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-300">Sur commande</span>
-          )}
-          {promo && !isOutOfStock && (
-            <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-600">
-              -{promo.discount_type === 'percentage' ? `${promo.discount_value}%` : formatPrice(promo.discount_value)}
-            </span>
-          )}
-          {product.compare_price && product.compare_price > product.price && !promo && (
-            <span className="bg-amber-400 text-[#1A1040] text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500">PROMO</span>
-          )}
-        </div>
-        {!product.stock_illimite && product.stock > 0 && product.stock <= 5 && (
-          <div className="absolute bottom-2 right-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-400">
-            Plus que {product.stock} !
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {isOutOfStock && (
+              <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-red-600">Rupture</span>
+            )}
+            {product.sur_commande && !isOutOfStock && (
+              <span className="bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-blue-300">Sur commande</span>
+            )}
+            {promo && !isOutOfStock && (
+              <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-rose-600">
+                -{promo.discount_type === 'percentage' ? `${promo.discount_value}%` : formatPrice(promo.discount_value)}
+              </span>
+            )}
+            {product.compare_price && product.compare_price > product.price && !promo && (
+              <span className="bg-amber-400 text-[#1A1040] text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500">PROMO</span>
+            )}
           </div>
-        )}
+          {!product.stock_illimite && product.stock > 0 && product.stock <= 5 && (
+            <div className="absolute bottom-2 right-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-400">
+              Plus que {product.stock} !
+            </div>
+          )}
 
-        {/* Admin : modifier / supprimer */}
-        {isAdmin && (
-          <div className="absolute top-2 right-2 flex gap-1">
-            <button onClick={() => onEdit?.(product)}
-              className="w-7 h-7 bg-citron-400 rounded-lg flex items-center justify-center border-2 border-[#1A1040] hover:bg-yellow-300 transition-colors">
-              <Pencil className="w-3.5 h-3.5 text-[#1A1040]" />
-            </button>
-            <button onClick={() => onDelete?.(product.id)}
-              className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center border-2 border-red-400 hover:bg-red-200 transition-colors">
-              <Trash2 className="w-3.5 h-3.5 text-red-600" />
-            </button>
+          {/* Admin : modifier / supprimer */}
+          {isAdmin && (
+            <div className="absolute top-2 right-2 flex gap-1">
+              <button onClick={() => onEdit?.(product)}
+                className="w-7 h-7 bg-citron-400 rounded-lg flex items-center justify-center border-2 border-[#1A1040] hover:bg-yellow-300 transition-colors">
+                <Pencil className="w-3.5 h-3.5 text-[#1A1040]" />
+              </button>
+              <button onClick={() => onDelete?.(product.id)}
+                className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center border-2 border-red-400 hover:bg-red-200 transition-colors">
+                <Trash2 className="w-3.5 h-3.5 text-red-600" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Infos */}
+        <div className="flex flex-col flex-1 gap-2">
+          <div className="flex-1 cursor-pointer text-center" onClick={() => onOpen(product)}>
+            <h3 className="font-black text-[#1A1040] text-sm leading-tight">{product.name}</h3>
           </div>
-        )}
-      </div>
 
-      {/* Infos */}
-      <div className="flex flex-col flex-1 p-4 gap-3">
-        <div className="flex-1 cursor-pointer" onClick={() => onOpen(product)}>
-          <h3 className="font-black text-[#1A1040] text-sm leading-tight">{product.name}</h3>
-          {product.description && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
-          )}
+          {/* Prix */}
+          <div className="flex items-baseline justify-center gap-2">
+            {hasMontants ? (
+              <span className="text-xs font-black text-[#1A1040]">À partir de {formatPrice(Math.min(...(product.montants_disponibles || [0])))}</span>
+            ) : (
+              <>
+                <span className="text-lg font-black text-[#1A1040]">{formatPrice(discountedPrice)}</span>
+                {(promo || (product.compare_price && product.compare_price > product.price)) && (
+                  <span className="text-xs text-gray-400 line-through">
+                    {formatPrice(promo ? product.price : (product.compare_price ?? 0))}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Bouton */}
+          <button
+            onClick={handleAdd}
+            disabled={isOutOfStock || adding}
+            className={`w-full py-2 rounded-xl font-black text-xs border-2 transition-all flex items-center justify-center gap-1.5 ${
+              isOutOfStock
+                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                : added
+                ? 'bg-green-400 text-white border-green-400'
+                : 'bg-citron-400 text-[#1A1040] border-[#1A1040] hover:bg-yellow-300 active:translate-y-0.5'
+            }`}
+            style={!isOutOfStock && !added ? { boxShadow: '2px 2px 0px 0px #1A1040' } : {}}>
+            {isOutOfStock ? 'Rupture de stock'
+              : added ? '✓ Ajouté !'
+              : adding ? '…'
+              : hasMontants ? <>🎁 Choisir</>
+              : <><ShoppingCart className="w-3.5 h-3.5"/> Ajouter</>}
+          </button>
         </div>
-
-        {/* Prix */}
-        <div className="flex items-baseline gap-2">
-          {hasMontants ? (
-            <span className="text-sm font-black text-[#1A1040]">À partir de {formatPrice(Math.min(...(product.montants_disponibles || [0])))}</span>
-          ) : (
-            <>
-              <span className="text-xl font-black text-[#1A1040]">{formatPrice(discountedPrice)}</span>
-              {(promo || (product.compare_price && product.compare_price > product.price)) && (
-                <span className="text-sm text-gray-400 line-through">
-                  {formatPrice(promo ? product.price : (product.compare_price ?? 0))}
-                </span>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Bouton */}
-        <button
-          onClick={handleAdd}
-          disabled={isOutOfStock || adding}
-          className={`w-full py-2.5 rounded-2xl font-black text-sm border-2 transition-all flex items-center justify-center gap-2 ${
-            isOutOfStock
-              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-              : added
-              ? 'bg-green-400 text-white border-green-400'
-              : 'bg-citron-400 text-[#1A1040] border-[#1A1040] hover:bg-yellow-300 active:translate-y-0.5'
-          }`}
-          style={!isOutOfStock && !added ? { boxShadow: '2px 2px 0px 0px #1A1040' } : {}}>
-          {isOutOfStock ? 'Rupture de stock'
-            : added ? '✓ Ajouté !'
-            : adding ? '…'
-            : hasMontants ? <>🎁 Choisir un montant</>
-            : <><ShoppingCart className="w-4 h-4"/> Ajouter au panier</>}
-        </button>
       </div>
     </div>
   )
@@ -961,13 +969,14 @@ export default function Boutique() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {pagedProducts.map(prod => (
+                <div className="flex flex-wrap justify-center gap-10 py-4">
+                  {pagedProducts.map((prod, idx) => (
                     <ProductCard key={prod.id} product={prod} promotions={promotions} onAddToCart={handleAddToCart}
                       onOpen={setOpenedProduct}
                       isAdmin={isAdmin}
                       onEdit={p => { setEditingProduct(p); setShowProductModal(true) }}
-                      onDelete={id => setDeleteProductId(id)} />
+                      onDelete={id => setDeleteProductId(id)}
+                      index={idx} />
                   ))}
                 </div>
 

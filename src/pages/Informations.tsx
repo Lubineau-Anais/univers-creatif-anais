@@ -424,11 +424,14 @@ export default function Informations() {
           )}
         <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 py-4">
 
           {/* Horaires */}
-          <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
-            style={{ boxShadow: '4px 4px 0 #1A1040' }}>
+          <div className="-rotate-1 hover:rotate-0 transition-all duration-300 relative"
+            style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-citron-400/60 rounded-sm rotate-3 z-10 border border-white/40" />
+            <div className="bg-white border-2 border-[#1A1040] rounded-sm overflow-hidden"
+              style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.horaires.headerBg }}>
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -458,11 +461,15 @@ export default function Informations() {
                 onSave={v => saveContent('infos_horaires', v)}
                 placeholder="Ex: Lundi – Vendredi : 9h – 18h" isAdmin={isAdmin} />
             </div>
+            </div>
           </div>
 
           {/* Carte Google Maps — 2 lignes sur desktop */}
-          <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden md:row-span-2"
-            style={{ boxShadow: '4px 4px 0 #1A1040' }}>
+          <div className="rotate-1 hover:rotate-0 transition-all duration-300 relative md:row-span-2"
+            style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-turquoise-400/60 rounded-sm rotate-3 z-10 border border-white/40" />
+            <div className="bg-white border-2 border-[#1A1040] rounded-sm overflow-hidden h-full"
+              style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.maps.headerBg }}>
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -524,11 +531,15 @@ export default function Informations() {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Stationnement */}
-          <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
-            style={{ boxShadow: '4px 4px 0 #1A1040' }}>
+          <div className="rotate-2 hover:rotate-0 transition-all duration-300 relative"
+            style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-lime-300/60 rounded-sm rotate-3 z-10 border border-white/40" />
+            <div className="bg-white border-2 border-[#1A1040] rounded-sm overflow-hidden"
+              style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
             <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
               style={{ backgroundColor: cardStyles.stationnement.headerBg }}>
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -558,12 +569,16 @@ export default function Informations() {
                 onSave={v => saveContent('infos_stationnement', v)}
                 placeholder="Ex: Parking gratuit devant l'atelier." isAdmin={isAdmin} />
             </div>
+            </div>
           </div>
         </div>
 
         {/* Matériel nécessaire — pleine largeur */}
-        <div className="bg-white rounded-3xl border-2 border-[#1A1040] overflow-hidden"
-          style={{ boxShadow: '4px 4px 0 #1A1040' }}>
+        <div className="-rotate-2 hover:rotate-0 transition-all duration-300 relative"
+          style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 bg-rose-400/60 rounded-sm rotate-3 z-10 border border-white/40" />
+          <div className="bg-white border-2 border-[#1A1040] rounded-sm overflow-hidden"
+            style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
           <div className="px-5 py-3 border-b-2 border-[#1A1040] flex items-center justify-between gap-2"
             style={{ backgroundColor: cardStyles.materiel.headerBg }}>
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -593,8 +608,8 @@ export default function Informations() {
               onSave={v => saveContent('infos_materiel', v)}
               placeholder="Listez le matériel à apporter..." isAdmin={isAdmin} />
           </div>
+          </div>
         </div>
-      </div>
         </div>{/* fin max-w contenu */}
         </div>{/* fin fond du contenu */}
 

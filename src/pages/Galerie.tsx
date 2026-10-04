@@ -36,6 +36,9 @@ const FONT_FAMILY: Record<string, string> = {
   mono:    'monospace',
 }
 
+const POL_ROTS  = ['-rotate-2', 'rotate-1', 'rotate-3', '-rotate-1', 'rotate-2', '-rotate-3']
+const POL_TAPES = ['bg-citron-400/60', 'bg-rose-400/60', 'bg-turquoise-400/60', 'bg-lime-300/60', 'bg-orange-400/60', 'bg-violet-400/60']
+
 // ─── Page publique Galerie ────────────────────────────────────────────────────
 export default function Galerie() {
   const { isAdmin } = useAuth()
@@ -238,56 +241,46 @@ export default function Galerie() {
                 <p className="text-gray-500">Les créations seront publiées très prochainement.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {categories.map(cat => {
+              <div className="flex flex-wrap justify-center gap-10 py-4">
+                {categories.map((cat, idx) => {
                   const bg   = cat.couleur_bg   || '#ffb5c8'
                   const text = cat.couleur_texte || '#1A1040'
                   const icon = cat.icone         || '🎨'
-                  const size = cat.taille_texte  || 'text-2xl'
+                  const size = cat.taille_texte  || 'text-base'
                   const font = FONT_FAMILY[cat.police] || 'serif'
+                  const rot  = POL_ROTS[idx % POL_ROTS.length]
+                  const tape = POL_TAPES[idx % POL_TAPES.length]
 
                   return (
-                    <button
-                      key={cat.id}
-                      onClick={() => openCategory(cat)}
-                      className="group rounded-3xl border-4 border-[#1A1040] overflow-hidden transition-all hover:-translate-y-1.5 active:translate-y-0 text-left focus:outline-none focus:ring-4 focus:ring-[#1A1040]/20 relative"
-                      style={{ backgroundColor: bg, boxShadow: '6px 6px 0px 0px #1A1040' }}
-                    >
-                      {/* Photo de couverture */}
-                      {cat.cover_url && (
-                        <>
-                          <img
-                            src={cat.cover_url}
-                            alt=""
-                            className="absolute inset-0 w-full h-full object-cover"
-                            draggable={false}
-                            onContextMenu={e => e.preventDefault()}
-                          />
-                          <div className="absolute inset-0 bg-black/35" />
-                        </>
-                      )}
-
-                      <div className="relative z-10 p-8">
-                        {cat.icone_visible !== false && (
-                          <div className="text-5xl mb-4">{icon}</div>
-                        )}
-                        <h2
-                          className={`font-black mb-1 ${size}`}
-                          style={{
-                            color:      cat.cover_url ? '#ffffff' : text,
-                            fontFamily: font,
-                          }}
-                        >
-                          {cat.nom}
-                        </h2>
-                        <p
-                          className="text-sm font-bold opacity-60 group-hover:opacity-100 transition-opacity"
-                          style={{ color: cat.cover_url ? '#ffffff' : text }}
-                        >
-                          Voir les créations →
-                        </p>
-                      </div>
-                    </button>
+                    <div key={cat.id} className={`${rot} hover:rotate-0 transition-all duration-300 relative`}
+                      style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+                      {/* Scotch */}
+                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
+                      <button
+                        onClick={() => openCategory(cat)}
+                        className="bg-white p-3 pb-6 border-2 border-[#1A1040] rounded-sm focus:outline-none block"
+                        style={{ width: '180px', boxShadow: '5px 5px 0px 0px #1A1040' }}
+                      >
+                        {/* Zone image / icône */}
+                        <div className="w-full overflow-hidden mb-3 relative" style={{ height: '154px' }}>
+                          {cat.cover_url ? (
+                            <>
+                              <img src={cat.cover_url} alt="" className="w-full h-full object-cover"
+                                draggable={false} onContextMenu={e => e.preventDefault()} />
+                              <div className="absolute inset-0 bg-black/20" />
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-5xl"
+                              style={{ backgroundColor: bg }}>
+                              {cat.icone_visible !== false ? icon : ''}
+                            </div>
+                          )}
+                        </div>
+                        <p className="font-black text-center leading-tight text-[#1A1040] text-sm"
+                          style={{ fontFamily: font }}>{cat.nom}</p>
+                        <p className="text-xs font-bold text-center text-gray-400 mt-1">Voir les créations →</p>
+                      </button>
+                    </div>
                   )
                 })}
               </div>
@@ -310,33 +303,37 @@ export default function Galerie() {
                 <p className="text-gray-500">Des créations seront ajoutées prochainement.</p>
               </div>
             ) : (
-              <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-                {photos.map(photo => (
-                  <div key={photo.id} className="break-inside-avoid mb-4">
-                    <div
-                      className="relative group rounded-2xl overflow-hidden border-2 border-[#1A1040] cursor-zoom-in"
-                      style={{ boxShadow: '3px 3px 0px 0px #1A1040', userSelect: 'none' }}
-                      onClick={() => setLightboxIdx(photos.indexOf(photo))}
-                    >
-                      <img
-                        src={photo.url}
-                        alt={photo.titre || ''}
-                        draggable={false}
-                        onContextMenu={e => e.preventDefault()}
-                        className="w-full h-auto block pointer-events-none"
-                      />
-                      {/* Overlay protecteur */}
-                      <div className="absolute inset-0 z-10" onContextMenu={e => e.preventDefault()} />
-                      {/* Survol */}
-                      <div className="absolute inset-0 z-20 bg-[#1A1040]/0 group-hover:bg-[#1A1040]/20 transition-colors flex items-center justify-center">
-                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+              <div className="flex flex-wrap justify-center gap-8 py-4">
+                {photos.map((photo, idx) => {
+                  const rot  = POL_ROTS[idx % POL_ROTS.length]
+                  const tape = POL_TAPES[idx % POL_TAPES.length]
+                  return (
+                    <div key={photo.id} className={`${rot} hover:rotate-0 transition-all duration-300 relative`}
+                      style={{ filter: 'drop-shadow(4px 6px 12px rgba(0,0,0,0.2))' }}>
+                      {/* Scotch */}
+                      <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
+                      <div
+                        className="bg-white p-3 pb-6 border-2 border-[#1A1040] rounded-sm cursor-zoom-in"
+                        style={{ width: '160px', boxShadow: '5px 5px 0px 0px #1A1040', userSelect: 'none' }}
+                        onClick={() => setLightboxIdx(photos.indexOf(photo))}
+                      >
+                        {/* Zone photo */}
+                        <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-3 relative group" style={{ height: '136px' }}>
+                          <img src={photo.url} alt={photo.titre || ''} draggable={false}
+                            onContextMenu={e => e.preventDefault()}
+                            className="w-full h-full object-cover pointer-events-none" />
+                          <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />
+                          <div className="absolute inset-0 bg-[#1A1040]/0 group-hover:bg-[#1A1040]/20 transition-colors flex items-center justify-center">
+                            <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                          </div>
+                        </div>
+                        {photo.titre && (
+                          <p className="text-xs font-bold text-center text-[#1A1040] leading-tight">{photo.titre}</p>
+                        )}
                       </div>
                     </div>
-                    {photo.titre && (
-                      <p className="text-xs font-bold text-gray-500 mt-1.5 px-1">{photo.titre}</p>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
