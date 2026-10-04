@@ -244,9 +244,7 @@ export default function Galerie() {
               <div className="flex flex-wrap justify-center gap-10 py-4">
                 {categories.map((cat, idx) => {
                   const bg   = cat.couleur_bg   || '#ffb5c8'
-                  const text = cat.couleur_texte || '#1A1040'
                   const icon = cat.icone         || '🎨'
-                  const size = cat.taille_texte  || 'text-base'
                   const font = FONT_FAMILY[cat.police] || 'serif'
                   const rot  = POL_ROTS[idx % POL_ROTS.length]
                   const tape = POL_TAPES[idx % POL_TAPES.length]
