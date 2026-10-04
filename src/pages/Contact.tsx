@@ -37,6 +37,7 @@ export default function Contact() {
   const [contactBg, setContactBg] = useState<HeroBg>(DEFAULT_CONTACT_BG)
   const [titreStyle, setTitreStyle] = useState<HeroStyle>(DEFAULT_TITRE_STYLE)
   const [badge, setBadge]         = useState<BadgeConfig>(DEFAULT_BADGE)
+  const [infoTextStyle, setInfoTextStyle] = useState<{ color: string; fontSize: number }>({ color: '#ffffffcc', fontSize: 14 })
   const [showTitreEditor, setShowTitreEditor] = useState(false)
   const [contactPolaroids,    setContactPolaroids]    = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
@@ -95,12 +96,13 @@ export default function Contact() {
     const { data } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['contact_bg_config', 'contact_titre_style', 'contact_badge_config'])
+      .in('key', ['contact_bg_config', 'contact_titre_style', 'contact_badge_config', 'contact_info_text_style'])
     if (!data) return
     data.forEach((s: { key: string; value: string }) => {
-      if (s.key === 'contact_bg_config')    { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_titre_style')  { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_badge_config') { try { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_bg_config')       { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_titre_style')     { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_badge_config')    { try { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
     })
   }
 
@@ -197,29 +199,32 @@ export default function Contact() {
           {/* Infos de contact */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
             {content['contact_adresse'] && (
-              <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
-                <MapPin className="w-4 h-4 text-rose-300 shrink-0" />
+              <div className="flex items-center gap-2 font-medium"
+                style={{ color: infoTextStyle.color, fontSize: infoTextStyle.fontSize }}>
+                <MapPin className="w-4 h-4 shrink-0" style={{ color: infoTextStyle.color }} />
                 <a href={`https://maps.google.com/maps?q=${encodeURIComponent(content['contact_adresse'])}`}
                    target="_blank" rel="noopener noreferrer"
-                   className="hover:text-white hover:underline transition-colors">
+                   className="hover:underline transition-colors">
                   {content['contact_adresse']}
                 </a>
               </div>
             )}
             {content['contact_telephone'] && (
-              <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
-                <Phone className="w-4 h-4 text-citron-400 shrink-0" />
+              <div className="flex items-center gap-2 font-medium"
+                style={{ color: infoTextStyle.color, fontSize: infoTextStyle.fontSize }}>
+                <Phone className="w-4 h-4 shrink-0" style={{ color: infoTextStyle.color }} />
                 <a href={`tel:${content['contact_telephone'].replace(/\s/g, '')}`}
-                  className="hover:text-white transition-colors">
+                  className="hover:underline transition-colors">
                   {content['contact_telephone']}
                 </a>
               </div>
             )}
             {content['contact_email'] && (
-              <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
-                <Mail className="w-4 h-4 text-turquoise-400 shrink-0" />
+              <div className="flex items-center gap-2 font-medium"
+                style={{ color: infoTextStyle.color, fontSize: infoTextStyle.fontSize }}>
+                <Mail className="w-4 h-4 shrink-0" style={{ color: infoTextStyle.color }} />
                 <a href={`mailto:${content['contact_email']}`}
-                  className="hover:text-white transition-colors">
+                  className="hover:underline transition-colors">
                   {content['contact_email']}
                 </a>
               </div>

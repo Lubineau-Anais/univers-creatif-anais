@@ -74,6 +74,7 @@ export default function ContactAdmin() {
     contact_icon_telephone: '#ffe500',
     contact_icon_email: '#4dd9c0',
   })
+  const [infoTextStyle, setInfoTextStyle] = useState<{ color: string; fontSize: number }>({ color: '#ffffffcc', fontSize: 14 })
   const [infoSaving, setInfoSaving] = useState(false)
   const [infoSaved, setInfoSaved] = useState(false)
 
@@ -84,6 +85,7 @@ export default function ContactAdmin() {
       supabase.from('settings').select('key, value').in('key', [
         'contact_bg_config', 'contact_badge_config', 'contact_titre_style',
         'contact_icon_adresse', 'contact_icon_telephone', 'contact_icon_email',
+        'contact_info_text_style',
       ]),
       supabase.from('page_content').select('section, contenu')
         .eq('page', 'contact').in('section', ['contact_titre', 'contact_adresse', 'contact_telephone', 'contact_email']),
@@ -98,9 +100,10 @@ export default function ContactAdmin() {
         if (s.key === 'contact_badge_config') { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) }
         if (s.key === 'contact_titre_style')  { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) }
       } catch {}
-      if (s.key === 'contact_icon_adresse')   setIconColors(p => ({ ...p, contact_icon_adresse: s.value }))
+      if (s.key === 'contact_icon_adresse')    setIconColors(p => ({ ...p, contact_icon_adresse: s.value }))
       if (s.key === 'contact_icon_telephone') setIconColors(p => ({ ...p, contact_icon_telephone: s.value }))
       if (s.key === 'contact_icon_email')     setIconColors(p => ({ ...p, contact_icon_email: s.value }))
+      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
     })
   }
 
@@ -126,6 +129,7 @@ export default function ContactAdmin() {
       supabase.from('settings').upsert({ key: 'contact_icon_adresse', value: iconColors['contact_icon_adresse'] }, { onConflict: 'key' }),
       supabase.from('settings').upsert({ key: 'contact_icon_telephone', value: iconColors['contact_icon_telephone'] }, { onConflict: 'key' }),
       supabase.from('settings').upsert({ key: 'contact_icon_email', value: iconColors['contact_icon_email'] }, { onConflict: 'key' }),
+      supabase.from('settings').upsert({ key: 'contact_info_text_style', value: JSON.stringify(infoTextStyle) }, { onConflict: 'key' }),
     ])
     setInfoSaving(false); setInfoSaved(true); setTimeout(() => setInfoSaved(false), 3000)
   }
@@ -290,6 +294,37 @@ export default function ContactAdmin() {
                 </div>
               </div>
             ))}
+            {/* Style du texte */}
+            <div className="border-t-2 border-gray-100 pt-4 space-y-3">
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Style du texte des informations</p>
+              {/* Aperçu */}
+              <div className="rounded-xl border-2 border-[#1A1040] px-4 py-3 flex items-center justify-center gap-4 bg-[#1A1040]">
+                <MapPin className="w-4 h-4 shrink-0" style={{ color: infoTextStyle.color }} />
+                <span className="font-medium" style={{ color: infoTextStyle.color, fontSize: infoTextStyle.fontSize }}>
+                  {content['contact_adresse'] || 'Exemple d\'adresse'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Couleur du texte</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={infoTextStyle.color.length === 9 ? infoTextStyle.color.slice(0, 7) : infoTextStyle.color}
+                      onChange={e => setInfoTextStyle(p => ({ ...p, color: e.target.value }))}
+                      className="w-9 h-9 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5" />
+                    <input type="text" value={infoTextStyle.color} maxLength={9}
+                      onChange={e => { if (/^#[0-9A-Fa-f]{0,8}$/.test(e.target.value)) setInfoTextStyle(p => ({ ...p, color: e.target.value })) }}
+                      className="flex-1 border-2 border-[#1A1040] rounded-lg px-2 py-2 text-xs font-mono focus:outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille — {infoTextStyle.fontSize}px</label>
+                  <input type="range" min={10} max={28} value={infoTextStyle.fontSize}
+                    onChange={e => setInfoTextStyle(p => ({ ...p, fontSize: Number(e.target.value) }))}
+                    className="w-full accent-turquoise-400 mt-2" />
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3 pt-2">
               <button onClick={saveInfo} disabled={infoSaving}
                 className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-6 py-3 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] disabled:opacity-50 transition-all"
