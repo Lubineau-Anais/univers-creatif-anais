@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Pencil, Check, X, Clock, MapPin, ParkingCircle, Scissors, ExternalLink, Palette, Bold, Italic } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
-import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
+import HeroTitleEditor, { type HeroStyle, buildTitleStyle, FONT_OPTIONS } from '../components/HeroTitleEditor'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 import BgEditor from '../components/BgEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
@@ -47,13 +47,7 @@ const DEFAULT_CARD_STYLES: CardsStyle = {
   materiel:      { headerBg: '#ffb5c8', headerTextColor: '#1A1040', contentColor: '#374151', fontFamily: 'sans-serif', fontSize: 14, bold: false, italic: false },
 }
 
-const FONTS = [
-  { value: 'sans-serif',  label: 'Sans-serif' },
-  { value: 'serif',       label: 'Serif' },
-  { value: 'monospace',   label: 'Monospace' },
-  { value: "'Pacifico', cursive",     label: 'Pacifico' },
-  { value: "'Playfair Display', serif", label: 'Playfair' },
-]
+const FONTS = FONT_OPTIONS.map(f => ({ value: f.family, label: f.label }))
 
 function CardStyleEditor({ style, onSave, onClose }: {
   style: CardStyle

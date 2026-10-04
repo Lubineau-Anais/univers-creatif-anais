@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Phone, Check, RefreshCw, Pencil, MapPin, Mail } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
-import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
+import HeroTitleEditor, { type HeroStyle, buildTitleStyle, FONT_OPTIONS as HERO_FONTS } from '../components/HeroTitleEditor'
 import BgEditor from '../components/BgEditor'
 
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
@@ -10,12 +10,7 @@ interface BadgeConfig { text: string; bg: string; textColor: string; radius: str
 const DEFAULT_CONTACT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#1A1040' }
 const DEFAULT_BADGE: BadgeConfig = { text: '⭐ On est là pour toi !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full', font: 'sans-serif', fontSize: 14 }
 
-const FONT_OPTIONS = [
-  { value: 'sans-serif',           label: 'Sans-serif' },
-  { value: 'Georgia, serif',       label: 'Serif' },
-  { value: 'system-ui, sans-serif',label: 'Système' },
-  { value: 'monospace',            label: 'Mono' },
-]
+const FONT_OPTIONS = HERO_FONTS.map(f => ({ value: f.family, label: f.label }))
 const DEFAULT_TITRE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 36, color: '#ffffff', bold: true, italic: false, underline: false,
   outline: false, outlineColor: '#1A1040', outlineWidth: 2,
