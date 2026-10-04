@@ -5,6 +5,14 @@ export interface AtelierCategory {
   cover_url: string | null
   ordre: number
   created_at: string
+  titre_couleur: string | null
+  texte_couleur: string | null
+  titre_police:  string | null
+  texte_police:  string | null
+  titre_taille:  number | null
+  texte_taille:  number | null
+  titre_gras:    boolean | null
+  texte_gras:    boolean | null
 }
 
 export interface Atelier {

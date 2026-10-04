@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import type { Atelier, AtelierCategory } from '../types'
 import AtelierFormModal, { NIVEAUX } from '../components/AtelierFormModal'
 import ReservationModal from '../components/ReservationModal'
-import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
+import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle, FONT_OPTIONS } from '../components/HeroTitleEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
@@ -60,9 +60,23 @@ function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
   const [description, setDescription] = useState(cat?.description || '')
   const [coverFile,   setCoverFile]   = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState(cat?.cover_url || '')
+  // Style titre
+  const [titreCouleur, setTitreCouleur] = useState(cat?.titre_couleur ?? '#1A1040')
+  const [titrePolice,  setTitrePolice]  = useState(cat?.titre_police  ?? 'serif')
+  const [titreTaille,  setTitreTaille]  = useState(cat?.titre_taille  ?? 20)
+  const [titreGras,    setTitreGras]    = useState(cat?.titre_gras    ?? true)
+  // Style texte
+  const [texteCouleur, setTexteCouleur] = useState(cat?.texte_couleur ?? '#6b7280')
+  const [textePolice,  setTextePolice]  = useState(cat?.texte_police  ?? 'sans')
+  const [texteTaille,  setTexteTaille]  = useState(cat?.texte_taille  ?? 12)
+  const [texteGras,    setTexteGras]    = useState(cat?.texte_gras    ?? false)
+
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
   const isEdit = !!cat
+
+  const titreFontFamily = FONT_OPTIONS.find(f => f.value === titrePolice)?.family || 'Georgia, serif'
+  const texteFontFamily = FONT_OPTIONS.find(f => f.value === textePolice)?.family || 'Inter, sans-serif'
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -83,7 +97,13 @@ function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
         await supabase.storage.from('ateliers').upload(path, coverFile, { upsert: true })
         cover_url = supabase.storage.from('ateliers').getPublicUrl(path).data.publicUrl
       }
-      const payload = { nom: nom.trim(), description: description.trim() || null, cover_url }
+      const payload = {
+        nom: nom.trim(), description: description.trim() || null, cover_url,
+        titre_couleur: titreCouleur, titre_police: titrePolice,
+        titre_taille: titreTaille,  titre_gras: titreGras,
+        texte_couleur: texteCouleur, texte_police: textePolice,
+        texte_taille: texteTaille,  texte_gras: texteGras,
+      }
       if (isEdit && cat) {
         await supabase.from('atelier_categories').update(payload).eq('id', cat.id)
       } else {
@@ -102,8 +122,8 @@ function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md overflow-hidden"
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg my-4 overflow-hidden"
         style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
 
         <div className="bg-[#1A1040] px-6 py-4 flex items-center justify-between rounded-t-3xl">
@@ -115,23 +135,18 @@ function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
             <p className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-sm font-bold border-2 border-red-200">{error}</p>
           )}
 
           {/* Photo de couverture */}
           <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
-              📸 Photo de couverture
-            </label>
-            <div
-              className="border-4 border-dashed border-[#1A1040] rounded-2xl overflow-hidden cursor-pointer hover:bg-rose-50 transition-colors"
-              onClick={() => document.getElementById('cat-cover-input')?.click()}
-            >
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">📸 Photo de couverture</label>
+            <div className="border-4 border-dashed border-[#1A1040] rounded-2xl overflow-hidden cursor-pointer hover:bg-rose-50 transition-colors"
+              onClick={() => document.getElementById('cat-cover-input')?.click()}>
               {coverPreview ? (
-                <img src={coverPreview} alt="" draggable={false}
-                  className="w-full h-44 object-cover pointer-events-none" />
+                <img src={coverPreview} alt="" draggable={false} className="w-full h-44 object-cover pointer-events-none" />
               ) : (
                 <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
                   <Upload className="w-8 h-8" />
@@ -144,26 +159,101 @@ function CategoryModal({ cat, onClose, onSaved }: CatModalProps) {
 
           {/* Nom */}
           <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
-              🏷️ Nom de la catégorie
-            </label>
-            <input
-              required value={nom} onChange={e => setNom(e.target.value)}
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">🏷️ Nom de la catégorie</label>
+            <input required value={nom} onChange={e => setNom(e.target.value)}
               placeholder="Ex: Macramé"
-              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
-            />
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy" />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">
-              📝 Description
-            </label>
-            <textarea
-              rows={3} value={description} onChange={e => setDescription(e.target.value)}
+            <label className="block text-xs font-black text-[#1A1040] mb-1.5 uppercase tracking-wide">📝 Description</label>
+            <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)}
               placeholder="Décrivez cette catégorie d'ateliers..."
-              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy resize-none"
-            />
+              className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy resize-none" />
+          </div>
+
+          {/* Aperçu */}
+          <div className="rounded-2xl border-2 border-[#1A1040] overflow-hidden">
+            <div className="bg-candy px-3 py-1.5 border-b border-[#1A1040]/20">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Aperçu de la carte</span>
+            </div>
+            <div className="bg-white px-4 pt-4 pb-4 text-center">
+              <p style={{ color: titreCouleur, fontFamily: titreFontFamily, fontSize: titreTaille, fontWeight: titreGras ? 700 : 400 }} className="leading-tight mb-1">
+                {nom || 'Nom de la catégorie'}
+              </p>
+              {description && (
+                <p style={{ color: texteCouleur, fontFamily: texteFontFamily, fontSize: texteTaille, fontWeight: texteGras ? 700 : 400 }} className="leading-relaxed">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Style du titre */}
+          <div className="bg-candy rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">🖊️ Style du titre</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Police</label>
+                <select value={titrePolice} onChange={e => setTitrePolice(e.target.value)}
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-2 py-2 text-sm bg-white focus:outline-none">
+                  {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille — {titreTaille}px</label>
+                <input type="range" min={12} max={36} value={titreTaille} onChange={e => setTitreTaille(Number(e.target.value))}
+                  className="w-full accent-[#1A1040] mt-2" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Couleur</label>
+                <input type="color" value={titreCouleur} onChange={e => setTitreCouleur(e.target.value)}
+                  className="w-8 h-8 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5" />
+                <input type="text" value={titreCouleur} maxLength={7}
+                  onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setTitreCouleur(e.target.value) }}
+                  className="w-24 border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none" />
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={titreGras} onChange={e => setTitreGras(e.target.checked)} className="w-4 h-4 accent-[#1A1040]" />
+                <span className="text-xs font-black text-[#1A1040]">Gras</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Style du texte */}
+          <div className="bg-candy rounded-2xl p-4 space-y-3">
+            <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">📄 Style du texte</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Police</label>
+                <select value={textePolice} onChange={e => setTextePolice(e.target.value)}
+                  className="w-full border-2 border-[#1A1040] rounded-xl px-2 py-2 text-sm bg-white focus:outline-none">
+                  {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Taille — {texteTaille}px</label>
+                <input type="range" min={10} max={24} value={texteTaille} onChange={e => setTexteTaille(Number(e.target.value))}
+                  className="w-full accent-[#1A1040] mt-2" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide">Couleur</label>
+                <input type="color" value={texteCouleur} onChange={e => setTexteCouleur(e.target.value)}
+                  className="w-8 h-8 rounded-lg border-2 border-[#1A1040] cursor-pointer p-0.5" />
+                <input type="text" value={texteCouleur} maxLength={7}
+                  onChange={e => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) setTexteCouleur(e.target.value) }}
+                  className="w-24 border-2 border-[#1A1040] rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none" />
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={texteGras} onChange={e => setTexteGras(e.target.checked)} className="w-4 h-4 accent-[#1A1040]" />
+                <span className="text-xs font-black text-[#1A1040]">Gras</span>
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -550,11 +640,21 @@ export default function NosAteliers() {
 
                       {/* Bande info */}
                       <div className="px-4 pt-4 pb-5">
-                        <h3 className="font-serif text-xl font-black text-[#1A1040] text-center mb-2 leading-tight">
+                        <h3 className="text-center mb-2 leading-tight" style={{
+                          color:      cat.titre_couleur ?? '#1A1040',
+                          fontFamily: FONT_OPTIONS.find(f => f.value === (cat.titre_police ?? 'serif'))?.family ?? 'Georgia, serif',
+                          fontSize:   cat.titre_taille  ?? 20,
+                          fontWeight: (cat.titre_gras ?? true) ? 700 : 400,
+                        }}>
                           {cat.nom}
                         </h3>
                         {cat.description && (
-                          <p className="text-xs text-gray-500 text-center leading-relaxed line-clamp-2 mb-2">
+                          <p className="text-center leading-relaxed line-clamp-2 mb-2" style={{
+                            color:      cat.texte_couleur ?? '#6b7280',
+                            fontFamily: FONT_OPTIONS.find(f => f.value === (cat.texte_police ?? 'sans'))?.family ?? 'Inter, sans-serif',
+                            fontSize:   cat.texte_taille  ?? 12,
+                            fontWeight: (cat.texte_gras ?? false) ? 700 : 400,
+                          }}>
                             {cat.description}
                           </p>
                         )}
