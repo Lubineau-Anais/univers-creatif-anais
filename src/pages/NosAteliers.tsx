@@ -228,6 +228,14 @@ export default function NosAteliers() {
   const bgFileRef = useRef<HTMLInputElement>(null)
   const videoRef  = useRef<HTMLVideoElement>(null)
 
+  // Fond du contenu
+  const [contentBg, setContentBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
+  const [showContentBgEditor, setShowContentBgEditor] = useState(false)
+  const [contentBgUploading, setContentBgUploading] = useState(false)
+  const [contentBgUploadError, setContentBgUploadError] = useState('')
+  const contentBgFileRef = useRef<HTMLInputElement>(null)
+  const contentVideoRef  = useRef<HTMLVideoElement>(null)
+
   const today = new Date(); today.setHours(0, 0, 0, 0)
 
   // Regroupement des ateliers par mois/année (ateliers déjà triés par date ascendante)
@@ -260,7 +268,7 @@ export default function NosAteliers() {
   async function loadHero() {
     const [{ data: settings }, { data: content }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
-        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style', 'ateliers_desc_style', 'ateliers_bg_config',
+        'ateliers_badge_config', 'ateliers_titre_style', 'ateliers_soustitre_style', 'ateliers_desc_style', 'ateliers_bg_config', 'ateliers_content_bg_config',
       ]),
       supabase.from('page_content').select('section, contenu').eq('page', 'ateliers')
         .in('section', ['ateliers_titre', 'ateliers_soustitre']),
@@ -271,6 +279,7 @@ export default function NosAteliers() {
         if (s.key === 'ateliers_titre_style')      setHeroTitreStyle(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_soustitre_style')  setHeroSousStyle(p => ({ ...p, ...JSON.parse(s.value) }))
         if (s.key === 'ateliers_desc_style')       setDescStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'ateliers_content_bg_config') { setContentBg(p => ({ ...p, ...JSON.parse(s.value) })) }
         if (s.key === 'ateliers_bg_config') {
           const v = JSON.parse(s.value)
           setAteliersBg(p => ({ ...p, ...v }))
@@ -295,6 +304,11 @@ export default function NosAteliers() {
       { onConflict: 'key' }
     )
     setShowBgEditor(false)
+  }
+
+  async function saveContentBg() {
+    await supabase.from('settings').upsert({ key: 'ateliers_content_bg_config', value: JSON.stringify(contentBg) }, { onConflict: 'key' })
+    setShowContentBgEditor(false)
   }
 
   async function saveDescStyle() {
@@ -436,11 +450,23 @@ export default function NosAteliers() {
       </section>
 
       {/* ── CONTENU ── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
+      <div className="relative overflow-hidden" style={buildHeroBgStyle(contentBg)}>
+        {contentBg.type === 'video' && contentBg.videoUrl && (
+          <>
+            <video ref={contentVideoRef} src={contentBg.videoUrl} autoPlay muted={contentBg.videoMuted} loop={contentBg.videoLoop} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}/>
+            {contentBg.videoOverlay !== 'transparent' && <div className="absolute inset-0" style={{ backgroundColor: contentBg.videoOverlay, zIndex: 1 }}/>}
+          </>
+        )}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 py-16">
 
         {/* Boutons admin */}
         {isAdmin && (
           <div className="flex justify-end mb-10 gap-3 flex-wrap">
+            <button onClick={() => setShowContentBgEditor(true)}
+              className="flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-4 py-2.5 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:bg-white transition-all"
+              style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
+              <Palette className="w-4 h-4" /> Fond du contenu
+            </button>
             {!selectedCat ? (
               <button
                 onClick={() => { setEditingCat(null); setShowCatModal(true) }}
@@ -759,6 +785,7 @@ export default function NosAteliers() {
           </div>
         )}
       </section>
+      </div>{/* fin fond du contenu */}
 
         {/* Polaroïds flottants — desktop uniquement */}
         <div className="hidden md:contents">
@@ -795,6 +822,31 @@ export default function NosAteliers() {
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
                 <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ÉDITEUR FOND CONTENU ── */}
+      {showContentBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && setShowContentBgEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
+              <h3 className="font-black text-[#1A1040]">🎨 Fond du contenu — Ateliers</h3>
+              <button onClick={() => setShowContentBgEditor(false)} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={contentBg} setBg={setContentBg}
+                activeTab={contentBg.type as BgType} setActiveTab={t => setContentBg(p => ({ ...p, type: t }))}
+                fileRef={contentBgFileRef}
+                uploadError={contentBgUploadError} setUploadError={setContentBgUploadError}
+                uploading={contentBgUploading} setUploading={setContentBgUploading}
+              />
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowContentBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+                <button onClick={saveContentBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
               </div>
             </div>
           </div>

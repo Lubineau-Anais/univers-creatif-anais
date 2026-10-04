@@ -495,6 +495,14 @@ export default function Boutique() {
   const [bgUploading, setBgUploading]     = useState(false)
   const [bgUploadError, setBgUploadError] = useState('')
   const bgFileRef = useRef<HTMLInputElement | null>(null)
+
+  // Fond du contenu
+  const [contentBg, setContentBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
+  const [showContentBgEditor, setShowContentBgEditor] = useState(false)
+  const [contentBgUploading, setContentBgUploading] = useState(false)
+  const [contentBgUploadError, setContentBgUploadError] = useState('')
+  const contentBgFileRef = useRef<HTMLInputElement | null>(null)
+  const contentVideoRef  = useRef<HTMLVideoElement | null>(null)
   const [titreStyle, setTitreStyle]     = useState<HeroStyle>(DEFAULT_TITRE)
   const [badge, setBadge]               = useState({ text:'🛍️ Notre boutique', bg:'#fb7185', textColor:'#ffffff', radius:'rounded-full' })
   const [loading, setLoading]           = useState(true)
@@ -552,7 +560,7 @@ export default function Boutique() {
     const [{ data: settings }, { data: content }, { data: cats }, { data: prods }, { data: promos }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
         'shop_status','shop_stocking_text','shop_stocking_date','shop_stocking_image',
-        'shop_bg_config','shop_badge_config','shop_titre_style',
+        'shop_bg_config','shop_badge_config','shop_titre_style','shop_content_bg_config',
       ]),
       supabase.from('page_content').select('section,contenu').eq('page','boutique').in('section',['shop_titre']),
       supabase.from('shop_categories').select('*').order('sort_order').order('name'),
@@ -565,7 +573,8 @@ export default function Boutique() {
         if (s.key === 'shop_stocking_text')  setStockingText(s.value)
         if (s.key === 'shop_stocking_date')  setStockingDate(s.value)
         if (s.key === 'shop_stocking_image') setStockingImg(s.value)
-        if (s.key === 'shop_bg_config')      { const v=JSON.parse(s.value); setHeroBg(p=>({...p,...v})); setHeroBgTab(v.type||'color') }
+        if (s.key === 'shop_bg_config')         { const v=JSON.parse(s.value); setHeroBg(p=>({...p,...v})); setHeroBgTab(v.type||'color') }
+        if (s.key === 'shop_content_bg_config') { setContentBg(p=>({...p,...JSON.parse(s.value)})) }
         if (s.key === 'shop_badge_config')   setBadge(p=>({...p,...JSON.parse(s.value)}))
         if (s.key === 'shop_titre_style')    setTitreStyle(p=>({...p,...JSON.parse(s.value)}))
       } catch {}
@@ -612,6 +621,11 @@ export default function Boutique() {
     const val = JSON.stringify({ ...heroBg, type: heroBgTab })
     await supabase.from('settings').upsert({ key: 'shop_bg_config', value: val }, { onConflict: 'key' })
     setShowBgEditor(false)
+  }
+
+  async function saveContentBg() {
+    await supabase.from('settings').upsert({ key: 'shop_content_bg_config', value: JSON.stringify(contentBg) }, { onConflict: 'key' })
+    setShowContentBgEditor(false)
   }
 
   const bgStyle = buildHeroBgStyle({ ...heroBg, type: heroBgTab as HeroBg['type'] })
@@ -709,7 +723,20 @@ export default function Boutique() {
         </section>
 
         {/* CONTENU : SIDEBAR + GRILLE */}
-      <section className="max-w-6xl mx-auto px-4 py-8">
+      <section className="relative overflow-hidden" style={buildHeroBgStyle(contentBg)}>
+        {contentBg.type === 'video' && contentBg.videoUrl && (
+          <>
+            <video ref={contentVideoRef} src={contentBg.videoUrl} autoPlay muted={contentBg.videoMuted} loop={contentBg.videoLoop} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}/>
+            {contentBg.videoOverlay !== 'transparent' && <div className="absolute inset-0" style={{ backgroundColor: contentBg.videoOverlay, zIndex: 1 }}/>}
+          </>
+        )}
+        {isAdmin && (
+          <button onClick={() => setShowContentBgEditor(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du contenu
+          </button>
+        )}
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8">
       <div className="flex gap-6 items-start">
 
           {/* ── Sidebar catégories (desktop + tablet) ── */}
@@ -981,6 +1008,7 @@ export default function Boutique() {
           </div>
 
         </div>
+      </div>{/* fin max-w contenu */}
       </section>
 
         {/* Polaroïds flottants — desktop uniquement */}
@@ -1103,6 +1131,31 @@ export default function Boutique() {
             <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
               <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
               <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2"><Check className="w-4 h-4"/> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Éditeur fond du contenu ── */}
+      {showContentBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowContentBgEditor(false) }}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+            <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
+              <span className="font-black text-[#1A1040]">🎨 Fond du contenu — Boutique</span>
+              <button onClick={() => setShowContentBgEditor(false)} className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={contentBg} setBg={setContentBg}
+                activeTab={contentBg.type as BgType} setActiveTab={t => setContentBg(p => ({ ...p, type: t }))}
+                fileRef={contentBgFileRef}
+                uploadError={contentBgUploadError} setUploadError={setContentBgUploadError}
+                uploading={contentBgUploading} setUploading={setContentBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
+              <button onClick={() => setShowContentBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
+              <button onClick={saveContentBg} className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2"><Check className="w-4 h-4"/> Enregistrer</button>
             </div>
           </div>
         </div>

@@ -277,6 +277,14 @@ export default function Informations() {
   const [bgUploadError,   setBgUploadError]   = useState('')
   const bgFileRef = useRef<HTMLInputElement | null>(null)
   const videoRef  = useRef<HTMLVideoElement>(null)
+
+  // Fond du contenu
+  const [contentBg, setContentBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
+  const [showContentBgEditor, setShowContentBgEditor] = useState(false)
+  const [contentBgUploading, setContentBgUploading] = useState(false)
+  const [contentBgUploadError, setContentBgUploadError] = useState('')
+  const contentBgFileRef = useRef<HTMLInputElement | null>(null)
+  const contentVideoRef  = useRef<HTMLVideoElement>(null)
   const [polaroids,           setPolaroids]           = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
 
@@ -305,13 +313,19 @@ export default function Informations() {
 
   async function loadSettings() {
     const { data } = await supabase.from('settings').select('key, value')
-      .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style'])
+      .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style', 'infos_content_bg'])
     if (!data) return
     data.forEach(r => {
       if (r.key === 'infos_hero_bg')     { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
       if (r.key === 'infos_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
       if (r.key === 'infos_cards_style') { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
+      if (r.key === 'infos_content_bg')  { try { setContentBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
     })
+  }
+
+  async function saveContentBg() {
+    await supabase.from('settings').upsert({ key: 'infos_content_bg', value: JSON.stringify(contentBg) }, { onConflict: 'key' })
+    setShowContentBgEditor(false)
   }
 
   async function saveCardStyle(key: CardKey, style: CardStyle) {
@@ -395,7 +409,20 @@ export default function Informations() {
         </div>
 
         {/* ── Contenu ── */}
-        <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+        <div className="relative overflow-hidden" style={buildHeroBgStyle(contentBg)}>
+          {contentBg.type === 'video' && contentBg.videoUrl && (
+            <>
+              <video ref={contentVideoRef} src={contentBg.videoUrl} autoPlay muted={contentBg.videoMuted} loop={contentBg.videoLoop} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}/>
+              {contentBg.videoOverlay !== 'transparent' && <div className="absolute inset-0" style={{ backgroundColor: contentBg.videoOverlay, zIndex: 1 }}/>}
+            </>
+          )}
+          {isAdmin && (
+            <button onClick={() => setShowContentBgEditor(true)}
+              className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+              <Palette className="w-3.5 h-3.5" /> Fond du contenu
+            </button>
+          )}
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 space-y-6">
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -568,6 +595,8 @@ export default function Informations() {
           </div>
         </div>
       </div>
+        </div>{/* fin max-w contenu */}
+        </div>{/* fin fond du contenu */}
 
       </div>{/* fin div.relative */}
 
@@ -621,6 +650,42 @@ export default function Informations() {
                 Annuler
               </button>
               <button onClick={saveBg}
+                className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Éditeur fond contenu ── */}
+      {showContentBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowContentBgEditor(false) }}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+            <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
+              <span className="font-black text-[#1A1040]">🎨 Fond du contenu — Informations</span>
+              <button onClick={() => setShowContentBgEditor(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={contentBg} setBg={setContentBg}
+                activeTab={contentBg.type as BgType} setActiveTab={t => setContentBg(p => ({ ...p, type: t }))}
+                fileRef={contentBgFileRef}
+                uploadError={contentBgUploadError} setUploadError={setContentBgUploadError}
+                uploading={contentBgUploading} setUploading={setContentBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
+              <button onClick={() => setShowContentBgEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">
+                Annuler
+              </button>
+              <button onClick={saveContentBg}
                 className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2">
                 <Check className="w-4 h-4" /> Enregistrer
               </button>

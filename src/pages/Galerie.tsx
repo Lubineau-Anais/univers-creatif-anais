@@ -55,7 +55,15 @@ export default function Galerie() {
   const bgFileRef = useRef<HTMLInputElement>(null)
   const videoRef  = useRef<HTMLVideoElement>(null)
 
-  useEffect(() => { loadCategories(); loadGalerieBg() }, [])
+  // Fond du contenu
+  const [contentBg, setContentBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
+  const [showContentBgEditor, setShowContentBgEditor] = useState(false)
+  const [contentBgUploading, setContentBgUploading] = useState(false)
+  const [contentBgUploadError, setContentBgUploadError] = useState('')
+  const contentBgFileRef = useRef<HTMLInputElement>(null)
+  const contentVideoRef  = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => { loadCategories(); loadGalerieBg(); loadContentBg() }, [])
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = galerieBg.videoMuted
@@ -78,6 +86,16 @@ export default function Galerie() {
       { onConflict: 'key' }
     )
     setShowBgEditor(false)
+  }
+
+  async function loadContentBg() {
+    const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_content_bg_config').single()
+    if (data) { try { setContentBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch {} }
+  }
+
+  async function saveContentBg() {
+    await supabase.from('settings').upsert({ key: 'galerie_content_bg_config', value: JSON.stringify(contentBg) }, { onConflict: 'key' })
+    setShowContentBgEditor(false)
   }
 
   async function loadCategories() {
@@ -195,7 +213,20 @@ export default function Galerie() {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="relative overflow-hidden" style={buildHeroBgStyle(contentBg)}>
+        {contentBg.type === 'video' && contentBg.videoUrl && (
+          <>
+            <video ref={contentVideoRef} src={contentBg.videoUrl} autoPlay muted={contentBg.videoMuted} loop={contentBg.videoLoop} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}/>
+            {contentBg.videoOverlay !== 'transparent' && <div className="absolute inset-0" style={{ backgroundColor: contentBg.videoOverlay, zIndex: 1 }}/>}
+          </>
+        )}
+        {isAdmin && (
+          <button onClick={() => setShowContentBgEditor(true)}
+            className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+            <Palette className="w-3.5 h-3.5" /> Fond du contenu
+          </button>
+        )}
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12">
 
         {/* ── Liste des catégories ── */}
         {!selectedCat && (
@@ -311,6 +342,7 @@ export default function Galerie() {
           </>
         )}
       </div>
+      </div>{/* fin fond du contenu */}
 
       {/* ── Éditeur fond hero ── */}
       {showBgEditor && (
@@ -331,6 +363,31 @@ export default function Galerie() {
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setShowBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
                 <button onClick={saveBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Éditeur fond contenu ── */}
+      {showContentBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center p-4 overflow-y-auto" onClick={e => e.target === e.currentTarget && setShowContentBgEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
+              <h3 className="font-black text-[#1A1040]">🎨 Fond du contenu — Galerie</h3>
+              <button onClick={() => setShowContentBgEditor(false)} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={contentBg} setBg={setContentBg}
+                activeTab={contentBg.type as BgType} setActiveTab={t => setContentBg(p => ({ ...p, type: t }))}
+                fileRef={contentBgFileRef}
+                uploadError={contentBgUploadError} setUploadError={setContentBgUploadError}
+                uploading={contentBgUploading} setUploading={setContentBgUploading}
+              />
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setShowContentBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+                <button onClick={saveContentBg} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-3 font-black hover:bg-[#2d2060]">Enregistrer</button>
               </div>
             </div>
           </div>
