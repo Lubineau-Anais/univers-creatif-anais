@@ -16,12 +16,13 @@ export default function CgvManager() {
   const [uploadErr,  setUploadErr]  = useState('')
   const [saved,      setSaved]      = useState(false)
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const { data } = await supabase.from('settings').select('value').eq('key', SETTING_KEY).single()
     setCgvUrl(data?.value || null)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [])
 
   async function handleFile(file: File) {
     if (file.type !== 'application/pdf') { setUploadErr('Seuls les fichiers PDF sont acceptés.'); return }

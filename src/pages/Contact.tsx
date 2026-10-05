@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Pencil, Check, X, MapPin, Phone, Mail, Image as ImageIcon, Palette } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -99,10 +99,10 @@ export default function Contact() {
       .in('key', ['contact_bg_config', 'contact_titre_style', 'contact_badge_config', 'contact_info_text_style'])
     if (!data) return
     data.forEach((s: { key: string; value: string }) => {
-      if (s.key === 'contact_bg_config')       { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_titre_style')     { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_badge_config')    { try { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_bg_config')       { try { setContactBg(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      if (s.key === 'contact_titre_style')     { try { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      if (s.key === 'contact_badge_config')    { try { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
     })
   }
 

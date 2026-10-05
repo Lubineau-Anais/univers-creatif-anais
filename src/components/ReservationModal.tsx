@@ -33,6 +33,24 @@ function formatDate(d: string) {
   })
 }
 
+// ─── Récap atelier (défini au niveau module pour éviter react-hooks/static-components) ──
+function RecapAtelier({ atelier, dateFormatted }: { atelier: Atelier; dateFormatted: string }) {
+  return (
+    <div className="px-6 py-4 bg-rose-50 border-b-2 border-dashed border-rose-200">
+      <h3 className="font-black text-[#1A1040] mb-2 text-sm">📸 {atelier.titre}</h3>
+      <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600 font-medium">
+        <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-rose-400" /><span className="capitalize">{dateFormatted}</span></div>
+        <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-turquoise-500" />{atelier.heure} · {atelier.duree}</div>
+        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" /><a href={`https://maps.google.com/maps?q=${encodeURIComponent(atelier.lieu)}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-citron-600 transition-colors">{atelier.lieu}</a></div>
+        <div className="flex items-center gap-1.5">
+          <Euro className="w-3.5 h-3.5 text-lime-600" />
+          <strong>{atelier.prix} €</strong>/pers.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Modal principal ───────────────────────────────────────────────────────────
 export default function ReservationModal({ atelier, onClose, onReserved }: Props) {
   const { addItem: addAtelierItem } = useAtelierCart()
@@ -152,22 +170,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
     )
   }
 
-  // ── Récap atelier ─────────────────────────────────────────────────────────
-  const RecapAtelier = () => (
-    <div className="px-6 py-4 bg-rose-50 border-b-2 border-dashed border-rose-200">
-      <h3 className="font-black text-[#1A1040] mb-2 text-sm">📸 {atelier.titre}</h3>
-      <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600 font-medium">
-        <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-rose-400" /><span className="capitalize">{dateFormatted}</span></div>
-        <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-turquoise-500" />{atelier.heure} · {atelier.duree}</div>
-        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-citron-500" /><a href={`https://maps.google.com/maps?q=${encodeURIComponent(atelier.lieu)}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-citron-600 transition-colors">{atelier.lieu}</a></div>
-        <div className="flex items-center gap-1.5">
-          <Euro className="w-3.5 h-3.5 text-lime-600" />
-          <strong>{atelier.prix} €</strong>/pers.
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg max-h-[92vh] overflow-y-auto"
@@ -183,7 +185,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           </button>
         </div>
 
-        <RecapAtelier />
+        <RecapAtelier atelier={atelier} dateFormatted={dateFormatted} />
 
         {/* ── Formulaire ── */}
         <form onSubmit={handleFormSubmit} className="px-6 py-5 space-y-4">

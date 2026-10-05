@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -287,6 +287,7 @@ export default function Accueil() {
   // Charge les avis selon le mode
   useEffect(() => {
     if (reviewsMode === 'manual') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReviewsLoading(true)
       supabase.from('google_reviews_manual').select('*').order('sort_order')
         .then(({ data }) => {
@@ -316,7 +317,106 @@ export default function Accueil() {
     }
   }, [reviewsMode, googleApiKey, googlePlaceId])
 
+  async function loadPolaroids() {
+    const { data } = await supabase.from('hero_polaroids').select('*').order('sort_order')
+    setPolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  async function loadAproposPhotos() {
+    const { data } = await supabase.from('apropos_photos').select('*').order('sort_order')
+    setAproposPhotos((data as AproposPhoto[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
+async function loadContent() {
+    const { data } = await supabase.from('page_content').select('section, contenu').eq('page', 'accueil')
+    if (data?.length) {
+      const map = { ...DEFAULT_CONTENT }
+      data.forEach((row: ContentBlock) => { map[row.section] = row.contenu })
+      setContent(map)
+    }
+  }
+
+  async function loadActus() {
+    const today = new Date().toISOString().split('T')[0]
+    const [{ data: actuData }, { data: settData }] = await Promise.all([
+      supabase.from('actus').select('*').lte('date_debut', today).gte('date_fin', today).order('slot'),
+      supabase.from('settings').select('key, value'),
+    ])
+    // Lire visibilité slots et maxSlot
+    const vis: Record<number, boolean> = {}
+    let maxS = 3
+    ;(settData || []).forEach((s: { key: string; value: string }) => {
+      if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
+      else if (s.key === 'actu_polaroid_size')       { setActuPolaroidSize(parseInt(s.value) || 208) }
+      else if (s.key === 'actu_card_titre_font')     { setActuTitreFont(s.value) }
+      else if (s.key === 'actu_card_titre_size')     { setActuTitreSize(parseInt(s.value) || 18) }
+      else if (s.key === 'actu_card_titre_color')    { setActuTitreColor(s.value) }
+      else if (s.key === 'actu_card_texte_font')     { setActuTexteFont(s.value) }
+      else if (s.key === 'actu_card_texte_size')     { setActuTexteSize(parseInt(s.value) || 13) }
+      else if (s.key === 'actu_card_texte_color')    { setActuTexteColor(s.value) }
+      else if (s.key === 'hero_bg_config')           { try { setHeroBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'actu_bg_config')           { try { setActuBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'actu_section_titre_style') { try { setActuTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'actu_badge_config')        { try { setActuBadge(p       => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'actu_btn_config')          { try { setActuBtn(p         => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+
+      else if (s.key === 'valeurs_bg_config')          { try { setValeursBg(p              => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'valeurs_titre_style')        { try { setValeursTitleStyle(p      => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'valeurs_carte_titre_style')  { try { setValeursCardTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'valeurs_carte_desc_style')   { try { setValeursCardDescStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'valeurs_cards')              { try { setValeursCards(JSON.parse(s.value)) } catch { /* ignore */ } }
+      else if (s.key === 'apropos_bg_config')          { try { setAproposBg(p              => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'apropos_titre_style')      { try { setAproposTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'apropos_texte_style')      { try { setAproposBodyStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'reseaux_titre_style')      { try { setReseauxTitleStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
+      else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
+      else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
+      else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
+      else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
+      else if (s.key === 'google_reviews_mode')      { setReviewsMode((s.value || 'manual') as 'api' | 'manual') }
+
+      else if (s.key === 'hero_titre_style') {
+        try { setHeroStyle({ ...DEFAULT_HERO_STYLE, ...JSON.parse(s.value) }) } catch { /* ignore */ }
+      } else if (s.key === 'hero_sous_titre_style') {
+        try { setHeroSubStyle(prev => ({ ...prev, ...JSON.parse(s.value) })) } catch { /* ignore */ }
+      } else if (s.key.startsWith('slot_visible_')) {
+        const n = parseInt(s.key.replace('slot_visible_', ''))
+        if (!isNaN(n)) vis[n] = s.value !== 'false'
+      }
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fromData = (actuData || []).map((a: any) => a.slot as number)
+    setMaxSlotAccueil(Math.max(maxS, ...fromData, 3))
+    setSlotVisibility(vis)
+    // Garder uniquement les actus des slots visibles
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filtered = (actuData || []).filter((a: any) => vis[a.slot] !== false)
+    setActus(filtered as Actu[])
+  }
+
+  async function loadSocialLinks() {
+    const { data } = await supabase
+      .from('settings')
+      .select('key, value')
+      .in('key', ['instagram_url','facebook_url','tiktok_url','linkedin_url','pinterest_url'])
+    if (data) {
+      const map: Record<string, string> = {}
+      data.forEach(row => { map[row.key] = row.value || '' })
+      setSocialLinks(map)
+    }
+  }
+
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     Promise.all([loadContent(), loadActus()]).then(() => setHeroReady(true))
     loadSocialLinks()
     loadPolaroids()
@@ -367,102 +467,6 @@ export default function Accueil() {
       supabase.removeChannel(channelAproposPhotos)
     }
   }, [])
-
-  async function loadPolaroids() {
-    const { data } = await supabase.from('hero_polaroids').select('*').order('sort_order')
-    setPolaroids((data as HeroPolaroid[]) || [])
-  }
-
-  async function loadAproposPhotos() {
-    const { data } = await supabase.from('apropos_photos').select('*').order('sort_order')
-    setAproposPhotos((data as AproposPhoto[]) || [])
-  }
-
-  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
-  }
-
-async function loadContent() {
-    const { data } = await supabase.from('page_content').select('section, contenu').eq('page', 'accueil')
-    if (data?.length) {
-      const map = { ...DEFAULT_CONTENT }
-      data.forEach((row: ContentBlock) => { map[row.section] = row.contenu })
-      setContent(map)
-    }
-  }
-
-  async function loadActus() {
-    const today = new Date().toISOString().split('T')[0]
-    const [{ data: actuData }, { data: settData }] = await Promise.all([
-      supabase.from('actus').select('*').lte('date_debut', today).gte('date_fin', today).order('slot'),
-      supabase.from('settings').select('key, value'),
-    ])
-    // Lire visibilité slots et maxSlot
-    const vis: Record<number, boolean> = {}
-    let maxS = 3
-    ;(settData || []).forEach((s: { key: string; value: string }) => {
-      if (s.key === 'actu_max_slot') maxS = parseInt(s.value) || 3
-      else if (s.key === 'actu_polaroid_size')       { setActuPolaroidSize(parseInt(s.value) || 208) }
-      else if (s.key === 'actu_card_titre_font')     { setActuTitreFont(s.value) }
-      else if (s.key === 'actu_card_titre_size')     { setActuTitreSize(parseInt(s.value) || 18) }
-      else if (s.key === 'actu_card_titre_color')    { setActuTitreColor(s.value) }
-      else if (s.key === 'actu_card_texte_font')     { setActuTexteFont(s.value) }
-      else if (s.key === 'actu_card_texte_size')     { setActuTexteSize(parseInt(s.value) || 13) }
-      else if (s.key === 'actu_card_texte_color')    { setActuTexteColor(s.value) }
-      else if (s.key === 'hero_bg_config')           { try { setHeroBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'actu_bg_config')           { try { setActuBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'actu_section_titre_style') { try { setActuTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'actu_badge_config')        { try { setActuBadge(p       => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'actu_btn_config')          { try { setActuBtn(p         => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-
-      else if (s.key === 'valeurs_bg_config')          { try { setValeursBg(p              => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'valeurs_titre_style')        { try { setValeursTitleStyle(p      => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'valeurs_carte_titre_style')  { try { setValeursCardTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'valeurs_carte_desc_style')   { try { setValeursCardDescStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'valeurs_cards')              { try { setValeursCards(JSON.parse(s.value)) } catch {} }
-      else if (s.key === 'apropos_bg_config')          { try { setAproposBg(p              => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'apropos_titre_style')      { try { setAproposTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'apropos_texte_style')      { try { setAproposBodyStyle(p   => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'avis_bg_config')           { try { setAvisBg(p          => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'reseaux_titre_style')      { try { setReseauxTitleStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
-      else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch {} }
-      else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch {} }
-      else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch {} }
-      else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
-      else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
-      else if (s.key === 'google_reviews_mode')      { setReviewsMode((s.value || 'manual') as 'api' | 'manual') }
-
-      else if (s.key === 'hero_titre_style') {
-        try { setHeroStyle({ ...DEFAULT_HERO_STYLE, ...JSON.parse(s.value) }) } catch {}
-      } else if (s.key === 'hero_sous_titre_style') {
-        try { setHeroSubStyle(prev => ({ ...prev, ...JSON.parse(s.value) })) } catch {}
-      } else if (s.key.startsWith('slot_visible_')) {
-        const n = parseInt(s.key.replace('slot_visible_', ''))
-        if (!isNaN(n)) vis[n] = s.value !== 'false'
-      }
-    })
-    const fromData = (actuData || []).map((a: any) => a.slot as number)
-    setMaxSlotAccueil(Math.max(maxS, ...fromData, 3))
-    setSlotVisibility(vis)
-    // Garder uniquement les actus des slots visibles
-    const filtered = (actuData || []).filter((a: any) => vis[a.slot] !== false)
-    setActus(filtered as Actu[])
-  }
-
-  async function loadSocialLinks() {
-    const { data } = await supabase
-      .from('settings')
-      .select('key, value')
-      .in('key', ['instagram_url','facebook_url','tiktok_url','linkedin_url','pinterest_url'])
-    if (data) {
-      const map: Record<string, string> = {}
-      data.forEach(row => { map[row.key] = row.value || '' })
-      setSocialLinks(map)
-    }
-  }
-
 
   async function saveBg() {
     const val = JSON.stringify(heroBg)

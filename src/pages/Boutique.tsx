@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal, Pencil, Palette, Check, ZoomIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
@@ -536,33 +536,6 @@ export default function Boutique() {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
   const [openedProduct, setOpenedProduct] = useState<ShopProduct | null>(null)
 
-  async function deleteCategory(id: string) {
-    await supabase.from('shop_categories').delete().eq('id', id)
-    setDeleteCatId(null)
-    loadShop()
-  }
-
-  async function deleteProduct(id: string) {
-    await supabase.from('shop_products').delete().eq('id', id)
-    setDeleteProductId(null)
-    loadShop()
-  }
-
-  async function loadBoutiquePolaroids() {
-    const { data } = await supabase.from('boutique_polaroids').select('*').order('sort_order')
-    setBoutiquePolaroids((data as HeroPolaroid[]) || [])
-  }
-
-  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
-    setBoutiquePolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
-  }
-
-  useEffect(() => { loadShop(); loadBoutiquePolaroids() }, [])
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = heroBg.videoMuted
-  }, [heroBg.videoMuted])
-
   async function loadShop() {
     setLoading(true)
     const [{ data: settings }, { data: content }, { data: cats }, { data: prods }, { data: promos }] = await Promise.all([
@@ -585,7 +558,7 @@ export default function Boutique() {
         if (s.key === 'shop_content_bg_config') { setContentBg(p=>({...p,...JSON.parse(s.value)})) }
         if (s.key === 'shop_badge_config')   setBadge(p=>({...p,...JSON.parse(s.value)}))
         if (s.key === 'shop_titre_style')    setTitreStyle(p=>({...p,...JSON.parse(s.value)}))
-      } catch {}
+      } catch { /* ignore */ }
     })
     ;(content || []).forEach((c: { section: string; contenu: string }) => {
       if (c.section === 'shop_titre') setTitreText(c.contenu)
@@ -595,6 +568,34 @@ export default function Boutique() {
     setPromotions((promos as ShopPromotion[]) || [])
     setLoading(false)
   }
+
+  async function loadBoutiquePolaroids() {
+    const { data } = await supabase.from('boutique_polaroids').select('*').order('sort_order')
+    setBoutiquePolaroids((data as HeroPolaroid[]) || [])
+  }
+
+  function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
+    setBoutiquePolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
+  }
+
+  async function deleteCategory(id: string) {
+    await supabase.from('shop_categories').delete().eq('id', id)
+    setDeleteCatId(null)
+    loadShop()
+  }
+
+  async function deleteProduct(id: string) {
+    await supabase.from('shop_products').delete().eq('id', id)
+    setDeleteProductId(null)
+    loadShop()
+  }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadShop(); loadBoutiquePolaroids() }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = heroBg.videoMuted
+  }, [heroBg.videoMuted])
 
   // Déterminer le statut effectif (auto-activation si date passée)
   const effectiveStatus: ShopStatus = (() => {
@@ -651,6 +652,7 @@ export default function Boutique() {
   const pagedProducts = filteredProducts.slice((page - 1) * perPage, page * perPage)
   const showPagination = filteredProducts.length > 25
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setPage(1) }, [activeCategory, perPage])
 
   // ─── Boutique inactive ─────────────────────────────────────────────────────

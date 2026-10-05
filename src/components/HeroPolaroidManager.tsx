@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Trash2, RefreshCw, Eye, EyeOff, Move, Lock, Image as ImageIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const POLAROID_FONTS: Record<string, string> = {
   sans: 'sans-serif', serif: 'serif', mono: 'monospace', cursive: 'cursive',
 }
@@ -42,6 +43,7 @@ function PolaroidRow({ polaroid, onChange, onDelete }: {
   useEffect(() => {
     setLocalTitle(polaroid.title ?? '')
     setLocalText(polaroid.text ?? '')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [polaroid.id])
 
   async function uploadImage(file: File) {

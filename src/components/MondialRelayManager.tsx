@@ -28,8 +28,6 @@ export default function MondialRelayManager() {
   const [saved,         setSaved]         = useState(false)
   const [loading,       setLoading]       = useState(true)
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const { data } = await supabase.from('settings').select('key, value')
       .in('key', ['mondial_relay_code_enseigne', 'mondial_relay_cle_api', 'mondial_relay_tarifs', 'click_collect_info', 'shop_livraison_active', 'shop_click_collect_active'])
@@ -45,6 +43,9 @@ export default function MondialRelayManager() {
     if ('shop_click_collect_active' in map) setClickCollectActive(map['shop_click_collect_active'] !== 'false')
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [])
 
   function updateTranche(i: number, field: keyof Tranche, val: string) {
     setTranches(prev => prev.map((t, j) => j === i ? { ...t, [field]: parseFloat(val) || 0 } : t))

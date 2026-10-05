@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Check, RefreshCw, Navigation, X, GripVertical } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -143,8 +143,6 @@ export default function NavbarAdmin() {
   const [s5Saving, setS5Saving] = useState(false); const [s5Saved, setS5Saved] = useState(false)
   const [s6Saving, setS6Saving] = useState(false); const [s6Saved, setS6Saved] = useState(false)
 
-  useEffect(() => { loadNav() }, [])
-
   async function loadNav() {
     const { data } = await supabase.from('settings').select('key, value').in('key', [
       'navbar_bg_color', 'navbar_border_color', 'navbar_link_font',
@@ -180,7 +178,7 @@ export default function NavbarAdmin() {
       try {
         const order = JSON.parse(map['navbar_nav_order']) as number[]
         if (Array.isArray(order) && order.length === NAV_HREFS.length) setNavOrder(order)
-      } catch {}
+      } catch { /* ignore */ }
     }
     setTabVisible({
       ateliers: map['nav_ateliers_visible'] !== 'false',
@@ -190,6 +188,9 @@ export default function NavbarAdmin() {
       informations: map['nav_informations_visible'] !== 'false',
     })
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadNav() }, [])
 
   async function upsertMany(pairs: { key: string; value: string }[]) {
     await Promise.all(pairs.map(p =>

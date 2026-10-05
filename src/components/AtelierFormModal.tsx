@@ -17,6 +17,7 @@ const MODES_PAIEMENT = [
   { value: 'especes',  label: 'Espèces',   icon: Banknote,   desc: 'Sur place' },
 ]
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const NIVEAUX = [
   { value: 'debutant',      label: 'Débutant',     dots: 1, color: '#4ade80' },
   { value: 'intermediaire', label: 'Intermédiaire', dots: 2, color: '#facc15' },

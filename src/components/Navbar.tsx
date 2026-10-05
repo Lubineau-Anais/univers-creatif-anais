@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, LogOut, Settings, LayoutDashboard, Archive, Newspaper, Home, Phone, Navigation, ShoppingBag, ShoppingCart, Images, Info, Tag } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -59,18 +59,6 @@ export default function Navbar() {
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
   const [tabVisible, setTabVisible]   = useState(DEFAULT_TAB_VISIBLE)
 
-  // ── Chargement des paramètres ─────────────────────────────────────────────────
-  useEffect(() => {
-    loadNav()
-
-    const channel = supabase
-      .channel('navbar-settings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loadNav())
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [])
-
   async function loadNav() {
     const { data } = await supabase.from('settings').select('key, value').in('key', [
       'navbar_bg_color', 'navbar_border_color', 'navbar_link_font',
@@ -106,7 +94,7 @@ export default function Navbar() {
       try {
         const order = JSON.parse(map['navbar_nav_order']) as number[]
         if (Array.isArray(order) && order.length === NAV_HREFS.length) setNavOrder(order)
-      } catch {}
+      } catch { /* ignore */ }
     }
     setTabVisible({
       ateliers: map['nav_ateliers_visible'] !== 'false',
@@ -116,6 +104,19 @@ export default function Navbar() {
       informations:  map['nav_informations_visible']  !== 'false',
     })
   }
+
+  // ── Chargement des paramètres ─────────────────────────────────────────────────
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadNav()
+
+    const channel = supabase
+      .channel('navbar-settings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => loadNav())
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   const isActive = (href: string) => href === '/' ? location.pathname === '/' : location.pathname.startsWith(href)

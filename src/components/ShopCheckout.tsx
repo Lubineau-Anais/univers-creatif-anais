@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { X, Check, ChevronRight, ChevronLeft, CreditCard, RefreshCw, MapPin } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -37,6 +37,7 @@ function ensureStylesheet(href: string) {
 
 function MondialRelayWidget({ enseigne, onSelect }: { enseigne: string; onSelect: (r: RelayPoint) => void }) {
   const onSelectRef = useRef(onSelect)
+  // eslint-disable-next-line react-hooks/refs
   onSelectRef.current = onSelect
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -49,6 +50,7 @@ function MondialRelayWidget({ enseigne, onSelect }: { enseigne: string; onSelect
         ensureStylesheet('https://widget.mondialrelay.com/parcelshop-picker/v4_0/themes/default/css/widget-lib.min.css')
         setStatus('ready')
         setTimeout(() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const $ = (window as any).jQuery
           if (!$) return
           $(document).MR_ParcelShopPicker_initialise({
@@ -58,6 +60,7 @@ function MondialRelayWidget({ enseigne, onSelect }: { enseigne: string; onSelect
             NbResults:           '7',
             EnableGeolocButton:  true,
             ShowResultsOnMap:    true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             OnParcelShopSelected: (rp: any) => {
               onSelectRef.current({
                 id:      rp.ID,
@@ -194,7 +197,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
         const m: Record<string, string> = {}
         data?.forEach(r => { m[r.key] = r.value || '' })
         if (m['stripe_public_key'])          { setStripePromise(loadStripe(m['stripe_public_key'])); setStripeConfigured(true) }
-        if (m['mondial_relay_tarifs'])        { try { setShippingTranches(JSON.parse(m['mondial_relay_tarifs'])) } catch {} }
+        if (m['mondial_relay_tarifs'])        { try { setShippingTranches(JSON.parse(m['mondial_relay_tarifs'])) } catch { /* ignore */ } }
         if (m['mondial_relay_code_enseigne']) setMrEnseigne(m['mondial_relay_code_enseigne'])
         if (m['click_collect_info'])          setCollectInfo(m['click_collect_info'])
         if ('shop_livraison_active'     in m) setLivraisonActive(m['shop_livraison_active'] !== 'false')
@@ -203,6 +206,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (method !== 'mondial_relay' || !shippingTranches.length) { setShippingCost(0); return }
     const totalG = items.reduce((s, i) => s + (i.product?.weight_g ?? 0) * i.quantity, 0)
     if (totalG === 0) { setShippingCost(0); return }

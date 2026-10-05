@@ -34,8 +34,6 @@ export default function ProduitsAdmin() {
   const [deleteCatId, setDeleteCatId] = useState<string|null>(null)
   const [deleteProdId, setDeleteProdId] = useState<string|null>(null)
 
-  useEffect(() => { loadAll() }, [])
-
   async function loadAll() {
     setLoading(true)
     const [{ data: cats }, { data: prods }] = await Promise.all([
@@ -46,6 +44,9 @@ export default function ProduitsAdmin() {
     setProducts((prods as ShopProduct[]) || [])
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadAll() }, [])
 
   async function deleteCategory(id: string) {
     await supabase.from('shop_categories').delete().eq('id', id)
@@ -207,7 +208,7 @@ export default function ProduitsAdmin() {
                       <div key={cat.id} className="border-2 border-[#1A1040] rounded-2xl overflow-hidden">
                         <div className="flex items-center gap-3 px-4 py-3 bg-candy">
                           {children.length > 0 ? (
-                            <button onClick={()=>setExpanded(p=>{ const n=new Set(p); n.has(cat.id)?n.delete(cat.id):n.add(cat.id); return n })}
+                            <button onClick={()=>setExpanded(p=>{ const n=new Set(p); if (n.has(cat.id)) n.delete(cat.id); else n.add(cat.id); return n })}
                               className="w-6 h-6 flex items-center justify-center">
                               {isExpanded ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
                             </button>

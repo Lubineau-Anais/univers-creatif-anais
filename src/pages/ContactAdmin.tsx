@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Phone, Check, RefreshCw, Pencil, MapPin, Mail } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
@@ -73,8 +73,6 @@ export default function ContactAdmin() {
   const [infoSaving, setInfoSaving] = useState(false)
   const [infoSaved, setInfoSaved] = useState(false)
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const [{ data: settings }, { data: contentData }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
@@ -94,13 +92,15 @@ export default function ContactAdmin() {
         if (s.key === 'contact_bg_config')    { const v = JSON.parse(s.value); setContactBg(p => ({ ...p, ...v })); setBgTab(v.type || 'color') }
         if (s.key === 'contact_badge_config') { setBadge(p => ({ ...p, ...JSON.parse(s.value) })) }
         if (s.key === 'contact_titre_style')  { setTitreStyle(p => ({ ...p, ...JSON.parse(s.value) })) }
-      } catch {}
+      } catch { /* ignore */ }
       if (s.key === 'contact_icon_adresse')    setIconColors(p => ({ ...p, contact_icon_adresse: s.value }))
       if (s.key === 'contact_icon_telephone') setIconColors(p => ({ ...p, contact_icon_telephone: s.value }))
       if (s.key === 'contact_icon_email')     setIconColors(p => ({ ...p, contact_icon_email: s.value }))
-      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'contact_info_text_style') { try { setInfoTextStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
     })
   }
+
+  useEffect(() => { load() }, [])
 
   async function saveBg() {
     setBgSaving(true)

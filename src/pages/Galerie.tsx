@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -66,12 +66,6 @@ export default function Galerie() {
   const contentBgFileRef = useRef<HTMLInputElement>(null)
   const contentVideoRef  = useRef<HTMLVideoElement>(null)
 
-  useEffect(() => { loadCategories(); loadGalerieBg(); loadContentBg() }, [])
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = galerieBg.videoMuted
-  }, [galerieBg.videoMuted])
-
   async function loadGalerieBg() {
     const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_bg_config').single()
     if (data) {
@@ -79,7 +73,7 @@ export default function Galerie() {
         const v = JSON.parse(data.value)
         setGalerieBg(p => ({ ...p, ...v }))
         setGalerieBgTab(v.type || 'color')
-      } catch {}
+      } catch { /* ignore */ }
     }
   }
 
@@ -93,7 +87,7 @@ export default function Galerie() {
 
   async function loadContentBg() {
     const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_content_bg_config').single()
-    if (data) { try { setContentBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch {} }
+    if (data) { try { setContentBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch { /* ignore */ } }
   }
 
   async function saveContentBg() {
@@ -112,6 +106,13 @@ export default function Galerie() {
     setCategories(all.filter(c => c.visible !== false))
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadCategories(); loadGalerieBg(); loadContentBg() }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = galerieBg.videoMuted
+  }, [galerieBg.videoMuted])
 
   async function openCategory(cat: GalerieCategory) {
     setSelectedCat(cat)

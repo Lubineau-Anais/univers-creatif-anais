@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+﻿import { useState, useEffect, useCallback } from 'react'
 import {
   LayoutDashboard, Calendar, Users, Euro,
   ChevronDown, ChevronUp, RefreshCw,
@@ -180,6 +180,7 @@ export default function TableauDeBord() {
     setLoading(false)
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData() }, [loadData])
 
   // ── Couleurs personnalisées ──────────────────────────────────────────────
@@ -187,7 +188,7 @@ export default function TableauDeBord() {
     supabase.from('settings').select('value').eq('key', 'tdb_card_colors').maybeSingle()
       .then(({ data }) => {
         if (data?.value) {
-          try { setTdbColors({ ...DEFAULT_TDB_COLORS, ...JSON.parse(data.value) }) } catch {}
+          try { setTdbColors({ ...DEFAULT_TDB_COLORS, ...JSON.parse(data.value) }) } catch { /* ignore */ }
         }
       })
   }, [])
@@ -275,7 +276,7 @@ export default function TableauDeBord() {
   function togglePresence(id: string) {
     setPresences(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
   }

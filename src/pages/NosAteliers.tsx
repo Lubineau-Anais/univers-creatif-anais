@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X, Image as ImageIcon, Palette } from 'lucide-react'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
 import BgEditor from '../components/BgEditor'
@@ -349,12 +349,6 @@ export default function NosAteliers() {
     setAtelierPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
   }
 
-  useEffect(() => { loadCategories(); loadHero(); loadAtelierPolaroids() }, [])
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = ateliersBg.videoMuted
-  }, [ateliersBg.videoMuted])
-
   async function loadHero() {
     const [{ data: settings }, { data: content }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
@@ -375,7 +369,7 @@ export default function NosAteliers() {
           setAteliersBg(p => ({ ...p, ...v }))
           setAteliersBgTab(v.type || 'color')
         }
-      } catch {}
+      } catch { /* ignore */ }
     })
     ;(content || []).forEach((c: { section: string; contenu: string }) => {
       if (c.section === 'ateliers_titre')     setHeroTitre(c.contenu)
@@ -415,6 +409,13 @@ export default function NosAteliers() {
     setCategories((data as AtelierCategory[]) || [])
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadCategories(); loadHero(); loadAtelierPolaroids() }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = ateliersBg.videoMuted
+  }, [ateliersBg.videoMuted])
 
   async function openCategory(cat: AtelierCategory) {
     setSelectedCat(cat)

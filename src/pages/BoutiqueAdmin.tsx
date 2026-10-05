@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { ShoppingBag, Check, RefreshCw, Pencil, Clock, Upload, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
@@ -83,8 +83,6 @@ export default function BoutiqueAdmin() {
   const [cartSaving, setCartSaving]       = useState(false)
   const [cartSaved, setCartSaved]         = useState(false)
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     const [{ data: settings }, { data: content }] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', [
@@ -103,12 +101,14 @@ export default function BoutiqueAdmin() {
         if (s.key === 'shop_badge_config')  setBadge(p=>({...p,...JSON.parse(s.value)}))
         if (s.key === 'shop_titre_style')   setTitreStyle(p=>({...p,...JSON.parse(s.value)}))
         if (s.key === 'shop_cart_expiry')   setCartExpiry(parseInt(s.value)||30)
-      } catch {}
+      } catch { /* ignore */ }
     })
     ;(content || []).forEach((c: { section: string; contenu: string }) => {
       if (c.section === 'shop_titre') setTitreText(c.contenu)
     })
   }
+
+  useEffect(() => { load() }, [])
 
   async function uploadStockingImage(file: File) {
     setImgUploading(true)

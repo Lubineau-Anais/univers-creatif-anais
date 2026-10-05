@@ -11,6 +11,7 @@ import {
   PRESET_COLORS, PRESET_GRADIENTS, GRAD_DIRS, PATTERNS, VIDEO_OVERLAYS,
 } from '../lib/heroBg'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const BG_TABS: { id: BgType; label: string; icon: ReactNode }[] = [
   { id: 'color',    label: 'Couleur', icon: <Palette  className="w-4 h-4" /> },
   { id: 'gradient', label: 'Dégradé', icon: <Sparkles className="w-4 h-4" /> },

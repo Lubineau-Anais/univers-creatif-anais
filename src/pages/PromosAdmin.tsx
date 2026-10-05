@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Tag, Plus, Pencil, Trash2, Check, X, RefreshCw, Percent, DollarSign, Package } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { ShopCategory, ShopPromotion, ShopPromoCode, BundlePromoConfig } from '../lib/shop'
@@ -260,8 +260,6 @@ export default function PromosAdmin() {
   const [bundleExpiry, setBundleExpiry] = useState(false)
   const [bundleExpiryDate, setBundleExpiryDate] = useState('')
 
-  useEffect(() => { loadAll() }, [])
-
   async function loadAll() {
     setLoading(true)
     const [{ data: promos }, { data: cds }, { data: cats }, { data: bpData }] = await Promise.all([
@@ -278,10 +276,13 @@ export default function PromosAdmin() {
         const cfg: BundlePromoConfig = { ...DEFAULT_BUNDLE_PROMO, ...JSON.parse(bpData.value) }
         setBundleConfig(cfg)
         if (cfg.expires_at) { setBundleExpiry(true); setBundleExpiryDate(cfg.expires_at.slice(0, 10)) }
-      } catch {}
+      } catch { /* ignore */ }
     }
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadAll() }, [])
 
   function toggleBundleCategory(id: string) {
     setBundleConfig(prev => ({

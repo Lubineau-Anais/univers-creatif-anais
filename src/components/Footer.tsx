@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Scissors, Pencil, Upload, RefreshCw, X, Palette, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -41,18 +41,6 @@ export default function Footer() {
 
   const pageKey = pageKeyFromPath(pathname)
 
-  // Charge le texte/style/icône une seule fois
-  useEffect(() => {
-    loadStatic()
-  }, [])
-
-  // Recharge le fond à chaque changement de page
-  useEffect(() => {
-    setFooterBg(DEFAULT_FOOTER_BG)
-    setFooterBgTab('color')
-    loadPageBg(pageKey)
-  }, [pageKey])
-
   async function loadStatic() {
     const [{ data: content }, { data: settings }] = await Promise.all([
       supabase.from('page_content').select('contenu').eq('page', 'accueil').eq('section', 'footer_titre').maybeSingle(),
@@ -60,7 +48,7 @@ export default function Footer() {
     ])
     if (content?.contenu) setText(content.contenu)
     ;(settings || []).forEach(s => {
-      if (s.key === 'footer_titre_style') { try { setStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch {} }
+      if (s.key === 'footer_titre_style') { try { setStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
       if (s.key === 'footer_icon_url')    { setIconUrl(s.value || null) }
     })
   }
@@ -68,9 +56,23 @@ export default function Footer() {
   async function loadPageBg(key: string) {
     const { data } = await supabase.from('settings').select('value').eq('key', `footer_bg_${key}`).maybeSingle()
     if (data?.value) {
-      try { setFooterBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch {}
+      try { setFooterBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch { /* ignore */ }
     }
   }
+
+  // Charge le texte/style/icône une seule fois
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadStatic()
+  }, [])
+
+  // Recharge le fond à chaque changement de page
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFooterBg(DEFAULT_FOOTER_BG)
+    setFooterBgTab('color')
+    loadPageBg(pageKey)
+  }, [pageKey])
 
   async function saveBg() {
     await supabase.from('settings').upsert(

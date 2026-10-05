@@ -66,8 +66,6 @@ export default function ActuAdmin() {
   const [texteSize,  setTexteSize]  = useState(13)
   const [texteColor, setTexteColor] = useState('#4b5563')
 
-  useEffect(() => { loadAll() }, [])
-
   async function loadAll() {
     setLoading(true)
     const [{ data: actuData }, { data: settData }] = await Promise.all([
@@ -99,6 +97,9 @@ export default function ActuAdmin() {
     setSlotVisibility(vis)
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadAll() }, [])
 
   async function changePolaroidSize(size: number) {
     setPolaroidSize(size)

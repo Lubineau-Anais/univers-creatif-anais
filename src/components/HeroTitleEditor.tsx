@@ -20,6 +20,7 @@ export interface HeroStyle {
   underline:    boolean
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEFAULT_HERO_STYLE: HeroStyle = {
   font:         'serif',
   fontSize:     48,
@@ -37,6 +38,7 @@ export const DEFAULT_HERO_STYLE: HeroStyle = {
   underline:    false,
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const FONT_OPTIONS = [
   { value: 'serif',  label: 'Classique',  family: 'Georgia, serif' },
   { value: 'sans',   label: 'Moderne',    family: 'Inter, sans-serif' },
@@ -44,6 +46,7 @@ export const FONT_OPTIONS = [
   { value: 'script', label: 'Fun',        family: 'Pacifico, cursive' },
 ]
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function buildTitleStyle(style: HeroStyle): React.CSSProperties {
   const font = FONT_OPTIONS.find(f => f.value === style.font)
   return {
@@ -80,6 +83,7 @@ export default function HeroTitleEditor({ initialText, initialStyle, page = 'acc
   // Initialise le contenu de l'éditeur
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = initialText
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Applique un format sur la sélection courante

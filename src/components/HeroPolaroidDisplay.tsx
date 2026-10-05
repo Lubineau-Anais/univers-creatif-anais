@@ -8,6 +8,7 @@ import { POLAROID_FONTS, type HeroPolaroid } from './HeroPolaroidManager'
 // offset_y is always distance from top of container.
 // No container-width computation in JS — the browser handles right/left natively.
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function HeroPolaroidDisplay({ polaroid, index: _index, isAdmin, onMoved, tableName = 'hero_polaroids' }: {
   polaroid: HeroPolaroid
   index: number

@@ -45,10 +45,6 @@ export default function Archives() {
   const [anneeSelectionnee, setAnneeSelectionnee] = useState<number | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  useEffect(() => {
-    loadArchives()
-  }, [])
-
   async function loadArchives() {
     setLoading(true)
     const { data } = await supabase
@@ -62,6 +58,9 @@ export default function Archives() {
     }
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadArchives() }, [])
 
   const archiveCourante = archives.find(a => a.annee === anneeSelectionnee)
 

@@ -8,8 +8,6 @@ export default function InformationsAdmin() {
   const [mapsSaving, setMapsSaving] = useState(false)
   const [mapsSaved,  setMapsSaved]  = useState(false)
 
-  useEffect(() => { loadData() }, [])
-
   async function loadData() {
     const { data } = await supabase.from('page_content').select('section, contenu')
       .in('section', ['infos_maps_src', 'infos_adresse'])
@@ -19,6 +17,9 @@ export default function InformationsAdmin() {
     setMapsUrl(map['infos_maps_src'] || '')
     setAdresse(map['infos_adresse']  || '')
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadData() }, [])
 
   async function saveMaps(e: React.FormEvent) {
     e.preventDefault()

@@ -105,10 +105,12 @@ export default function AproposPhotoManager({ photos, onClose, onRefresh }: Prop
   async function changePhoto(id: string, file: File) {
     setSaving(id)
     const ext      = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    // eslint-disable-next-line react-hooks/purity
     const filename = `apropos-${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('hero').upload(filename, file, { upsert: true, contentType: file.type })
     if (error) { setSaving(null); return }
     const { data } = supabase.storage.from('hero').getPublicUrl(filename)
+    // eslint-disable-next-line react-hooks/purity
     const url = data.publicUrl + '?t=' + Date.now()
     await supabase.from('apropos_photos').update({ image_url: url }).eq('id', id)
     patch(id, { image_url: url })

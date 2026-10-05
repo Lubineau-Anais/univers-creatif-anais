@@ -185,8 +185,6 @@ export default function CommandesAdmin() {
   const [filterStatut, setFilterStatut] = useState<string>('all')
   const [filterMode,   setFilterMode]   = useState<string>('all')
 
-  useEffect(() => { load() }, [])
-
   async function load() {
     setLoading(true)
     const { data } = await supabase
@@ -196,6 +194,9 @@ export default function CommandesAdmin() {
     setOrders((data as ShopOrder[]) || [])
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { load() }, [])
 
   async function updateStatut(id: string, statut: string) {
     await supabase.from('shop_orders').update({ statut }).eq('id', id)

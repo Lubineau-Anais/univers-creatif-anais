@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import {
   Home, Upload, Check, RefreshCw, Palette,
   Sparkles, Trash2, X, ImagePlus, Newspaper, Pencil, Type,
@@ -111,6 +111,18 @@ const RADIUS_OPTIONS = [
 
 
 // ─── Composant principal ──────────────────────────────────────────────────────
+function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
+  return (
+    <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center gap-3 bg-candy">
+      {icon}
+      <div>
+        <h2 className="font-black text-[#1A1040] text-sm">{title}</h2>
+        <p className="text-[10px] text-gray-400 font-bold">{sub}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function AccueilAdmin() {
   const { logoUrl } = useSiteSettings()
 
@@ -265,8 +277,8 @@ export default function AccueilAdmin() {
           if (s.key === 'apropos_photo_size')       setAproposPhotoSize(parseInt(s.value) || 288)
           if (s.key === 'apropos_photo_rotation')   setAproposPhotoRotation(parseFloat(s.value) || 0)
           if (s.key === 'apropos_photo_visible')    setAproposPhotoVisible(s.value !== 'false')
-        } catch {}
-        if (s.key === 'valeurs_cards' && s.value)      { try { setValeursCards(JSON.parse(s.value)) } catch {} }
+        } catch { /* ignore */ }
+        if (s.key === 'valeurs_cards' && s.value)      { try { setValeursCards(JSON.parse(s.value)) } catch { /* ignore */ } }
         if (s.key === 'apropos_photo_url' && s.value)  setAproposPhoto(s.value)
       })
     }
@@ -417,19 +429,6 @@ export default function AccueilAdmin() {
   // ─── Helpers ─────────────────────────────────────────────────────────────
   const heroBgPreview = buildHeroBgStyle({ ...heroBg, type: heroBgTab })
   const actuBgPreview = buildHeroBgStyle({ ...actuBg, type: actuBgTab })
-
-  // ─── Section card header ─────────────────────────────────────────────────
-  function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
-    return (
-      <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center gap-3 bg-candy">
-        {icon}
-        <div>
-          <h2 className="font-black text-[#1A1040] text-sm">{title}</h2>
-          <p className="text-[10px] text-gray-400 font-bold">{sub}</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <main className="flex-1 bg-candy">

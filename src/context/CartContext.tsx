@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
+﻿import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ShopCartItem, ShopPromoCode, BundlePromoConfig } from '../lib/shop'
@@ -48,11 +48,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cartIdRef   = useRef<string | null>(null)
 
-  useEffect(() => {
-    initCart()
-    return () => { if (expiryTimer.current) clearTimeout(expiryTimer.current) }
-  }, [])
-
   // ── Expiry en minutes (depuis settings) ──────────────────────────────────────
   async function getExpiryMins(): Promise<number> {
     const { data } = await supabase.from('settings').select('value').eq('key', 'shop_cart_expiry').maybeSingle()
@@ -87,7 +82,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     await cleanupExpiredCarts()
     // Charger la config promo bundle
     const { data: bpData } = await supabase.from('settings').select('value').eq('key', 'bundle_promo_config').maybeSingle()
-    if (bpData?.value) { try { setBundleConfig({ ...DEFAULT_BUNDLE_PROMO, ...JSON.parse(bpData.value) }) } catch {} }
+    if (bpData?.value) { try { setBundleConfig({ ...DEFAULT_BUNDLE_PROMO, ...JSON.parse(bpData.value) }) } catch { /* ignore */ } }
 
 
     const now = new Date().toISOString()
@@ -115,6 +110,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    initCart()
+    return () => { if (expiryTimer.current) clearTimeout(expiryTimer.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function loadItems(cId: string) {
     const { data } = await supabase
@@ -249,6 +250,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCart() {
   const ctx = useContext(CartContext)
   if (!ctx) throw new Error('useCart must be used within CartProvider')

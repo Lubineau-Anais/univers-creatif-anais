@@ -85,6 +85,38 @@ function defaultApparence(): Apparence {
   return { couleur_bg: '#ffb5c8', couleur_texte: '#1A1040', icone: '🎨', icone_visible: true, taille_texte: 'text-2xl', police: 'serif', visible: true }
 }
 
+function CardPreview({ cat, app }: { cat: GalerieCategory; app: Apparence }) {
+  return (
+    <div
+      className="rounded-2xl border-3 border-[#1A1040] overflow-hidden relative"
+      style={{ backgroundColor: app.couleur_bg, boxShadow: '4px 4px 0px 0px #1A1040', minHeight: 120 }}
+    >
+      {cat.cover_url && (
+        <>
+          <img src={cat.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/35" />
+        </>
+      )}
+      <div className="relative z-10 p-5">
+        {app.icone_visible && <div className="text-3xl mb-2">{app.icone}</div>}
+        <p
+          className={`font-black leading-tight ${app.taille_texte}`}
+          style={{
+            color: cat.cover_url ? '#ffffff' : app.couleur_texte,
+            fontFamily: FONT_FAMILY[app.police] || 'serif',
+          }}
+        >
+          {cat.nom}
+        </p>
+        <p className="text-xs font-bold mt-1 opacity-60"
+          style={{ color: cat.cover_url ? '#ffffff' : app.couleur_texte }}>
+          Voir les créations →
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page admin Galerie ───────────────────────────────────────────────────────
 export default function GalerieAdmin() {
   const [categories, setCategories]   = useState<GalerieCategory[]>([])
@@ -120,8 +152,6 @@ export default function GalerieAdmin() {
   const [editPhotoTitre, setEditPhotoTitre] = useState('')
   const [savingTitre,    setSavingTitre]    = useState(false)
 
-  useEffect(() => { loadCategories() }, [])
-
   // ── Chargement ──────────────────────────────────────────────────────────────
 
   async function loadCategories() {
@@ -134,6 +164,9 @@ export default function GalerieAdmin() {
     setCategories((data as GalerieCategory[]) || [])
     setLoading(false)
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { loadCategories() }, [])
 
   async function loadPhotos(catId: string) {
     setLoadingPhotos(true)
@@ -331,40 +364,6 @@ export default function GalerieAdmin() {
       setEditingPhoto(null)
     }
     setSavingTitre(false)
-  }
-
-  // ── Aperçu carte ────────────────────────────────────────────────────────────
-
-  function CardPreview({ cat, app }: { cat: GalerieCategory; app: Apparence }) {
-    return (
-      <div
-        className="rounded-2xl border-3 border-[#1A1040] overflow-hidden relative"
-        style={{ backgroundColor: app.couleur_bg, boxShadow: '4px 4px 0px 0px #1A1040', minHeight: 120 }}
-      >
-        {cat.cover_url && (
-          <>
-            <img src={cat.cover_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/35" />
-          </>
-        )}
-        <div className="relative z-10 p-5">
-          {app.icone_visible && <div className="text-3xl mb-2">{app.icone}</div>}
-          <p
-            className={`font-black leading-tight ${app.taille_texte}`}
-            style={{
-              color: cat.cover_url ? '#ffffff' : app.couleur_texte,
-              fontFamily: FONT_FAMILY[app.police] || 'serif',
-            }}
-          >
-            {cat.nom}
-          </p>
-          <p className="text-xs font-bold mt-1 opacity-60"
-            style={{ color: cat.cover_url ? '#ffffff' : app.couleur_texte }}>
-            Voir les créations →
-          </p>
-        </div>
-      </div>
-    )
   }
 
   // ── Rendu ───────────────────────────────────────────────────────────────────

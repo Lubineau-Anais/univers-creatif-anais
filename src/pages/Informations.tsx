@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Pencil, Check, X, Clock, MapPin, ParkingCircle, Scissors, ExternalLink, Palette, Bold, Italic } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -164,6 +164,7 @@ function EditableBlock({
   const [draft,   setDraft]   = useState(value)
   const [saving,  setSaving]  = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
 
   async function save() {
@@ -220,6 +221,7 @@ function EditableTitle({ value, onSave, isAdmin, textColor }: {
   const [draft,   setDraft]   = useState(value)
   const [saving,  setSaving]  = useState(false)
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
 
   async function save() {
@@ -282,20 +284,6 @@ export default function Informations() {
   const [polaroids,           setPolaroids]           = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
 
-  useEffect(() => {
-    loadContent(); loadSettings(); loadPolaroids()
-    const ch = supabase
-      .channel('realtime-infos')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'page_content' }, () => loadContent())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' },      () => loadSettings())
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [])
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = heroBg.videoMuted
-  }, [heroBg.videoMuted])
-
   async function loadContent() {
     const { data } = await supabase.from('page_content').select('section, contenu')
       .eq('page', 'informations').in('section', Object.keys(DEFAULT_CONTENT))
@@ -310,10 +298,10 @@ export default function Informations() {
       .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style', 'infos_content_bg'])
     if (!data) return
     data.forEach(r => {
-      if (r.key === 'infos_hero_bg')     { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
-      if (r.key === 'infos_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
-      if (r.key === 'infos_cards_style') { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
-      if (r.key === 'infos_content_bg')  { try { setContentBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch {} }
+      if (r.key === 'infos_hero_bg')     { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_cards_style') { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_content_bg')  { try { setContentBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
     })
   }
 
@@ -346,6 +334,21 @@ export default function Informations() {
   function handlePolaroidMoved(id: string, offset_x: number, offset_y: number) {
     setPolaroids(prev => prev.map(p => p.id === id ? { ...p, offset_x, offset_y } : p))
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadContent(); loadSettings(); loadPolaroids()
+    const ch = supabase
+      .channel('realtime-infos')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'page_content' }, () => loadContent())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' },      () => loadSettings())
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = heroBg.videoMuted
+  }, [heroBg.videoMuted])
 
   const mapsUrl = content.infos_maps_src?.trim()
   const adresse = content.infos_adresse?.trim()
