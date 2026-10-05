@@ -9,6 +9,7 @@ import BgEditor from '../components/BgEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
+import { sanitize } from '../lib/sanitize'
 
 interface ContentBlock { section: string; contenu: string }
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string; font: string; fontSize: number }
@@ -193,7 +194,7 @@ export default function Contact() {
           <h1
             className="mb-4 leading-tight"
             style={buildTitleStyle(titreStyle)}
-            dangerouslySetInnerHTML={{ __html: content['contact_titre'] }}
+            dangerouslySetInnerHTML={{ __html: sanitize(content['contact_titre']) }}
           />
           {isAdmin && (
             <div className="flex justify-center mb-6">

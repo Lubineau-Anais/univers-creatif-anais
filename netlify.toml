@@ -10,6 +10,15 @@
   to = "/index.html"
   status = 200
 
+# En-têtes de sécurité HTTP appliqués à toutes les pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self)"
+
 # index.html ne doit jamais être mis en cache : sinon les visiteurs
 # voient une version périmée avant que le nouveau JS ne se charge.
 [[headers]]

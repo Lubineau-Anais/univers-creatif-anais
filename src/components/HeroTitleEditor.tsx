@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Check, RotateCcw, Italic, Underline, Bold } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { sanitize } from '../lib/sanitize'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 export interface HeroStyle {
@@ -139,7 +140,7 @@ export default function HeroTitleEditor({ initialText, initialStyle, page = 'acc
             <div
               className="leading-tight"
               style={previewStyle}
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitize(previewHtml) }}
             />
           </div>
 

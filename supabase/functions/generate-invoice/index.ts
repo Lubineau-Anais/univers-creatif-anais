@@ -1,29 +1,33 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('Origin')
+  const allowed = origin === 'http://localhost:5173' ? origin : 'https://lunivers-creatif-danais.fr'
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
 }
 
-// ─── Infos légales vendeur ─────────────────────────────────────────────────
+// â”€â”€â”€ Infos lÃ©gales vendeur â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VENDEUR = {
-  nom:    "L'Univers Créatif d'Anaïs",
-  adresse: '7 Rue du Pré aux Clercs',
+  nom:    "L'Univers CrÃ©atif d'AnaÃ¯s",
+  adresse: '7 Rue du PrÃ© aux Clercs',
   cp_ville: '44260 Prinquiau',
-  siret:  '[SIRET à compléter]',
+  siret:  '[SIRET Ã  complÃ©ter]',
   statut: 'Micro-entrepreneur',
   tva:    'TVA non applicable, art. 293 B du CGI',
 }
 
-// ─── Formatage date ────────────────────────────────────────────────────────
+// â”€â”€â”€ Formatage date â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function formatDateFR(iso: string): string {
   if (!iso) return ''
   const d = new Date(iso.includes('T') ? iso : iso + 'T00:00:00')
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
-// ─── HTML Facture / Avoir ─────────────────────────────────────────────────
+// â”€â”€â”€ HTML Facture / Avoir â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildInvoiceHtml(params: {
   numero:       string
   type:         'facture' | 'avoir'
@@ -47,9 +51,9 @@ function buildInvoiceHtml(params: {
   const dateAtelier = params.atelier_date ? formatDateFR(params.atelier_date) : ''
   const modeLabel: Record<string, string> = {
     cb: 'Carte bancaire', virement: 'Virement bancaire',
-    cheque: 'Chèque', especes: 'Espèces',
+    cheque: 'ChÃ¨que', especes: 'EspÃ¨ces',
   }
-  const modeStr = modeLabel[params.mode_paiement] || params.mode_paiement || '—'
+  const modeStr = modeLabel[params.mode_paiement] || params.mode_paiement || 'â€”'
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -77,7 +81,7 @@ function buildInvoiceHtml(params: {
   .partie h3 { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #9f8fb0; margin-bottom: 10px; }
   .partie p  { font-size: 13px; line-height: 1.7; }
   .partie .strong { font-weight: 900; font-size: 15px; }
-  /* Référence avoir */
+  /* RÃ©fÃ©rence avoir */
   .ref-avoir { background: #fff7ed; border: 2px solid #fdba74; border-radius: 8px; padding: 12px 18px; margin-bottom: 28px; font-size: 13px; }
   .ref-avoir strong { color: #ea580c; }
   /* Tableau */
@@ -98,7 +102,7 @@ function buildInvoiceHtml(params: {
   .paiement-block { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px; font-size: 12.5px; }
   .paiement-block.avoir { background: #fff7ed; border-color: #fdba74; }
   .paiement-block h4 { font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; color: ${isAvoir ? '#ea580c' : '#15803d'}; }
-  /* Mentions légales */
+  /* Mentions lÃ©gales */
   .mentions { background: #f3f0f8; border-radius: 8px; padding: 14px 18px; font-size: 11px; color: #6b7280; line-height: 1.7; }
   .mentions strong { color: #1A1040; display: block; margin-bottom: 4px; font-size: 11.5px; }
   /* Footer */
@@ -108,7 +112,7 @@ function buildInvoiceHtml(params: {
 <body>
 <div class="page">
 
-  <!-- En-tête -->
+  <!-- En-tÃªte -->
   <div class="hd">
     <div class="hd-brand">
       <h1>${VENDEUR.nom}</h1>
@@ -118,7 +122,7 @@ function buildInvoiceHtml(params: {
     <div class="hd-doc">
       <div class="badge">${docLabel}</div>
       <div class="numero">${params.numero}</div>
-      <div class="date-doc">Émis le ${dateDoc}</div>
+      <div class="date-doc">Ã‰mis le ${dateDoc}</div>
     </div>
   </div>
 
@@ -141,10 +145,10 @@ function buildInvoiceHtml(params: {
       </div>
     </div>
 
-    <!-- Référence avoir -->
+    <!-- RÃ©fÃ©rence avoir -->
     ${isAvoir && params.reference_facture ? `
     <div class="ref-avoir">
-      <strong>Avoir sur facture N° ${params.reference_facture}</strong><br>
+      <strong>Avoir sur facture NÂ° ${params.reference_facture}</strong><br>
       Motif : Annulation de prestation par l'organisatrice.
     </div>` : ''}
 
@@ -154,7 +158,7 @@ function buildInvoiceHtml(params: {
         <tr>
           <th>Description</th>
           ${dateAtelier ? '<th>Date</th>' : ''}
-          <th style="text-align:center">Qté</th>
+          <th style="text-align:center">QtÃ©</th>
           <th style="text-align:right">Prix unit. HT</th>
           <th style="text-align:right">Total HT</th>
         </tr>
@@ -164,8 +168,8 @@ function buildInvoiceHtml(params: {
           <td>${params.description}</td>
           ${dateAtelier ? `<td>${dateAtelier}</td>` : ''}
           <td style="text-align:center">${params.quantite}</td>
-          <td style="text-align:right">${params.prix_unitaire.toFixed(2)} €</td>
-          <td style="text-align:right">${params.montant_total.toFixed(2)} €</td>
+          <td style="text-align:right">${params.prix_unitaire.toFixed(2)} â‚¬</td>
+          <td style="text-align:right">${params.montant_total.toFixed(2)} â‚¬</td>
         </tr>
       </tbody>
     </table>
@@ -173,41 +177,41 @@ function buildInvoiceHtml(params: {
     <!-- Totaux -->
     <div class="totaux">
       <div class="totaux-inner">
-        <div class="tot-line"><span>Total HT</span><span>${params.montant_total.toFixed(2)} €</span></div>
-        <div class="tot-line"><span>TVA (non applicable)</span><span>0,00 €</span></div>
-        <div class="tot-line"><span>${isAvoir ? 'Montant de l\'avoir' : 'Total TTC'}</span><span>${params.montant_total.toFixed(2)} €</span></div>
+        <div class="tot-line"><span>Total HT</span><span>${params.montant_total.toFixed(2)} â‚¬</span></div>
+        <div class="tot-line"><span>TVA (non applicable)</span><span>0,00 â‚¬</span></div>
+        <div class="tot-line"><span>${isAvoir ? 'Montant de l\'avoir' : 'Total TTC'}</span><span>${params.montant_total.toFixed(2)} â‚¬</span></div>
       </div>
     </div>
 
     <!-- Paiement -->
     <div class="paiement-block${isAvoir ? ' avoir' : ''}">
-      <h4>${isAvoir ? 'Remboursement' : 'Règlement'}</h4>
+      <h4>${isAvoir ? 'Remboursement' : 'RÃ¨glement'}</h4>
       ${isAvoir
-        ? `<p>Remboursement du montant de <strong>${params.montant_total.toFixed(2)} €</strong> selon le mode de paiement initial (${modeStr}).</p>`
-        : `<p>Règlement reçu le ${dateDoc} par <strong>${modeStr}</strong>. Facture acquittée.</p>`
+        ? `<p>Remboursement du montant de <strong>${params.montant_total.toFixed(2)} â‚¬</strong> selon le mode de paiement initial (${modeStr}).</p>`
+        : `<p>RÃ¨glement reÃ§u le ${dateDoc} par <strong>${modeStr}</strong>. Facture acquittÃ©e.</p>`
       }
     </div>
 
-    <!-- Mentions légales -->
+    <!-- Mentions lÃ©gales -->
     <div class="mentions">
-      <strong>Mentions légales obligatoires</strong>
+      <strong>Mentions lÃ©gales obligatoires</strong>
       ${VENDEUR.tva}<br>
-      ${VENDEUR.statut} — SIRET ${VENDEUR.siret}<br>
-      ${VENDEUR.nom} — ${VENDEUR.adresse}, ${VENDEUR.cp_ville}<br>
-      ${!isAvoir ? 'Conformément à l\'article L441-10 du Code de commerce, aucune pénalité de retard ni escompte ne s\'applique pour les prestations réglées par des particuliers.' : ''}
+      ${VENDEUR.statut} â€” SIRET ${VENDEUR.siret}<br>
+      ${VENDEUR.nom} â€” ${VENDEUR.adresse}, ${VENDEUR.cp_ville}<br>
+      ${!isAvoir ? 'ConformÃ©ment Ã  l\'article L441-10 du Code de commerce, aucune pÃ©nalitÃ© de retard ni escompte ne s\'applique pour les prestations rÃ©glÃ©es par des particuliers.' : ''}
     </div>
 
   </div>
   <!-- Footer -->
-  <div class="footer">${VENDEUR.nom} · ${VENDEUR.cp_ville} · ${params.numero}</div>
+  <div class="footer">${VENDEUR.nom} Â· ${VENDEUR.cp_ville} Â· ${params.numero}</div>
 </div>
 </body>
 </html>`
 }
 
-// ─── Serveur principal ────────────────────────────────────────────────────
+// â”€â”€â”€ Serveur principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
 
   try {
     const body = await req.json()
@@ -232,7 +236,7 @@ serve(async (req) => {
     if (!client_nom || !client_prenom || !description || montant_total == null) {
       return new Response(
         JSON.stringify({ error: 'Champs obligatoires manquants' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
 
@@ -241,7 +245,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // ── Récupérer les settings ──────────────────────────────────────────────
+    // â”€â”€ RÃ©cupÃ©rer les settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const { data: settingsRows } = await supabase
       .from('settings').select('key, value')
       .in('key', ['smtp_password', 'email_expediteur'])
@@ -251,11 +255,11 @@ serve(async (req) => {
     const resendKey = settings['smtp_password']
     const adminEmail = settings['email_expediteur'] || 'univers.creatif.anais@outlook.com'
 
-    // ── Générer le numéro de document ──────────────────────────────────────
+    // â”€â”€ GÃ©nÃ©rer le numÃ©ro de document â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const { data: numData } = await supabase.rpc('next_document_numero', { p_type: type })
     const numero: string = numData || `${type === 'avoir' ? 'AV' : 'FAC'}-${new Date().getFullYear()}-001`
 
-    // ── Insérer dans la table factures ─────────────────────────────────────
+    // â”€â”€ InsÃ©rer dans la table factures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const { error: insertError } = await supabase.from('factures').insert([{
       numero,
       type,
@@ -279,7 +283,7 @@ serve(async (req) => {
       console.error('Erreur insertion facture:', insertError)
     }
 
-    // ── Générer le HTML ────────────────────────────────────────────────────
+    // â”€â”€ GÃ©nÃ©rer le HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const now = new Date().toISOString()
     const htmlBody = buildInvoiceHtml({
       numero,
@@ -299,7 +303,7 @@ serve(async (req) => {
       created_at: now,
     })
 
-    // ── Envoyer par email à l'administratrice ─────────────────────────────
+    // â”€â”€ Envoyer par email Ã  l'administratrice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (resendKey) {
       const subjectPrefix = type === 'avoir' ? 'Avoir' : 'Facture'
       const subject = `${subjectPrefix} ${numero} ${client_nom} ${client_prenom}`
@@ -325,13 +329,13 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ success: true, numero }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
 
   } catch (err) {
     console.error('Erreur generate-invoice:', err)
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

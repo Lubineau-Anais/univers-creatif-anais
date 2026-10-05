@@ -180,7 +180,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           <h2 className="font-serif text-xl font-black text-[#1A1040]">
             🎟️ Réserver ma place
           </h2>
-          <button onClick={onClose} className="w-8 h-8 bg-black/10 rounded-xl flex items-center justify-center hover:bg-black/20">
+          <button onClick={onClose} aria-label="Fermer" className="w-8 h-8 bg-black/10 rounded-xl flex items-center justify-center hover:bg-black/20">
             <X className="w-5 h-5 text-[#1A1040]" />
           </button>
         </div>

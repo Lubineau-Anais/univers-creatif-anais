@@ -324,7 +324,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
             )}
           </div>
           {step !== 'success' && (
-            <button onClick={onClose} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
+            <button onClick={onClose} aria-label="Fermer" className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
               <X className="w-5 h-5 text-white" />
             </button>
           )}

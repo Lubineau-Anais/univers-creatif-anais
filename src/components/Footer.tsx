@@ -1,11 +1,12 @@
 ﻿import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Scissors, Pencil, Upload, RefreshCw, X, Palette, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from './HeroTitleEditor'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 import BgEditor from './BgEditor'
+import { sanitize } from '../lib/sanitize'
 
 const DEFAULT_FOOTER_TEXT = "l'univers créatif d'Anaïs ✦"
 const DEFAULT_FOOTER_STYLE: HeroStyle = {
@@ -124,7 +125,7 @@ export default function Footer() {
               onChange={e => { const f = e.target.files?.[0]; if (f) uploadIcon(f); e.target.value = '' }} />
           )}
 
-          <span style={buildTitleStyle(style)} dangerouslySetInnerHTML={{ __html: text }} />
+          <span style={buildTitleStyle(style)} dangerouslySetInnerHTML={{ __html: sanitize(text) }} />
 
           {isAdmin && (
             <div className="flex items-center gap-1 ml-1">
@@ -155,8 +156,12 @@ export default function Footer() {
           ))}
         </div>
 
-        <p className="text-gray-400 text-sm font-medium">
-          © {new Date().getFullYear()} l'univers créatif d'Anaïs — Fait avec 🎨 & ❤️
+        <p className="text-gray-400 text-sm font-medium text-center">
+          © {new Date().getFullYear()} l'univers créatif d'Anaïs — Fait avec 🎨 &amp; ❤️
+          <span className="mx-2 opacity-30">·</span>
+          <Link to="/mentions-legales" className="text-gray-400 hover:text-white underline underline-offset-2 transition-colors">
+            Mentions légales
+          </Link>
         </p>
       </div>
 

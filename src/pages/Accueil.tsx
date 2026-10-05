@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
@@ -13,8 +13,9 @@ import AproposPhotoManager from '../components/AproposPhotoManager'
 import AproposPhotoDisplay, { type AproposPhoto } from '../components/AproposPhotoDisplay'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
+import { sanitize } from '../lib/sanitize'
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+// --- Types -----------------------------------------------------------------
 interface ContentBlock { section: string; contenu: string }
 interface Actu {
   id: string; slot: number; titre: string; texte: string
@@ -24,7 +25,7 @@ interface Actu {
 const ROTS  = ['-rotate-2', 'rotate-1', 'rotate-3', '-rotate-1', 'rotate-2', '-rotate-3']
 const TAPES = ['bg-citron-400/60', 'bg-rose-400/60', 'bg-turquoise-400/60', 'bg-lime-400/60', 'bg-orange-400/60', 'bg-violet-400/60']
 
-// ─── Types section Actu ────────────────────────────────────────────────────
+// --- Types section Actu ----------------------------------------------------
 interface BadgeConfig  { text: string; bg: string; textColor: string; radius: string }
 interface BtnConfig    { bg: string; text: string; label: string; radius: string; bold: boolean; fontSize: number }
 
@@ -44,7 +45,7 @@ const DEFAULT_APROPOS_TITLE_STYLE: HeroStyle = {
   bold: true, italic: false, underline: false,
 }
 
-// ─── Section Avis Google ─────────────────────────────────────────────────────
+// --- Section Avis Google -----------------------------------------------------
 interface GoogleReview {
   rating: number
   text?: { text: string; languageCode?: string }
@@ -62,8 +63,8 @@ const DEFAULT_AVIS_TITLE_STYLE: HeroStyle = {
   bold: true, italic: false, underline: false,
 }
 
-// ─── Section Réseaux sociaux ───────────────────────────────────────────────────
-const DEFAULT_RESEAUX_BADGE: BadgeConfig = { text: '✨ Suivez-nous !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full' }
+// --- Section R�seaux sociaux ---------------------------------------------------
+const DEFAULT_RESEAUX_BADGE: BadgeConfig = { text: '? Suivez-nous !', bg: '#fb7185', textColor: '#ffffff', radius: 'rounded-full' }
 const DEFAULT_RESEAUX_TITLE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 24, color: '#ffffff',
   outline: false, outlineColor: '#1A1040', outlineWidth: 2,
@@ -71,7 +72,7 @@ const DEFAULT_RESEAUX_TITLE_STYLE: HeroStyle = {
   bold: true, italic: false, underline: false,
 }
 
-// ─── Section Valeurs ──────────────────────────────────────────────────────────
+// --- Section Valeurs ----------------------------------------------------------
 interface ValeurCard {
   id: string; icon: string; iconType: 'emoji' | 'image'; iconBg: string
   title: string; desc: string; cardRadius: string; cardBg: string; borderColor: string
@@ -96,9 +97,9 @@ const DEFAULT_CARD_DESC_STYLE: HeroStyle = {
   shadow: false, shadowColor: '#00000033', shadowBlur: 4, shadowX: 2, shadowY: 2,
 }
 const DEFAULT_VALEURS_CARDS: ValeurCard[] = [
-  { id: '1', icon: '🌈', iconType: 'emoji', iconBg: '#fb7185', title: 'Ambiance top moumoute',  desc: 'Zéro pression, 100% bonne humeur. On vient pour se faire plaisir, pas pour être parfait·e !', cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
-  { id: '2', icon: '✂️', iconType: 'emoji', iconBg: '#4dd9c0', title: 'Créativité sans limites', desc: 'Broderie, couture, peinture, collage… autant d\'ateliers que d\'envies. À toi de choisir !',     cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
-  { id: '3', icon: '🎉', iconType: 'emoji', iconBg: '#ffe500', title: 'Des rencontres en or',    desc: 'Les meilleurs souvenirs se créent souvent autour d\'une table et de plein de matières colorées.', cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
+  { id: '1', icon: '??', iconType: 'emoji', iconBg: '#fb7185', title: 'Ambiance top moumoute',  desc: 'Z�ro pression, 100% bonne humeur. On vient pour se faire plaisir, pas pour �tre parfait�e !', cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
+  { id: '2', icon: '??', iconType: 'emoji', iconBg: '#4dd9c0', title: 'Cr�ativit� sans limites', desc: 'Broderie, couture, peinture, collage� autant d\'ateliers que d\'envies. � toi de choisir !',     cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
+  { id: '3', icon: '??', iconType: 'emoji', iconBg: '#ffe500', title: 'Des rencontres en or',    desc: 'Les meilleurs souvenirs se cr�ent souvent autour d\'une table et de plein de mati�res color�es.', cardRadius: 'rounded-2xl', cardBg: '#ffffff', borderColor: '#1A1040' },
 ]
 
 const DEFAULT_APROPOS_BODY_STYLE: HeroStyle = {
@@ -108,20 +109,20 @@ const DEFAULT_APROPOS_BODY_STYLE: HeroStyle = {
   bold: false, italic: false, underline: false,
 }
 
-// ─── Contenu par défaut ─────────────────────────────────────────────────────
+// --- Contenu par d�faut -----------------------------------------------------
 const DEFAULT_CONTENT: Record<string, string> = {
-  hero_titre:         'Crée, explore & éclate-toi !',
-  hero_sous_titre:   'Des ateliers créatifs hauts en couleur pour laisser libre cours à ton imagination. Broderie, peinture, couture... ici, tout est permis (sauf l\'ennui) ! 🎉',
-  actu_section_titre: 'Les dernières nouvelles ✦',
+  hero_titre:         'Cr�e, explore & �clate-toi !',
+  hero_sous_titre:   'Des ateliers cr�atifs hauts en couleur pour laisser libre cours � ton imagination. Broderie, peinture, couture... ici, tout est permis (sauf l\'ennui) ! ??',
+  actu_section_titre: 'Les derni�res nouvelles ?',
   valeurs_titre:      'Pourquoi nous rejoindre ?',
-  avis_titre:         'Avis clients ✦',
+  avis_titre:         'Avis clients ?',
   apropos_titre:      'Une passion, plein de couleurs !',
-  apropos_texte:     'Bonjour ! Moi c\'est l\'univers créatif d\'Anaïs, le QG des passionné·e·s de créations manuelles. J\'ai ouvert cet espace parce que je crois dur comme fer que créer avec ses mains, ça rend heureux·se. Ici, on rigole, on expérimente, on rate (et on recommence avec le sourire). Peu importe ton niveau — débutant·e total·e ou artiste en herbe, t\'es le·la bienvenu·e !',
-  reseaux_titre:     'On est aussi sur les réseaux ✦',
+  apropos_texte:     'Bonjour ! Moi c\'est l\'univers cr�atif d\'Ana�s, le QG des passionn�e�s de cr�ations manuelles. J\'ai ouvert cet espace parce que je crois dur comme fer que cr�er avec ses mains, �a rend heureux�se. Ici, on rigole, on exp�rimente, on rate (et on recommence avec le sourire). Peu importe ton niveau � d�butant�e total�e ou artiste en herbe, t\'es le�la bienvenu�e !',
+  reseaux_titre:     'On est aussi sur les r�seaux ?',
 }
 
 
-// Icônes réseaux sociaux
+// Ic�nes r�seaux sociaux
 const IconInstagram = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -148,7 +149,7 @@ const IconPinterest = () => (
   </svg>
 )
 
-// ─── Carte avis ────────────────────────────────────────────────────────────
+// --- Carte avis ------------------------------------------------------------
 function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => void }) {
   return (
     <div
@@ -159,7 +160,7 @@ function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => 
       {review.photoUrl && (
         <img src={review.photoUrl} alt="" className="w-full h-36 object-cover rounded-xl border border-gray-100" />
       )}
-      {/* Étoiles */}
+      {/* �toiles */}
       <div className="flex gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => (
           <Star key={i} className="w-5 h-5" style={{ fill: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb', color: i < (review.rating || 0) ? '#ffe500' : '#e5e7eb' }} />
@@ -187,7 +188,7 @@ function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => 
   )
 }
 
-// ─── Page Accueil ──────────────────────────────────────────────────────────
+// --- Page Accueil ----------------------------------------------------------
 export default function Accueil() {
   const { isAdmin } = useAuth()
   const { logoUrl } = useSiteSettings()
@@ -212,11 +213,11 @@ export default function Accueil() {
   const [bgUploading, setBgUploading]     = useState(false)
   const [bgUploadError, setBgUploadError] = useState('')
   const bgFileRef = useRef<HTMLInputElement | null>(null)
-  // ── Section Actu ──
+  // -- Section Actu --
   const [actuBg,          setActuBg]          = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [actuTitleStyle,  setActuTitleStyle]   = useState<HeroStyle>(DEFAULT_ACTU_TITLE_STYLE)
-  const [,               setActuBadge]        = useState<BadgeConfig>({ text: '🗞️ Actu du moment', bg: '#ffe500', textColor: '#1A1040', radius: 'rounded-full' })
-  const [actuBtn,         setActuBtn]          = useState<BtnConfig>({ bg: '#1A1040', text: '#ffe500', label: '✏️ Modifier', radius: 'rounded-lg', bold: true, fontSize: 10 })
+  const [,               setActuBadge]        = useState<BadgeConfig>({ text: '??? Actu du moment', bg: '#ffe500', textColor: '#1A1040', radius: 'rounded-full' })
+  const [actuBtn,         setActuBtn]          = useState<BtnConfig>({ bg: '#1A1040', text: '#ffe500', label: '?? Modifier', radius: 'rounded-lg', bold: true, fontSize: 10 })
   const [showActuTitleEditor, setShowActuTitleEditor] = useState(false)
 
 
@@ -228,12 +229,12 @@ export default function Accueil() {
   const [valeursCards,         setValeursCards]         = useState<ValeurCard[]>(DEFAULT_VALEURS_CARDS)
   const [showValeursTitleEditor, setShowValeursTitleEditor] = useState(false)
 
-  // Section À Propos
+  // Section � Propos
   const [aproposBg,            setAproposBg]            = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#ffffff' })
   const [aproposPhotos,        setAproposPhotos]        = useState<AproposPhoto[]>([])
   const [showAproposManager,   setShowAproposManager]   = useState(false)
 
-  // Drag photo À Propos (admin) — collage libre
+  // Drag photo � Propos (admin) � collage libre
   const aproposDrag = useRef({ active: false, id: '', mx: 0, my: 0, ox: 0, oy: 0, fx: 0, fy: 0 })
   const [draggingAproposId, setDraggingAproposId] = useState<string | null>(null)
   const [aproposTitleStyle,    setAproposTitleStyle]    = useState<HeroStyle>(DEFAULT_APROPOS_TITLE_STYLE)
@@ -246,19 +247,18 @@ export default function Accueil() {
   const [avisTitleStyle,    setAvisTitleStyle]    = useState<HeroStyle>(DEFAULT_AVIS_TITLE_STYLE)
   const [googleReviews,     setGoogleReviews]     = useState<GoogleReview[]>([])
   const [reviewsLoading,    setReviewsLoading]    = useState(false)
-  const [googleApiKey,      setGoogleApiKey]      = useState('')
   const [googlePlaceId,     setGooglePlaceId]     = useState('')
   const [reviewsMode,       setReviewsMode]       = useState<'api' | 'manual'>('manual')
   const [selectedReview,    setSelectedReview]    = useState<GoogleReview | null>(null)
   const [showAvisTitleEditor, setShowAvisTitleEditor] = useState(false)
 
-  // Section Réseaux sociaux
+  // Section R�seaux sociaux
   const [reseauxBadge,       setReseauxBadge]       = useState<BadgeConfig>(DEFAULT_RESEAUX_BADGE)
   const [reseauxTitleStyle,  setReseauxTitleStyle]  = useState<HeroStyle>(DEFAULT_RESEAUX_TITLE_STYLE)
   const [showReseauxBadgeEditor, setShowReseauxBadgeEditor] = useState(false)
   const [showReseauxTitleEditor, setShowReseauxTitleEditor] = useState(false)
 
-  // Ref pour la vidéo hero (nécessaire pour gérer muted en React)
+  // Ref pour la vid�o hero (n�cessaire pour g�rer muted en React)
   const heroVideoRef = useRef<HTMLVideoElement>(null)
 
   const DEFAULT_HERO_SUB_STYLE: HeroStyle = {
@@ -273,14 +273,14 @@ export default function Accueil() {
   const [heroTitreVisible,     setHeroTitreVisible]     = useState(true)
   const [heroSousTitreVisible, setHeroSousTitreVisible] = useState(true)
 
-  // Polaroïds du Hero
+  // Polaro�ds du Hero
   const [polaroids, setPolaroids] = useState<HeroPolaroid[]>([])
   const [showPolaroidManager, setShowPolaroidManager] = useState(false)
 
-  // Évite d'afficher le fond/titre par défaut avant le chargement des vrais réglages
+  // �vite d'afficher le fond/titre par d�faut avant le chargement des vrais r�glages
   const [heroReady, setHeroReady] = useState(false)
 
-  // Sync muted sur la vidéo (React ne propage pas l'attribut muted en re-render)
+  // Sync muted sur la vid�o (React ne propage pas l'attribut muted en re-render)
   useEffect(() => {
     if (heroVideoRef.current) heroVideoRef.current.muted = heroBg.videoMuted
   }, [heroBg.videoMuted, heroBg.videoUrl])
@@ -303,20 +303,21 @@ export default function Accueil() {
           setReviewsLoading(false)
         })
     } else {
-      if (!googleApiKey || !googlePlaceId) return
+      if (!googlePlaceId) return
       let cancelled = false
       setReviewsLoading(true)
-      fetch(
-        `https://places.googleapis.com/v1/places/${encodeURIComponent(googlePlaceId)}?languageCode=fr`,
-        { headers: { 'X-Goog-Api-Key': googleApiKey, 'X-Goog-FieldMask': 'reviews' } }
-      )
+      fetch('https://bgodiiegxxlemofkfcsc.supabase.co/functions/v1/places-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reviews', placeId: googlePlaceId }),
+      })
         .then(r => r.json())
         .then(data => { if (!cancelled) setGoogleReviews(data.reviews || []) })
         .catch(() => { if (!cancelled) setGoogleReviews([]) })
         .finally(() => { if (!cancelled) setReviewsLoading(false) })
       return () => { cancelled = true }
     }
-  }, [reviewsMode, googleApiKey, googlePlaceId])
+  }, [reviewsMode, googlePlaceId])
 
   async function loadPolaroids() {
     const { data } = await supabase.from('hero_polaroids').select('*').order('sort_order')
@@ -347,7 +348,7 @@ async function loadContent() {
       supabase.from('actus').select('*').lte('date_debut', today).gte('date_fin', today).order('slot'),
       supabase.from('settings').select('key, value'),
     ])
-    // Lire visibilité slots et maxSlot
+    // Lire visibilit� slots et maxSlot
     const vis: Record<number, boolean> = {}
     let maxS = 3
     ;(settData || []).forEach((s: { key: string; value: string }) => {
@@ -380,7 +381,7 @@ async function loadContent() {
       else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
       else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
       else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
-      else if (s.key === 'google_places_api_key')    { if (s.value) setGoogleApiKey(s.value) }
+      else if (s.key === 'google_places_api_key')    { /* key stays server-side */ }
       else if (s.key === 'google_place_id')          { if (s.value) setGooglePlaceId(s.value) }
       else if (s.key === 'google_reviews_mode')      { setReviewsMode((s.value || 'manual') as 'api' | 'manual') }
 
@@ -423,7 +424,7 @@ async function loadContent() {
     loadPolaroids()
     loadAproposPhotos()
 
-    // ── Realtime : mise à jour instantanée dès qu'un admin modifie quelque chose ──
+    // -- Realtime : mise � jour instantan�e d�s qu'un admin modifie quelque chose --
     const channelSettings = supabase
       .channel('realtime-settings')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
@@ -480,10 +481,10 @@ async function loadContent() {
   return (
     <main className="flex-1">
       <Helmet>
-        <title>L'Univers Créatif d'Anaïs — Ateliers créatifs en Loire-Atlantique</title>
-        <meta name="description" content="Ateliers créatifs, boutique artisanale et galerie photo à Prinquiau (44). Découvrez les créations d'Anaïs : couture, broderie, DIY et bien plus." />
-        <meta property="og:title" content="L'Univers Créatif d'Anaïs" />
-        <meta property="og:description" content="Ateliers créatifs, boutique artisanale et galerie photo en Loire-Atlantique." />
+        <title>L'Univers Cr�atif d'Ana�s � Ateliers cr�atifs en Loire-Atlantique</title>
+        <meta name="description" content="Ateliers cr�atifs, boutique artisanale et galerie photo � Prinquiau (44). D�couvrez les cr�ations d'Ana�s : couture, broderie, DIY et bien plus." />
+        <meta property="og:title" content="L'Univers Cr�atif d'Ana�s" />
+        <meta property="og:description" content="Ateliers cr�atifs, boutique artisanale et galerie photo en Loire-Atlantique." />
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/" />
       </Helmet>
@@ -498,7 +499,7 @@ async function loadContent() {
           transition: 'opacity 0.25s ease-in',
         }}>
 
-        {/* Vidéo de fond */}
+        {/* Vid�o de fond */}
         {heroBg.type === 'video' && heroBg.videoUrl && (
           <>
             <video
@@ -515,7 +516,7 @@ async function loadContent() {
           </>
         )}
 
-        {/* Polaroïds décoratifs gauche/droite — desktop uniquement */}
+        {/* Polaro�ds d�coratifs gauche/droite � desktop uniquement */}
         <div className="hidden md:contents">
           {polaroids.map((p, i) => (
             <HeroPolaroidDisplay key={p.id} polaroid={p} index={i} isAdmin={isAdmin} onMoved={handlePolaroidMoved} />
@@ -532,21 +533,21 @@ async function loadContent() {
         {isAdmin && (
           <button onClick={() => setShowPolaroidManager(true)}
             className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
-            <ImageIcon className="w-3.5 h-3.5" /> Gérer les polaroïds
+            <ImageIcon className="w-3.5 h-3.5" /> G�rer les polaro�ds
           </button>
         )}
 
-        {/* Contenu centré verticalement */}
+        {/* Contenu centr� verticalement */}
         <div className="relative z-10 flex-1 flex items-center justify-center py-20">
         <div className="max-w-3xl mx-auto w-full">
-          {/* Logo centré */}
+          {/* Logo centr� */}
           {logoVisible && (
             <div className="mb-8 flex justify-center">
               <div className="bg-white rounded-3xl px-8 py-6 border-4 border-white/80 inline-block"
                 style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15), 6px 6px 0px 0px rgba(26,16,64,0.15)' }}>
                 <img
                   src={logoUrl}
-                  alt="l'univers créatif d'Anaïs"
+                  alt="l'univers cr�atif d'Ana�s"
                   className="h-44 md:h-56 w-auto"
                   onError={e => {
                     const t = e.currentTarget
@@ -559,8 +560,8 @@ async function loadContent() {
               </div>
               {/* Fallback si logo absent */}
               <div id="logo-fallback" className="hidden flex-col items-center bg-white/20 backdrop-blur-sm rounded-3xl px-8 py-4 border-4 border-white/60">
-                <p className="font-script text-gray-700 text-2xl">l'univers créatif</p>
-                <p className="font-brand font-bold text-rose-700 text-5xl">d'Anaïs</p>
+                <p className="font-script text-gray-700 text-2xl">l'univers cr�atif</p>
+                <p className="font-brand font-bold text-rose-700 text-5xl">d'Ana�s</p>
               </div>
             </div>
           )}
@@ -571,7 +572,7 @@ async function loadContent() {
                 <h1
                   className="text-4xl md:text-5xl mb-6 leading-tight"
                   style={buildTitleStyle(heroStyle)}
-                  dangerouslySetInnerHTML={{ __html: content['hero_titre'] }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(content['hero_titre']) }}
                 />
               )}
               {isAdmin && (
@@ -583,7 +584,7 @@ async function loadContent() {
                   <button
                     onClick={async () => { const next = !heroTitreVisible; setHeroTitreVisible(next); await supabase.from('settings').upsert({ key: 'hero_titre_visible', value: JSON.stringify(next) }, { onConflict: 'key' }) }}
                     className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border-2 transition-all ${heroTitreVisible ? 'bg-lime-300 border-[#1A1040] text-[#1A1040]' : 'bg-gray-300 border-gray-500 text-gray-600'}`}>
-                    {heroTitreVisible ? '👁 Visible' : '🙈 Masqué'}
+                    {heroTitreVisible ? '?? Visible' : '?? Masqu�'}
                   </button>
                 </div>
               )}
@@ -596,7 +597,7 @@ async function loadContent() {
                 <p
                   className={`max-w-2xl mx-auto leading-relaxed ${isAdmin ? 'mb-2' : 'mb-10'}`}
                   style={buildTitleStyle(heroSubStyle)}
-                  dangerouslySetInnerHTML={{ __html: content['hero_sous_titre'] }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(content['hero_sous_titre']) }}
                 />
               )}
               {isAdmin && (
@@ -608,7 +609,7 @@ async function loadContent() {
                   <button
                     onClick={async () => { const next = !heroSousTitreVisible; setHeroSousTitreVisible(next); await supabase.from('settings').upsert({ key: 'hero_sous_titre_visible', value: JSON.stringify(next) }, { onConflict: 'key' }) }}
                     className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border-2 transition-all ${heroSousTitreVisible ? 'bg-lime-300 border-[#1A1040] text-[#1A1040]' : 'bg-gray-300 border-gray-500 text-gray-600'}`}>
-                    {heroSousTitreVisible ? '👁 Visible' : '🙈 Masqué'}
+                    {heroSousTitreVisible ? '?? Visible' : '?? Masqu�'}
                   </button>
                 </div>
               )}
@@ -620,7 +621,7 @@ async function loadContent() {
 
       </section>
 
-      {/* ===== POLAROÏDS MOBILE (bande défilante + zoom) ===== */}
+      {/* ===== POLARO�DS MOBILE (bande d�filante + zoom) ===== */}
       <PolaroidMobileStrip polaroids={polaroids} isAdmin={isAdmin} />
 
       {/* ===== ACTU DU MOMENT ===== */}
@@ -648,7 +649,7 @@ async function loadContent() {
                 <h2
                   className="leading-tight"
                   style={buildTitleStyle(actuTitleStyle)}
-                  dangerouslySetInnerHTML={{ __html: content['actu_section_titre'] }}
+                  dangerouslySetInnerHTML={{ __html: sanitize(content['actu_section_titre']) }}
                 />
                 {isAdmin && (
                   <div className="flex justify-center mt-2">
@@ -660,14 +661,14 @@ async function loadContent() {
                 )}
               </div>
 
-              {/* Polaroïds dynamiques — se replacent harmonieusement */}
+              {/* Polaro�ds dynamiques � se replacent harmonieusement */}
               <div className="flex flex-wrap items-start justify-center gap-10 md:gap-14">
                 {visibleSlots.map((slot, idx) => {
                   const actu = actus.find(a => a.slot === slot)
                   const rot  = ROTS[idx % ROTS.length]
                   const tape = TAPES[idx % TAPES.length]
 
-                  // Slot vide — placeholder admin uniquement
+                  // Slot vide � placeholder admin uniquement
                   if (!actu) {
                     if (!isAdmin) return null
                     return (
@@ -675,8 +676,8 @@ async function loadContent() {
                         style={{ filter: 'drop-shadow(3px 5px 10px rgba(0,0,0,0.15))' }}>
                         <div className="bg-gray-50 border-4 border-dashed border-gray-300 rounded-sm p-4 pb-10 flex flex-col items-center justify-center text-center"
                           style={{ width: `${actuPolaroidSize}px`, minHeight: `${actuPolaroidSize * 1.35}px` }}>
-                          <div className="text-4xl mb-3 opacity-30">📷</div>
-                          <p className="text-gray-400 text-xs font-bold uppercase tracking-wide">Polaroïd {slot} — vide</p>
+                          <div className="text-4xl mb-3 opacity-30">??</div>
+                          <p className="text-gray-400 text-xs font-bold uppercase tracking-wide">Polaro�d {slot} � vide</p>
                           <p className="text-gray-400 text-xs mt-1">Aucune actu active</p>
                           <Link to="/actu-moment"
                             className="mt-4 text-xs bg-[#1A1040] text-citron-400 px-3 py-1.5 rounded-xl font-bold border-2 border-[#1A1040] hover:bg-[#2d2060] transition-colors">
@@ -701,7 +702,7 @@ async function loadContent() {
                             ? /\.(mp4|webm|mov)(\?|$)/i.test(actu.photo_url)
                               ? <video src={actu.photo_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                               : <img src={actu.photo_url} alt={actu.titre} className="w-full h-full object-cover" />
-                            : <div className="w-full h-full flex items-center justify-center text-4xl">🎨</div>}
+                            : <div className="w-full h-full flex items-center justify-center text-4xl">??</div>}
                         </div>
                         {actu.titre && (
                           <p className="font-bold text-center leading-tight mb-1"
@@ -748,7 +749,7 @@ async function loadContent() {
               <h2
                 className="leading-tight"
                 style={buildTitleStyle(valeursTitleStyle)}
-                dangerouslySetInnerHTML={{ __html: content['valeurs_titre'] }}
+                dangerouslySetInnerHTML={{ __html: sanitize(content['valeurs_titre']) }}
               />
               {isAdmin && (
                 <div className="flex justify-center mt-2">
@@ -770,7 +771,7 @@ async function loadContent() {
                     borderRadius: RADIUS_TO_PX[card.cardRadius] || '16px',
                     boxShadow: '4px 4px 0px 0px #1A1040',
                   }}>
-                  {/* Icône */}
+                  {/* Ic�ne */}
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-[#1A1040]"
                     style={{ backgroundColor: card.iconBg, boxShadow: '3px 3px 0px 0px #1A1040' }}>
                     {card.iconType === 'image'
@@ -780,10 +781,10 @@ async function loadContent() {
                   </div>
                   {/* Titre */}
                   <div className="mb-2" style={buildTitleStyle(valeursCardTitleStyle)}
-                    dangerouslySetInnerHTML={{ __html: card.title }} />
+                    dangerouslySetInnerHTML={{ __html: sanitize(card.title) }} />
                   {/* Description */}
                   <div style={buildTitleStyle(valeursCardDescStyle)} className="leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: card.desc }} />
+                    dangerouslySetInnerHTML={{ __html: sanitize(card.desc) }} />
                 </div>
               ))}
             </div>
@@ -791,14 +792,14 @@ async function loadContent() {
         </section>
       )}
 
-      {/* ── Éditeur titre Section Valeurs ── */}
+      {/* -- �diteur titre Section Valeurs -- */}
       {showValeursTitleEditor && (
         <HeroTitleEditor
           initialText={content['valeurs_titre']}
           initialStyle={valeursTitleStyle}
           sectionKey="valeurs_titre"
           styleKey="valeurs_titre_style"
-          label="✏️ Titre — Section Valeurs"
+          label="?? Titre � Section Valeurs"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, valeurs_titre: text }))
             setValeursTitleStyle(style)
@@ -808,7 +809,7 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== À PROPOS ===== */}
+      {/* ===== � PROPOS ===== */}
       <section className="relative py-20 px-4 border-y-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(aproposBg)}>
         {aproposBg.type === 'video' && aproposBg.videoUrl && (
           <>
@@ -820,7 +821,7 @@ async function loadContent() {
         )}
         <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
 
-          {/* Zone photos — collage libre */}
+          {/* Zone photos � collage libre */}
           {(() => {
             const visibles = aproposPhotos.filter(p => p.is_visible || isAdmin)
             return (
@@ -854,9 +855,9 @@ async function loadContent() {
                 {visibles.length === 0 && isAdmin && (
                   <div className="flex items-center justify-center w-full h-60 border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50/50">
                     <div className="text-center text-gray-400">
-                      <div className="text-4xl mb-2">🖼️</div>
+                      <div className="text-4xl mb-2">???</div>
                       <p className="text-sm font-black">Aucune photo</p>
-                      <p className="text-xs mt-1">Ajoute-en une via "Gérer les photos"</p>
+                      <p className="text-xs mt-1">Ajoute-en une via "G�rer les photos"</p>
                     </div>
                   </div>
                 )}
@@ -900,7 +901,7 @@ async function loadContent() {
 
                 {isAdmin && visibles.length > 0 && (
                   <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/40 text-white text-[10px] font-black px-3 py-1 rounded-full whitespace-nowrap pointer-events-none">
-                    ✋ Glisse chaque photo pour la repositionner
+                    ? Glisse chaque photo pour la repositionner
                   </div>
                 )}
 
@@ -909,7 +910,7 @@ async function loadContent() {
                     onClick={() => setShowAproposManager(true)}
                     className="absolute top-2 left-2 inline-flex items-center gap-1.5 bg-white text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-citron-400 transition-all whitespace-nowrap z-50"
                     style={{ boxShadow: '2px 2px 0px 0px #1A1040' }}>
-                    📷 Gérer les photos
+                    ?? G�rer les photos
                   </button>
                 )}
               </div>
@@ -920,7 +921,7 @@ async function loadContent() {
           <div className="flex-1">
             <h2 className="mb-2 leading-tight"
               style={buildTitleStyle(aproposTitleStyle)}
-              dangerouslySetInnerHTML={{ __html: content['apropos_titre'] }}
+              dangerouslySetInnerHTML={{ __html: sanitize(content['apropos_titre']) }}
             />
             {isAdmin && (
               <div className="mb-4">
@@ -933,7 +934,7 @@ async function loadContent() {
 
             <p className="leading-relaxed"
               style={buildTitleStyle(aproposBodyStyle)}
-              dangerouslySetInnerHTML={{ __html: content['apropos_texte'] }}
+              dangerouslySetInnerHTML={{ __html: sanitize(content['apropos_texte']) }}
             />
             {isAdmin && (
               <div className="mt-2">
@@ -947,14 +948,14 @@ async function loadContent() {
         </div>
       </section>
 
-      {/* ===== ÉDITEUR TITRE À PROPOS ===== */}
+      {/* ===== �DITEUR TITRE � PROPOS ===== */}
       {showAproposTitleEditor && (
         <HeroTitleEditor
           initialText={content['apropos_titre']}
           initialStyle={aproposTitleStyle}
           sectionKey="apropos_titre"
           styleKey="apropos_titre_style"
-          label="✏️ Titre — À Propos"
+          label="?? Titre � � Propos"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, apropos_titre: text }))
             setAproposTitleStyle(style)
@@ -964,14 +965,14 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== ÉDITEUR TEXTE À PROPOS ===== */}
+      {/* ===== �DITEUR TEXTE � PROPOS ===== */}
       {showAproposBodyEditor && (
         <HeroTitleEditor
           initialText={content['apropos_texte']}
           initialStyle={aproposBodyStyle}
           sectionKey="apropos_texte"
           styleKey="apropos_texte_style"
-          label="✏️ Texte — À Propos"
+          label="?? Texte � � Propos"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, apropos_texte: text }))
             setAproposBodyStyle(style)
@@ -1007,7 +1008,7 @@ async function loadContent() {
               <h2
                 className="leading-tight"
                 style={buildTitleStyle(avisTitleStyle)}
-                dangerouslySetInnerHTML={{ __html: content['avis_titre'] }}
+                dangerouslySetInnerHTML={{ __html: sanitize(content['avis_titre']) }}
               />
               {isAdmin && (
                 <div className="flex justify-center mt-2">
@@ -1022,12 +1023,12 @@ async function loadContent() {
             {/* Avis : chargement / affichage */}
             {reviewsLoading ? (
               <div className="text-center py-8">
-                <div className="text-3xl mb-2 animate-pulse">⭐</div>
-                <p className="text-white/60 text-sm font-bold">Chargement des avis…</p>
+                <div className="text-3xl mb-2 animate-pulse">?</div>
+                <p className="text-white/60 text-sm font-bold">Chargement des avis�</p>
               </div>
             ) : googleReviews.length > 0 ? (
               googleReviews.length > 3 ? (
-                /* ── CARROUSEL (> 3 avis) ── */
+                /* -- CARROUSEL (> 3 avis) -- */
                 <div className="overflow-hidden cursor-default select-none">
                   <div className="avis-scroll-track flex gap-6" style={{ width: 'max-content' }}>
                     {[...googleReviews, ...googleReviews].map((review, idx) => (
@@ -1036,7 +1037,7 @@ async function loadContent() {
                   </div>
                 </div>
               ) : (
-                /* ── GRILLE FIXE (≤ 3 avis) ── */
+                /* -- GRILLE FIXE (= 3 avis) -- */
                 <div className={`grid gap-6 ${googleReviews.length === 1 ? 'grid-cols-1 max-w-md mx-auto' : googleReviews.length === 2 ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto' : 'grid-cols-1 sm:grid-cols-3'}`}>
                   {googleReviews.map((review, idx) => (
                     <ReviewCard key={idx} review={review} onClick={() => setSelectedReview(review)} />
@@ -1045,12 +1046,12 @@ async function loadContent() {
               )
             ) : isAdmin ? (
               <div className="text-center py-12 border-4 border-dashed border-white/20 rounded-3xl">
-                <div className="text-5xl mb-3">⭐</div>
-                <p className="font-black text-white/40 mb-2">Aucun avis configuré</p>
+                <div className="text-5xl mb-3">?</div>
+                <p className="font-black text-white/40 mb-2">Aucun avis configur�</p>
                 <Link to="/connecteurs"
                   className="inline-flex items-center gap-1.5 bg-citron-400 text-[#1A1040] px-4 py-2 rounded-xl text-sm font-black border-2 border-[#1A1040] hover:bg-yellow-300 transition-all"
                   style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
-                  → Configurer dans les Connecteurs
+                  ? Configurer dans les Connecteurs
                 </Link>
               </div>
             ) : null}
@@ -1070,7 +1071,7 @@ async function loadContent() {
             <button
               onClick={() => setSelectedReview(null)}
               className="absolute top-4 right-4 w-9 h-9 rounded-full border-2 border-[#1A1040] bg-rose-100 flex items-center justify-center font-black text-[#1A1040] hover:bg-rose-200 transition-colors">
-              ✕
+              ?
             </button>
             {selectedReview.photoUrl && (
               <img src={selectedReview.photoUrl} alt="" className="w-full max-h-60 object-cover rounded-xl border-2 border-[#1A1040]" />
@@ -1100,14 +1101,14 @@ async function loadContent() {
         </div>
       )}
 
-      {/* ===== ÉDITEUR TITRE AVIS CLIENTS ===== */}
+      {/* ===== �DITEUR TITRE AVIS CLIENTS ===== */}
       {showAvisTitleEditor && (
         <HeroTitleEditor
           initialText={content['avis_titre']}
           initialStyle={avisTitleStyle}
           sectionKey="avis_titre"
           styleKey="avis_titre_style"
-          label="✏️ Titre — Section Avis clients"
+          label="?? Titre � Section Avis clients"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, avis_titre: text }))
             setAvisTitleStyle(style)
@@ -1118,7 +1119,7 @@ async function loadContent() {
       )}
 
 
-      {/* ===== RÉSEAUX SOCIAUX ===== */}
+      {/* ===== R�SEAUX SOCIAUX ===== */}
       {(hasSocialLinks || isAdmin) && (
         <section className="py-12 px-4 bg-[#1A1040] border-b-4 border-[#1A1040]">
           <div className="max-w-3xl mx-auto text-center">
@@ -1136,7 +1137,7 @@ async function loadContent() {
             )}
             <h2 className="leading-tight mb-2"
               style={buildTitleStyle(reseauxTitleStyle)}
-              dangerouslySetInnerHTML={{ __html: content['reseaux_titre'] }}
+              dangerouslySetInnerHTML={{ __html: sanitize(content['reseaux_titre']) }}
             />
             {isAdmin && (
               <div className="flex justify-center mb-8">
@@ -1185,18 +1186,18 @@ async function loadContent() {
                 </a>
               )}
               {!hasSocialLinks && isAdmin && (
-                <p className="text-white/40 text-sm font-bold">Aucun lien réseau configuré — ajoute-les dans /connecteurs</p>
+                <p className="text-white/40 text-sm font-bold">Aucun lien r�seau configur� � ajoute-les dans /connecteurs</p>
               )}
             </div>
           </div>
         </section>
       )}
 
-      {/* ===== ÉDITEUR BADGE RÉSEAUX SOCIAUX ===== */}
+      {/* ===== �DITEUR BADGE R�SEAUX SOCIAUX ===== */}
       {showReseauxBadgeEditor && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowReseauxBadgeEditor(false)}>
           <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
-            <h3 className="font-black text-[#1A1040]">🏷️ Badge — Réseaux sociaux</h3>
+            <h3 className="font-black text-[#1A1040]">??? Badge � R�seaux sociaux</h3>
             <div>
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
               <input value={reseauxBadge.text} onChange={e => setReseauxBadge(p => ({ ...p, text: e.target.value }))}
@@ -1237,14 +1238,14 @@ async function loadContent() {
         </div>
       )}
 
-      {/* ===== ÉDITEUR TITRE RÉSEAUX SOCIAUX ===== */}
+      {/* ===== �DITEUR TITRE R�SEAUX SOCIAUX ===== */}
       {showReseauxTitleEditor && (
         <HeroTitleEditor
           initialText={content['reseaux_titre']}
           initialStyle={reseauxTitleStyle}
           sectionKey="reseaux_titre"
           styleKey="reseaux_titre_style"
-          label="✏️ Titre — Réseaux sociaux"
+          label="?? Titre � R�seaux sociaux"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, reseaux_titre: text }))
             setReseauxTitleStyle(style)
@@ -1254,14 +1255,14 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== ÉDITEUR TITRE HERO ===== */}
+      {/* ===== �DITEUR TITRE HERO ===== */}
       {showTitleEditor && (
         <HeroTitleEditor
           initialText={content['hero_titre']}
           initialStyle={heroStyle}
           sectionKey="hero_titre"
           styleKey="hero_titre_style"
-          label="✏️ Éditeur du titre"
+          label="?? �diteur du titre"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, hero_titre: text }))
             setHeroStyle(style)
@@ -1271,14 +1272,14 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== ÉDITEUR TITRE SECTION ACTU ===== */}
+      {/* ===== �DITEUR TITRE SECTION ACTU ===== */}
       {showActuTitleEditor && (
         <HeroTitleEditor
           initialText={content['actu_section_titre']}
           initialStyle={actuTitleStyle}
           sectionKey="actu_section_titre"
           styleKey="actu_section_titre_style"
-          label="✏️ Titre — Actu du moment"
+          label="?? Titre � Actu du moment"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, actu_section_titre: text }))
             setActuTitleStyle(style)
@@ -1288,7 +1289,7 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== LIGHTBOX — POLAROÏD ACTU AGRANDI ===== */}
+      {/* ===== LIGHTBOX � POLARO�D ACTU AGRANDI ===== */}
       {expandedActu && (
         <div className="fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onClick={() => setExpandedActu(null)}>
           <div className="bg-white p-5 pb-10 border-4 border-[#1A1040] rounded-sm max-w-md w-full max-h-[90vh] overflow-y-auto"
@@ -1298,7 +1299,7 @@ async function loadContent() {
                 ? /\.(mp4|webm|mov)(\?|$)/i.test(expandedActu.photo_url)
                   ? <video src={expandedActu.photo_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                   : <img src={expandedActu.photo_url} alt={expandedActu.titre} className="w-full h-full object-cover" />
-                : <div className="w-full h-64 flex items-center justify-center text-6xl">🎨</div>}
+                : <div className="w-full h-64 flex items-center justify-center text-6xl">??</div>}
             </div>
             {expandedActu.titre && (
               <p className="font-bold text-center leading-tight mb-2"
@@ -1314,13 +1315,13 @@ async function loadContent() {
             )}
             <button onClick={() => setExpandedActu(null)}
               className="mt-5 mx-auto block bg-[#1A1040] text-citron-400 px-5 py-2 rounded-xl font-black text-sm border-2 border-[#1A1040] hover:bg-[#2d2060] transition-colors">
-              Fermer ✕
+              Fermer ?
             </button>
           </div>
         </div>
       )}
 
-      {/* ===== GESTIONNAIRE PHOTOS À PROPOS ===== */}
+      {/* ===== GESTIONNAIRE PHOTOS � PROPOS ===== */}
       {showAproposManager && (
         <AproposPhotoManager
           photos={aproposPhotos}
@@ -1329,12 +1330,12 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== ÉDITEUR FOND DU HERO ===== */}
+      {/* ===== �DITEUR FOND DU HERO ===== */}
       {showBgEditor && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowBgEditor(false) }}>
           <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
             <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
-              <span className="font-black text-[#1A1040]">🎨 Fond du hero</span>
+              <span className="font-black text-[#1A1040]">?? Fond du hero</span>
               <button onClick={() => setShowBgEditor(false)} className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50"><X className="w-4 h-4"/></button>
             </div>
             <div className="p-6">
@@ -1358,7 +1359,7 @@ async function loadContent() {
         </div>
       )}
 
-      {/* ===== GESTIONNAIRE POLAROÏDS HERO ===== */}
+      {/* ===== GESTIONNAIRE POLARO�DS HERO ===== */}
       {showPolaroidManager && (
         <HeroPolaroidManager
           polaroids={polaroids}
@@ -1367,14 +1368,14 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== ÉDITEUR SOUS-TITRE HERO ===== */}
+      {/* ===== �DITEUR SOUS-TITRE HERO ===== */}
       {showSubEditor && (
         <HeroTitleEditor
           initialText={content['hero_sous_titre']}
           initialStyle={heroSubStyle}
           sectionKey="hero_sous_titre"
           styleKey="hero_sous_titre_style"
-          label="✏️ Éditeur du sous-titre"
+          label="?? �diteur du sous-titre"
           onSave={(text, style) => {
             setContent(prev => ({ ...prev, hero_sous_titre: text }))
             setHeroSubStyle(style)

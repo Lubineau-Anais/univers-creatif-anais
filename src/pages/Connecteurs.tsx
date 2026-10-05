@@ -149,13 +149,12 @@ export default function Connecteurs() {
       return
     }
     const cid = BigInt(match[2]).toString(10)
-    const apiKey = settings['google_places_api_key']
-    if (!apiKey) { setMapsUrlError("Entrez d'abord votre clé API Google Places."); return }
+    if (!settings['google_places_api_key']) { setMapsUrlError("Entrez d'abord votre clé API Google Places, puis enregistrez-la."); return }
     try {
       const res = await fetch('https://bgodiiegxxlemofkfcsc.supabase.co/functions/v1/places-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, cid }),
+        body: JSON.stringify({ cid }),
       })
       const data = await res.json()
       if (data.placeId) {
@@ -171,8 +170,7 @@ export default function Connecteurs() {
   }
 
   async function findPlaceId() {
-    const apiKey = settings['google_places_api_key']
-    if (!apiKey) { setPlaceSearchError("Entrez d'abord votre clé API Google Places."); return }
+    if (!settings['google_places_api_key']) { setPlaceSearchError("Entrez d'abord votre clé API Google Places, puis enregistrez-la."); return }
     if (!placeQuery.trim()) { setPlaceSearchError('Entrez un nom à rechercher.'); return }
     setFindingPlaceId(true)
     setPlaceSearchError('')
@@ -181,7 +179,7 @@ export default function Connecteurs() {
       const res = await fetch('https://bgodiiegxxlemofkfcsc.supabase.co/functions/v1/places-proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, query: placeQuery.trim() }),
+        body: JSON.stringify({ query: placeQuery.trim() }),
       })
       const data = await res.json()
       if (data.placeId) {

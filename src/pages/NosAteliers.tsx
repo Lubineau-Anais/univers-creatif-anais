@@ -12,6 +12,7 @@ import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle, F
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
+import { sanitize } from '../lib/sanitize'
 
 // ─── Hero éditable ────────────────────────────────────────────────────────────
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
@@ -525,7 +526,7 @@ export default function NosAteliers() {
                 </div>
               )}
 
-              <h1 className="leading-tight mb-1" style={buildTitleStyle(heroTitreStyle)} dangerouslySetInnerHTML={{ __html: heroTitre }} />
+              <h1 className="leading-tight mb-1" style={buildTitleStyle(heroTitreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(heroTitre) }} />
               {isAdmin && (
                 <div className="flex justify-center mb-3">
                   <button onClick={() => setShowTitreEditor(true)}
@@ -535,7 +536,7 @@ export default function NosAteliers() {
                 </div>
               )}
 
-              <p className="max-w-xl mx-auto" style={buildTitleStyle(heroSousStyle)} dangerouslySetInnerHTML={{ __html: heroSous }} />
+              <p className="max-w-xl mx-auto" style={buildTitleStyle(heroSousStyle)} dangerouslySetInnerHTML={{ __html: sanitize(heroSous) }} />
               {isAdmin && (
                 <div className="flex justify-center mt-2">
                   <button onClick={() => setShowSousEditor(true)}

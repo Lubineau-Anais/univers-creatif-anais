@@ -9,6 +9,7 @@ import BgEditor from '../components/BgEditor'
 import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
+import { sanitize } from '../lib/sanitize'
 
 const DEFAULT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#1A1040' }
 const DEFAULT_TITRE_STYLE: HeroStyle = {
@@ -390,7 +391,7 @@ export default function Informations() {
           )}
 
           <div className="relative z-10 max-w-5xl mx-auto px-6 py-14 flex flex-col items-center text-center gap-4">
-            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: content.infos_titre }} />
+            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(content.infos_titre) }} />
             {isAdmin && (
               <div className="flex flex-wrap gap-2 mt-1">
                 <button onClick={() => setShowTitreEditor(true)}

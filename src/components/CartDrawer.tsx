@@ -56,6 +56,7 @@ function StripeCartForm({ cbItems, onSuccess, onError, stripeConfigured }: {
           amount:      Math.round(totalCb * 100),
           currency:    'eur',
           description: `Ateliers — ${cbItems.map(i => i.atelier.titre).join(', ')}`,
+          items:       cbItems.map(i => ({ atelier_id: i.atelier.id, nb_personnes: i.nbPersonnes })),
         }),
       })
       const { client_secret, error: piError } = await piRes.json()
@@ -376,6 +377,7 @@ export default function CartDrawer() {
             )}
           </div>
           <button onClick={() => { setIsOpen(false); setChecked(false); setShowStripeForm(false) }}
+            aria-label="Fermer le panier"
             className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20">
             <X className="w-5 h-5 text-white" />
           </button>
@@ -439,7 +441,7 @@ export default function CartDrawer() {
                           {!showStripeForm && (
                             <button onClick={() => removeItem(item.cartId)}
                               className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center hover:bg-red-600 active:scale-95 transition-all border-2 border-white/30"
-                              title="Supprimer">
+                              aria-label={`Supprimer ${item.atelier.titre} du panier`}>
                               <Trash2 className="w-4 h-4 text-white" />
                             </button>
                           )}

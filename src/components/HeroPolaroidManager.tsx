@@ -208,7 +208,7 @@ export default function HeroPolaroidManager({ polaroids, onClose, onRefresh, tab
       <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg max-h-[85vh] flex flex-col" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
         <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy shrink-0">
           <h3 className="font-black text-[#1A1040]">🖼️ {title}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} aria-label="Fermer" className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5">

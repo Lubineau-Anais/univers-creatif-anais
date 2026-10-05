@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
@@ -8,26 +9,41 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import CartDrawer from './components/CartDrawer'
 import ProtectedRoute from './components/ProtectedRoute'
+
+// Pages critiques — chargées immédiatement
 import Accueil from './pages/Accueil'
 import NosAteliers from './pages/NosAteliers'
-import Connexion from './pages/Connexion'
-import Connecteurs from './pages/Connecteurs'
-import TableauDeBord from './pages/TableauDeBord'
-import Archives from './pages/Archives'
-import ActuAdmin from './pages/ActuAdmin'
-import AccueilAdmin from './pages/AccueilAdmin'
-import Contact from './pages/Contact'
-import ContactAdmin from './pages/ContactAdmin'
-import NavbarAdmin from './pages/NavbarAdmin'
 import Boutique from './pages/Boutique'
-import BoutiqueAdmin from './pages/BoutiqueAdmin'
-import ProduitsAdmin from './pages/ProduitsAdmin'
-import PromosAdmin from './pages/PromosAdmin'
-import Galerie from './pages/Galerie'
-import GalerieAdmin from './pages/GalerieAdmin'
-import CommandesAdmin from './pages/CommandesAdmin'
-import Informations from './pages/Informations'
-import InformationsAdmin from './pages/InformationsAdmin'
+import Contact from './pages/Contact'
+
+// Pages secondaires — chargement différé
+const Connexion       = lazy(() => import('./pages/Connexion'))
+const Galerie         = lazy(() => import('./pages/Galerie'))
+const Informations    = lazy(() => import('./pages/Informations'))
+const MentionsLegales = lazy(() => import('./pages/MentionsLegales'))
+
+// Pages admin — chargement différé (auth requise)
+const Connecteurs      = lazy(() => import('./pages/Connecteurs'))
+const TableauDeBord    = lazy(() => import('./pages/TableauDeBord'))
+const Archives         = lazy(() => import('./pages/Archives'))
+const ActuAdmin        = lazy(() => import('./pages/ActuAdmin'))
+const AccueilAdmin     = lazy(() => import('./pages/AccueilAdmin'))
+const ContactAdmin     = lazy(() => import('./pages/ContactAdmin'))
+const NavbarAdmin      = lazy(() => import('./pages/NavbarAdmin'))
+const BoutiqueAdmin    = lazy(() => import('./pages/BoutiqueAdmin'))
+const ProduitsAdmin    = lazy(() => import('./pages/ProduitsAdmin'))
+const PromosAdmin      = lazy(() => import('./pages/PromosAdmin'))
+const GalerieAdmin     = lazy(() => import('./pages/GalerieAdmin'))
+const CommandesAdmin   = lazy(() => import('./pages/CommandesAdmin'))
+const InformationsAdmin = lazy(() => import('./pages/InformationsAdmin'))
+
+function PageLoader() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[40vh]">
+      <div className="w-8 h-8 rounded-full border-4 border-rose-300 border-t-rose-500 animate-spin" />
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -40,54 +56,57 @@ export default function App() {
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <CartDrawer />
-              <Routes>
-                <Route path="/" element={<Accueil />} />
-                <Route path="/ateliers" element={<NosAteliers />} />
-                <Route path="/boutique" element={<Boutique />} />
-                <Route path="/connexion" element={<Connexion />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/galerie" element={<Galerie />} />
-                <Route path="/informations" element={<Informations />} />
-                <Route path="/informations-admin" element={
-                  <ProtectedRoute><InformationsAdmin /></ProtectedRoute>
-                } />
-                <Route path="/connecteurs" element={
-                  <ProtectedRoute><Connecteurs /></ProtectedRoute>
-                } />
-                <Route path="/tableau-de-bord" element={
-                  <ProtectedRoute><TableauDeBord /></ProtectedRoute>
-                } />
-                <Route path="/archives" element={
-                  <ProtectedRoute><Archives /></ProtectedRoute>
-                } />
-                <Route path="/actu-moment" element={
-                  <ProtectedRoute><ActuAdmin /></ProtectedRoute>
-                } />
-                <Route path="/accueil-admin" element={
-                  <ProtectedRoute><AccueilAdmin /></ProtectedRoute>
-                } />
-                <Route path="/contact-admin" element={
-                  <ProtectedRoute><ContactAdmin /></ProtectedRoute>
-                } />
-                <Route path="/navbar-admin" element={
-                  <ProtectedRoute><NavbarAdmin /></ProtectedRoute>
-                } />
-                <Route path="/boutique-admin" element={
-                  <ProtectedRoute><BoutiqueAdmin /></ProtectedRoute>
-                } />
-                <Route path="/produits-admin" element={
-                  <ProtectedRoute><ProduitsAdmin /></ProtectedRoute>
-                } />
-                <Route path="/promos-admin" element={
-                  <ProtectedRoute><PromosAdmin /></ProtectedRoute>
-                } />
-                <Route path="/galerie-admin" element={
-                  <ProtectedRoute><GalerieAdmin /></ProtectedRoute>
-                } />
-                <Route path="/commandes-admin" element={
-                  <ProtectedRoute><CommandesAdmin /></ProtectedRoute>
-                } />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Accueil />} />
+                  <Route path="/ateliers" element={<NosAteliers />} />
+                  <Route path="/boutique" element={<Boutique />} />
+                  <Route path="/connexion" element={<Connexion />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/galerie" element={<Galerie />} />
+                  <Route path="/informations" element={<Informations />} />
+                  <Route path="/mentions-legales" element={<MentionsLegales />} />
+                  <Route path="/informations-admin" element={
+                    <ProtectedRoute><InformationsAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/connecteurs" element={
+                    <ProtectedRoute><Connecteurs /></ProtectedRoute>
+                  } />
+                  <Route path="/tableau-de-bord" element={
+                    <ProtectedRoute><TableauDeBord /></ProtectedRoute>
+                  } />
+                  <Route path="/archives" element={
+                    <ProtectedRoute><Archives /></ProtectedRoute>
+                  } />
+                  <Route path="/actu-moment" element={
+                    <ProtectedRoute><ActuAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/accueil-admin" element={
+                    <ProtectedRoute><AccueilAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/contact-admin" element={
+                    <ProtectedRoute><ContactAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/navbar-admin" element={
+                    <ProtectedRoute><NavbarAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/boutique-admin" element={
+                    <ProtectedRoute><BoutiqueAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/produits-admin" element={
+                    <ProtectedRoute><ProduitsAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/promos-admin" element={
+                    <ProtectedRoute><PromosAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/galerie-admin" element={
+                    <ProtectedRoute><GalerieAdmin /></ProtectedRoute>
+                  } />
+                  <Route path="/commandes-admin" element={
+                    <ProtectedRoute><CommandesAdmin /></ProtectedRoute>
+                  } />
+                </Routes>
+              </Suspense>
               <Footer />
             </div>
           </BrowserRouter>

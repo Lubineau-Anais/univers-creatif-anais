@@ -1,19 +1,23 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('Origin')
+  const allowed = origin === 'http://localhost:5173' ? origin : 'https://lunivers-creatif-danais.fr'
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
 
-  // Vérifie que l'appelant est un utilisateur authentifié (admin)
+  // VÃ©rifie que l'appelant est un utilisateur authentifiÃ© (admin)
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
-      status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'Non autorisÃ©' }), {
+      status: 401, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 
@@ -24,8 +28,8 @@ serve(async (req) => {
   )
   const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
   if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
-      status: 401, headers: { ...CORS, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'Non autorisÃ©' }), {
+      status: 401, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 
@@ -35,7 +39,7 @@ serve(async (req) => {
     if (!payment_intent_id) {
       return new Response(
         JSON.stringify({ error: 'payment_intent_id manquant' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
 
@@ -50,8 +54,8 @@ serve(async (req) => {
 
     if (!stripeSecretKey) {
       return new Response(
-        JSON.stringify({ error: 'Clé Stripe non configurée' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        JSON.stringify({ error: 'ClÃ© Stripe non configurÃ©e' }),
+        { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
 
@@ -69,18 +73,18 @@ serve(async (req) => {
     if (!res.ok) {
       return new Response(
         JSON.stringify({ error: refund.error?.message || 'Erreur Stripe lors du remboursement' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
 
     return new Response(
       JSON.stringify({ success: true, refund_id: refund.id, status: refund.status }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
+      { headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
     )
 
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 })

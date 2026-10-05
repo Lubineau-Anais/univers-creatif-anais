@@ -184,6 +184,7 @@ export default function Navbar() {
 
             {/* Bouton panier */}
             <button onClick={() => openCart(true)}
+              aria-label="Ouvrir le panier"
               className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border-2 border-[#1A1040] bg-white hover:bg-candy transition-all"
               style={{ color: nav.inactiveText }}>
               <ShoppingCart className="w-4 h-4" />
@@ -198,6 +199,7 @@ export default function Navbar() {
 
           {/* Panier mobile (toujours visible) */}
           <button onClick={() => openCart(true)}
+            aria-label="Ouvrir le panier"
             className="md:hidden relative w-10 h-10 rounded-xl flex items-center justify-center border-2 border-[#1A1040] bg-white"
             style={{ color: nav.inactiveText }}>
             <ShoppingCart className="w-5 h-5" />
@@ -210,6 +212,8 @@ export default function Navbar() {
 
           {/* Mobile burger */}
           <button
+            aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            aria-expanded={menuOpen}
             className="md:hidden w-10 h-10 rounded-xl flex items-center justify-center border-2 border-[#1A1040]"
             style={{ backgroundColor: nav.activeBg }}
             onClick={() => setMenuOpen(!menuOpen)}

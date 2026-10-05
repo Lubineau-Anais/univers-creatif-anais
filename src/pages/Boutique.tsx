@@ -17,6 +17,7 @@ import HeroPolaroidDisplay from '../components/HeroPolaroidDisplay'
 import HeroPolaroidManager, { type HeroPolaroid } from '../components/HeroPolaroidManager'
 import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
 import { Image as ImageIcon } from 'lucide-react'
+import { sanitize } from '../lib/sanitize'
 
 // ─── Défauts ───────────────────────────────────────────────────────────────────
 const DEFAULT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#c4b5fd' }
@@ -737,7 +738,7 @@ export default function Boutique() {
           <div className="relative z-10 max-w-4xl mx-auto px-4 py-16 text-center">
             <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-gray-300 mb-4 ${badge.radius}`}
               style={{ backgroundColor:badge.bg, color:badge.textColor }}>{badge.text}</div>
-            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="leading-tight"/>
+            <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(titreText) }} className="leading-tight"/>
           </div>
         </section>
 

@@ -91,7 +91,7 @@ export default function ShopProductModal({ product, categories, onSave, onClose 
       <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-xl my-4" style={{ boxShadow:'6px 6px 0px 0px #c4b5fd' }}>
         <div className="px-6 py-4 border-b-2 border-[#1A1040] flex items-center justify-between bg-candy sticky top-0 z-10">
           <h3 className="font-black text-[#1A1040]">{product ? 'Modifier le produit' : 'Nouveau produit'}</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
+          <button onClick={onClose} aria-label="Fermer" className="w-8 h-8 rounded-xl bg-white border-2 border-[#1A1040] flex items-center justify-center hover:bg-red-50"><X className="w-4 h-4"/></button>
         </div>
         <div className="p-6 space-y-4">
           {/* Nom */}
