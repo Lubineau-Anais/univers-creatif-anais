@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { ShoppingCart, X, Plus, Minus, Tag, Clock, ChevronRight, ChevronDown, Trash2, AlertCircle, SlidersHorizontal, Pencil, Palette, Check, ZoomIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
@@ -704,6 +705,14 @@ export default function Boutique() {
 
   return (
     <main className="flex-1 bg-candy">
+      <Helmet>
+        <title>Boutique — L'Univers Créatif d'Anaïs</title>
+        <meta name="description" content="Achetez des créations artisanales uniques : accessoires, décorations, cadeaux faits main. Livraison ou retrait à Prinquiau (44)." />
+        <meta property="og:title" content="Boutique — L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Créations artisanales uniques, livraison en France." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/boutique" />
+      </Helmet>
 
       <PolaroidMobileStrip polaroids={boutiquePolaroids} isAdmin={isAdmin} />
 

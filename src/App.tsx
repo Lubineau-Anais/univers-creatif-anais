@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { SiteSettingsProvider } from './context/SiteSettingsContext'
 import { CartProvider } from './context/CartContext'
@@ -30,6 +31,7 @@ import InformationsAdmin from './pages/InformationsAdmin'
 
 export default function App() {
   return (
+    <HelmetProvider>
     <AuthProvider>
       <SiteSettingsProvider>
         <CartProvider>
@@ -93,5 +95,6 @@ export default function App() {
         </CartProvider>
       </SiteSettingsProvider>
     </AuthProvider>
+    </HelmetProvider>
   )
 }

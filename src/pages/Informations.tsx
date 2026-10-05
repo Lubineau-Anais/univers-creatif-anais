@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { Pencil, Check, X, Clock, MapPin, ParkingCircle, Scissors, ExternalLink, Palette, Bold, Italic } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -355,6 +356,14 @@ export default function Informations() {
 
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
+      <Helmet>
+        <title>Informations pratiques — L'Univers Créatif d'Anaïs</title>
+        <meta name="description" content="Horaires, adresse, accès et informations pratiques pour rejoindre l'Univers Créatif d'Anaïs à Prinquiau (Loire-Atlantique, 44)." />
+        <meta property="og:title" content="Informations pratiques — L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Adresse, horaires et accès à l'atelier d'Anaïs en Loire-Atlantique." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/informations" />
+      </Helmet>
 
       <PolaroidMobileStrip polaroids={polaroids} isAdmin={isAdmin} />
 

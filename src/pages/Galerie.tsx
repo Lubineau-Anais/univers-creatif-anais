@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -157,6 +158,14 @@ export default function Galerie() {
 
   return (
     <main className="flex-1 bg-white min-h-screen">
+      <Helmet>
+        <title>Galerie — L'Univers Créatif d'Anaïs</title>
+        <meta name="description" content="Explorez la galerie photo des créations d'Anaïs : ateliers, broderies, coutures et objets décoratifs faits main en Loire-Atlantique." />
+        <meta property="og:title" content="Galerie créative — L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Toutes les créations artisanales d'Anaïs en photos." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/galerie" />
+      </Helmet>
 
       {/* ── En-tête ── */}
       <section className="relative py-12 px-4 border-b-4 border-[#1A1040] overflow-hidden"

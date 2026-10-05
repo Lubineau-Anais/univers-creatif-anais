@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { Pencil, Check, X, MapPin, Phone, Mail, Image as ImageIcon, Palette } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -148,6 +149,14 @@ export default function Contact() {
 
   return (
     <main className="flex-1">
+      <Helmet>
+        <title>Contact — L'Univers Créatif d'Anaïs</title>
+        <meta name="description" content="Contactez Anaïs pour toute question sur les ateliers, la boutique ou un projet personnalisé. Située à Prinquiau en Loire-Atlantique (44)." />
+        <meta property="og:title" content="Contact — L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Une question ? Contactez l'Univers Créatif d'Anaïs." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/contact" />
+      </Helmet>
 
       <PolaroidMobileStrip polaroids={contactPolaroids} isAdmin={isAdmin} />
 

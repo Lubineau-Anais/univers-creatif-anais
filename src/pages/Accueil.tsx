@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
@@ -478,6 +479,14 @@ async function loadContent() {
 
   return (
     <main className="flex-1">
+      <Helmet>
+        <title>L'Univers Créatif d'Anaïs — Ateliers créatifs en Loire-Atlantique</title>
+        <meta name="description" content="Ateliers créatifs, boutique artisanale et galerie photo à Prinquiau (44). Découvrez les créations d'Anaïs : couture, broderie, DIY et bien plus." />
+        <meta property="og:title" content="L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Ateliers créatifs, boutique artisanale et galerie photo en Loire-Atlantique." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/" />
+      </Helmet>
 
       {/* ===== HERO ===== */}
       <section

@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, Users, ChevronLeft, Upload, X, Image as ImageIcon, Palette } from 'lucide-react'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
 import BgEditor from '../components/BgEditor'
@@ -459,6 +460,14 @@ export default function NosAteliers() {
 
   return (
     <main className="flex-1 bg-candy overflow-x-hidden">
+      <Helmet>
+        <title>Nos Ateliers — L'Univers Créatif d'Anaïs</title>
+        <meta name="description" content="Découvrez tous les ateliers créatifs : couture, broderie, DIY, peinture... Réservez votre place en ligne à Prinquiau (44)." />
+        <meta property="og:title" content="Nos Ateliers — L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Réservez votre atelier créatif en Loire-Atlantique." />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href="https://lunivers-creatif-danais.fr/ateliers" />
+      </Helmet>
 
       <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
 

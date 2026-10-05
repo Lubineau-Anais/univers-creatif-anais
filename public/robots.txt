@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Pages d'administration — non indexables
+Disallow: /connexion
+Disallow: /tableau-de-bord
+Disallow: /archives
+Disallow: /accueil-admin
+Disallow: /boutique-admin
+Disallow: /produits-admin
+Disallow: /commandes-admin
+Disallow: /galerie-admin
+Disallow: /informations-admin
+Disallow: /contact-admin
+Disallow: /navbar-admin
+Disallow: /promos-admin
+Disallow: /actu-admin
+Disallow: /connecteurs
+
+Sitemap: https://lunivers-creatif-danais.fr/sitemap.xml
