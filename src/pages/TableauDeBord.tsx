@@ -336,9 +336,10 @@ export default function TableauDeBord() {
         && currentReservation.stripe_payment_intent_id) {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
         const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+        const { data: { session: refundSession } } = await supabase.auth.getSession()
         fetch(`${supabaseUrl}/functions/v1/refund-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+          headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${refundSession?.access_token ?? anonKey}` },
           body: JSON.stringify({ payment_intent_id: currentReservation.stripe_payment_intent_id }),
         }).catch(() => {})
       }

@@ -193,9 +193,10 @@ export default function CartDrawer() {
         if (insertError) throw insertError
 
         if (!item.atelier.id.startsWith('demo-')) {
-          await supabase.from('ateliers')
-            .update({ places_restantes: item.atelier.places_restantes - item.nbPersonnes })
-            .eq('id', item.atelier.id)
+          await supabase.rpc('decrement_atelier_places', {
+            p_atelier_id: item.atelier.id,
+            p_nb: item.nbPersonnes,
+          })
         }
 
         fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
@@ -286,9 +287,10 @@ export default function CartDrawer() {
         if (insertError) throw insertError
 
         if (!item.atelier.id.startsWith('demo-')) {
-          await supabase.from('ateliers')
-            .update({ places_restantes: item.atelier.places_restantes - item.nbPersonnes })
-            .eq('id', item.atelier.id)
+          await supabase.rpc('decrement_atelier_places', {
+            p_atelier_id: item.atelier.id,
+            p_nb: item.nbPersonnes,
+          })
         }
 
         fetch(`${supabaseUrl}/functions/v1/send-reservation-email`, {
