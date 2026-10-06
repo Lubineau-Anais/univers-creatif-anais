@@ -10,10 +10,51 @@ function corsHeaders(req: Request) {
   }
 }
 
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  )
+}
+
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  ip: string,
+  endpoint: string,
+  maxRequests: number,
+  windowMinutes: number,
+): Promise<boolean> {
+  const since = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString()
+  const { count } = await supabase
+    .from('rate_limit_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip', ip)
+    .eq('endpoint', endpoint)
+    .gte('created_at', since)
+  if ((count ?? 0) >= maxRequests) return false
+  await supabase.from('rate_limit_log').insert({ ip, endpoint })
+  return true
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
 
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+
+    const ip = getClientIp(req)
+    const allowed = await checkRateLimit(supabase, ip, 'payment-intent', 10, 60)
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de tentatives. Veuillez réessayer dans une heure.' }),
+        { status: 429, headers: { ...corsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+      )
+    }
+
     const { amount, currency = 'eur', description, items } = await req.json()
 
     if (!amount || amount < 50) {
@@ -21,11 +62,6 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
       })
     }
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
 
     // Validation du montant côté serveur pour les réservations d'ateliers
     if (items && Array.isArray(items) && items.length > 0) {
