@@ -13,6 +13,7 @@ import HeroTitleEditor, {
   type HeroStyle, buildTitleStyle,
 } from '../components/HeroTitleEditor'
 import BgEditor from '../components/BgEditor'
+import { sanitize } from '../lib/sanitize'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface BadgeConfig  { text: string; bg: string; textColor: string; radius: string }
@@ -660,7 +661,7 @@ export default function AccueilAdmin() {
               <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">Titre de section</p>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex-1 bg-candy rounded-2xl border-2 border-[#1A1040] p-4 flex items-center justify-center min-h-[60px]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                  <div style={buildTitleStyle(valeursTitleStyle)} dangerouslySetInnerHTML={{ __html: valeursTitleText }} className="text-center leading-tight" />
+                  <div style={buildTitleStyle(valeursTitleStyle)} dangerouslySetInnerHTML={{ __html: sanitize(valeursTitleText) }} className="text-center leading-tight" />
                 </div>
                 <button onClick={() => setShowValeursTitle(true)}
                   className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-6 py-4 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all shrink-0"
@@ -723,7 +724,7 @@ export default function AccueilAdmin() {
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center border-2 border-[#1A1040] shrink-0 text-xl"
                         style={{ backgroundColor: card.iconBg }}>
                         {card.iconType === 'image'
-                          ? <img src={card.icon} className="w-7 h-7 object-contain rounded-lg" />
+                          ? <img src={card.icon} className="w-7 h-7 object-contain rounded-lg" alt="" />
                           : card.icon}
                       </div>
                       {/* Titre */}
@@ -769,7 +770,7 @@ export default function AccueilAdmin() {
                               onChange={e => { const f = e.target.files?.[0]; if (f) uploadCardIcon(f, card.id); e.target.value = '' }} />
                             {card.iconType === 'image' && (
                               <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-[#1A1040]">
-                                <img src={card.icon} className="w-full h-full object-cover" />
+                                <img src={card.icon} className="w-full h-full object-cover" alt="" />
                               </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -832,7 +833,7 @@ export default function AccueilAdmin() {
                           <div className="p-4 text-center border-2 w-44"
                             style={{ backgroundColor: card.cardBg, borderColor: card.borderColor, borderRadius: RADIUS_TO_PX[card.cardRadius] || '16px', boxShadow: '3px 3px 0px 0px #1A1040' }}>
                             <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2 border-2 border-[#1A1040] text-xl" style={{ backgroundColor: card.iconBg }}>
-                              {card.iconType === 'image' ? <img src={card.icon} className="w-8 h-8 object-contain" /> : card.icon}
+                              {card.iconType === 'image' ? <img src={card.icon} className="w-8 h-8 object-contain" alt="" /> : card.icon}
                             </div>
                             <div className="font-bold text-xs text-[#1A1040] mb-1 truncate">{card.title}</div>
                             <div className="text-[10px] text-gray-500 line-clamp-2">{card.desc}</div>
@@ -964,7 +965,7 @@ export default function AccueilAdmin() {
               <p className="text-xs font-black text-[#1A1040] uppercase tracking-wide">Titre</p>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex-1 bg-candy rounded-2xl border-2 border-[#1A1040] p-4 flex items-center justify-center min-h-[60px]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                  <div style={buildTitleStyle(aproposTitleStyle)} dangerouslySetInnerHTML={{ __html: aproposTitleText }} className="text-center leading-tight" />
+                  <div style={buildTitleStyle(aproposTitleStyle)} dangerouslySetInnerHTML={{ __html: sanitize(aproposTitleText) }} className="text-center leading-tight" />
                 </div>
                 <button onClick={() => setShowAproposTitle(true)}
                   className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-6 py-4 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all shrink-0"
@@ -982,7 +983,7 @@ export default function AccueilAdmin() {
 
               {/* Aperçu stylisé */}
               <div className="bg-candy rounded-2xl border-2 border-[#1A1040] p-4 max-h-32 overflow-auto" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                <div style={buildTitleStyle(aproposBodyStyle)} dangerouslySetInnerHTML={{ __html: aproposBodyText || '<em style="opacity:0.4">Aucun texte…</em>' }} />
+                <div style={buildTitleStyle(aproposBodyStyle)} dangerouslySetInnerHTML={{ __html: sanitize(aproposBodyText || '<em style="opacity:0.4">Aucun texte…</em>') }} />
               </div>
 
               {/* Bouton éditeur style */}
@@ -1035,7 +1036,7 @@ export default function AccueilAdmin() {
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex-1 rounded-2xl border-2 border-[#1A1040] p-4 flex items-center justify-center min-h-[60px]"
                   style={{ ...buildHeroBgStyle({ ...avisBg, type: avisBgTab }), boxShadow: '3px 3px 0px 0px #1A1040' }}>
-                  <div style={buildTitleStyle(avisTitleStyle)} dangerouslySetInnerHTML={{ __html: avisTitleText }} className="text-center leading-tight" />
+                  <div style={buildTitleStyle(avisTitleStyle)} dangerouslySetInnerHTML={{ __html: sanitize(avisTitleText) }} className="text-center leading-tight" />
                 </div>
                 <button onClick={() => setShowAvisTitle(true)}
                   className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-6 py-4 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all shrink-0"
@@ -1100,7 +1101,7 @@ export default function AccueilAdmin() {
           <div className="p-6 flex flex-col sm:flex-row items-center gap-6">
             {/* Aperçu */}
             <div className="flex-1 bg-candy rounded-2xl border-2 border-[#1A1040] p-4 flex items-center justify-center min-h-[80px]" style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>
-              <div style={buildTitleStyle(actuTitleStyle)} dangerouslySetInnerHTML={{ __html: actuTitleText }} className="text-center leading-tight" />
+              <div style={buildTitleStyle(actuTitleStyle)} dangerouslySetInnerHTML={{ __html: sanitize(actuTitleText) }} className="text-center leading-tight" />
             </div>
             {/* Bouton ouvrir éditeur */}
             <button onClick={() => setShowActuTitle(true)}

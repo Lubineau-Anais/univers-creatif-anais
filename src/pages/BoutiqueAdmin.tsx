@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { type HeroBg, type BgType, DEFAULT_HERO_BG, buildHeroBgStyle } from '../lib/heroBg'
 import HeroTitleEditor, { type HeroStyle, buildTitleStyle } from '../components/HeroTitleEditor'
 import BgEditor from '../components/BgEditor'
+import { sanitize } from '../lib/sanitize'
 import type { ShopStatus } from '../lib/shop'
 
 interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
@@ -304,7 +305,7 @@ export default function BoutiqueAdmin() {
           <div className="p-6 flex flex-col sm:flex-row items-center gap-6">
             <div className="flex-1 rounded-2xl border-2 border-[#1A1040] p-4 flex items-center justify-center min-h-[80px]"
               style={{ ...buildHeroBgStyle({ ...bg, type:bgTab }), boxShadow:'3px 3px 0px 0px #1A1040' }}>
-              <div style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: titreText }} className="text-center leading-tight"/>
+              <div style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(titreText) }} className="text-center leading-tight"/>
             </div>
             <button onClick={() => setShowTitreEditor(true)}
               className="flex items-center gap-2 bg-[#1A1040] text-citron-400 px-6 py-4 rounded-2xl font-black border-2 border-[#1A1040] hover:bg-[#2d2060] transition-all shrink-0"

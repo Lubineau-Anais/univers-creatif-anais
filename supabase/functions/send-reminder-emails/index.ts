@@ -18,40 +18,40 @@ function getCatInfo(categorie: string): CatInfo {
   const n = categorie.toLowerCase().normalize('NFD').replace(/[Ì€-Í¯]/g, '')
   if (n.includes('couture')) return {
     emoji: 'ðŸ§µ', couleur: '#ec4899',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `<ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
-      <li>Votre machine Ã  coudre et vos canettes !</li>
+      <li>Votre machine Ã  coudre et vos canettes !</li>
       <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
       <li>Votre bonne humeur !</li>
     </ul>
     <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
   if (n.includes('macrame') || n.includes('macramÃ©')) return {
     emoji: 'ðŸª¢', couleur: '#f97316',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `<ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
       <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
       <li>Votre bonne humeur !</li>
     </ul>
     <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
   if (n.includes('resine') || n.includes('rÃ©sine') || n.includes('bijou')) return {
     emoji: 'ðŸ’Ž', couleur: '#8b5cf6',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `<ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
       <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
       <li>Votre bonne humeur !</li>
     </ul>
     <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
   return {
     emoji: 'ðŸŽ¨', couleur: '#14b8a6',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `<p style="margin:0;color:#15803d;font-size:14px;line-height:1.6;">Tout le matÃ©riel nÃ©cessaire est fourni. Ã€ trÃ¨s bientÃ´t !</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
 }
 
@@ -95,7 +95,7 @@ function buildEmailRappel(params: {
   // Bloc paiement uniquement si non encore payÃ©
   const paiementBlock = (mode_paiement === 'virement' && statut_paiement !== 'paye') ? `
     <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:12px;padding:16px;margin:20px 0;">
-      <p style="font-weight:900;color:#92400e;margin:0 0 8px;font-size:15px;">âš ï¸ Rappel rÃ¨glement</p>
+      <p style="font-weight:900;color:#92400e;margin:0 0 8px;font-size:15px;">âš ï¸ Rappel rÃ¨glement</p>
       <p style="margin:0;color:#92400e;font-size:14px;">Votre rÃ¨glement de <strong>${total} â‚¬</strong> par virement bancaire est attendu avant le dÃ©but de l'atelier.</p>
     </div>` : ''
 
@@ -109,10 +109,10 @@ function buildEmailRappel(params: {
     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:20px 0;">
       <p style="font-weight:700;color:#374151;margin:0 0 6px;font-size:13px;">ðŸ”’ Protection de vos donnÃ©es personnelles</p>
       <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.6;">
-        Vous recevez cet e-mail dans le cadre de votre rÃ©servation Ã  un atelier. Vos donnÃ©es sont utilisÃ©es uniquement pour la gestion de votre inscription et des communications liÃ©es Ã  l'Ã©vÃ©nement.
+        Vous recevez cet e-mail dans le cadre de votre rÃ©servation Ã  un atelier. Vos donnÃ©es sont utilisÃ©es uniquement pour la gestion de votre inscription et des communications liÃ©es Ã  l'Ã©vÃ©nement.
       </p>
       <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
-        Pour toute question relative Ã  vos donnÃ©es personnelles ou pour exercer vos droits, vous pouvez me contacter Ã 
+        Pour toute question relative Ã  vos donnÃ©es personnelles ou pour exercer vos droits, vous pouvez me contacter Ã 
         <a href="mailto:univers.creatif.anais@outlook.com" style="color:#ec4899;">univers.creatif.anais@outlook.com</a>.
       </p>
     </div>`

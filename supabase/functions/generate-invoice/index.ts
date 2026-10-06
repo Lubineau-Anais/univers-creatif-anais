@@ -15,7 +15,7 @@ const VENDEUR = {
   nom:    "L'Univers CrÃ©atif d'AnaÃ¯s",
   adresse: '7 Rue du PrÃ© aux Clercs',
   cp_ville: '44260 Prinquiau',
-  siret:  '[SIRET Ã  complÃ©ter]',
+  siret:  '[SIRET Ã  complÃ©ter]',
   statut: 'Micro-entrepreneur',
   tva:    'TVA non applicable, art. 293 B du CGI',
 }
@@ -198,7 +198,7 @@ function buildInvoiceHtml(params: {
       ${VENDEUR.tva}<br>
       ${VENDEUR.statut} â€” SIRET ${VENDEUR.siret}<br>
       ${VENDEUR.nom} â€” ${VENDEUR.adresse}, ${VENDEUR.cp_ville}<br>
-      ${!isAvoir ? 'ConformÃ©ment Ã  l\'article L441-10 du Code de commerce, aucune pÃ©nalitÃ© de retard ni escompte ne s\'applique pour les prestations rÃ©glÃ©es par des particuliers.' : ''}
+      ${!isAvoir ? 'ConformÃ©ment Ã  l\'article L441-10 du Code de commerce, aucune pÃ©nalitÃ© de retard ni escompte ne s\'applique pour les prestations rÃ©glÃ©es par des particuliers.' : ''}
     </div>
 
   </div>
@@ -303,7 +303,7 @@ serve(async (req) => {
       created_at: now,
     })
 
-    // â”€â”€ Envoyer par email Ã  l'administratrice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // â”€â”€ Envoyer par email Ã  l'administratrice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (resendKey) {
       const subjectPrefix = type === 'avoir' ? 'Avoir' : 'Facture'
       const subject = `${subjectPrefix} ${numero} ${client_nom} ${client_prenom}`

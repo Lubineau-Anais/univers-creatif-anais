@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { HelmetProvider } from 'react-helmet-async'
+import { HelmetProvider, Helmet } from 'react-helmet-async'
 import { AuthProvider } from './context/AuthContext'
 import { SiteSettingsProvider } from './context/SiteSettingsContext'
 import { CartProvider } from './context/CartContext'
@@ -48,6 +48,23 @@ function PageLoader() {
 export default function App() {
   return (
     <HelmetProvider>
+      <Helmet>
+        <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "L'Univers Créatif d'Anaïs",
+          "url": "https://lunivers-creatif-danais.fr",
+          "description": "Ateliers créatifs, boutique artisanale et galerie photos à Prinquiau (44).",
+          "email": "contact@lunivers-creatif-danais.fr",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Prinquiau",
+            "postalCode": "44260",
+            "addressCountry": "FR"
+          }
+        })}</script>
+      </Helmet>
     <AuthProvider>
       <SiteSettingsProvider>
         <CartProvider>

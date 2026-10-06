@@ -28,42 +28,42 @@ function getCatInfo(categorie: string): CatInfo {
   if (n.includes('couture')) return {
     emoji: 'ðŸ§µ',
     couleur: '#ec4899',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `
       <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
-        <li>Votre machine Ã  coudre et vos canettes !</li>
+        <li>Votre machine Ã  coudre et vos canettes !</li>
         <li>Une paire de ciseaux</li>
         <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
         <li>Votre bonne humeur !</li>
       </ul>
       <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
 
   if (n.includes('macrame') || n.includes('macramÃ©')) return {
     emoji: 'ðŸª¢',
     couleur: '#f97316',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `
       <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
         <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
         <li>Votre bonne humeur !</li>
       </ul>
       <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
 
   if (n.includes('resine') || n.includes('rÃ©sine') || n.includes('bijou')) return {
     emoji: 'ðŸ’Ž',
     couleur: '#8b5cf6',
-    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
+    message: "Je me permets de vous contacter pour vous rappeler votre participation Ã  l'atelier <strong>{ATELIER}</strong>, qui aura lieu prochainement.",
     apporter: `
       <ul style="margin:8px 0 4px;padding-left:20px;color:#15803d;font-size:14px;line-height:1.8;">
         <li>Une tenue confortable adaptÃ©e aux activitÃ©s manuelles</li>
         <li>Votre bonne humeur !</li>
       </ul>
       <p style="margin:8px 0 0;color:#15803d;font-size:14px;">Le reste du matÃ©riel pour l'atelier est fourni.</p>`,
-    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
+    stationnement: "Des places de stationnement sont prÃ©vues dans la cour Ã  l'arriÃ¨re de la maison, merci de vous stationner de maniÃ¨re Ã  laisser la place Ã  6 voitures maximum.",
   }
 
   return {
@@ -207,7 +207,7 @@ function buildGiftCardHtml(params: {
         </div>
       </div>
       <div class="label">Date de l'atelier :</div>
-      <div class="value" style="margin-bottom:0;font-size:15px;">le ${escapeHtml(dateFormatted)} Ã  ${escapeHtml(atelier_heure)}</div>
+      <div class="value" style="margin-bottom:0;font-size:15px;">le ${escapeHtml(dateFormatted)} Ã  ${escapeHtml(atelier_heure)}</div>
     </div>
     <div class="footer">
       <div class="footer-name">Avec L'Univers CrÃ©atif d'AnaÃ¯s</div>
@@ -247,7 +247,7 @@ function buildEmailClient(params: {
       <p style="font-weight:900;color:#9a3412;margin:0 0 8px;font-size:15px;">ðŸŽ RÃ©servation en tant que cadeau</p>
       <p style="margin:0 0 6px;color:#c2410c;font-size:14px;"><strong>De la part de :</strong> ${escapeHtml(gift_from || 'â€”')}</p>
       <p style="margin:0 0 10px;color:#c2410c;font-size:14px;"><strong>Pour :</strong> ${escapeHtml(gift_to || 'â€”')}</p>
-      <p style="margin:0;color:#9a3412;font-size:13px;">ðŸ“Ž Votre bon cadeau personnalisÃ© est joint Ã  cet e-mail. Vous pouvez l'imprimer ou le transmettre au bÃ©nÃ©ficiaire.</p>
+      <p style="margin:0;color:#9a3412;font-size:13px;">ðŸ“Ž Votre bon cadeau personnalisÃ© est joint Ã  cet e-mail. Vous pouvez l'imprimer ou le transmettre au bÃ©nÃ©ficiaire.</p>
     </div>` : ''
 
   const paiementBlock = (() => {
@@ -258,12 +258,12 @@ function buildEmailClient(params: {
         <a href="${stripeUrl}" style="display:inline-block;background:#635bff;color:white;font-weight:900;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none;">
           ðŸ’³ Payer ${total} â‚¬ en ligne â†’
         </a>
-        <p style="margin:14px 0 0;color:#6b7280;font-size:12px;">âš ï¸ Le rÃ¨glement doit Ãªtre effectuÃ© avant le dÃ©but de l'atelier.</p>
+        <p style="margin:14px 0 0;color:#6b7280;font-size:12px;">âš ï¸ Le rÃ¨glement doit Ãªtre effectuÃ© avant le dÃ©but de l'atelier.</p>
       </div>`
     if (mode_paiement === 'cheque') return `
       <div style="background:#f5f3ff;border:2px solid #8b5cf6;border-radius:12px;padding:16px;margin:20px 0;">
         <p style="font-weight:900;color:#6d28d9;margin:0 0 8px;font-size:15px;">ðŸ“ RÃ¨glement par chÃ¨que</p>
-        <p style="margin:0;color:#6d28d9;font-size:14px;">ChÃ¨que Ã  l'ordre de <strong>L'Univers CrÃ©atif d'AnaÃ¯s</strong>, Ã  remettre le jour de l'atelier.</p>
+        <p style="margin:0;color:#6d28d9;font-size:14px;">ChÃ¨que Ã  l'ordre de <strong>L'Univers CrÃ©atif d'AnaÃ¯s</strong>, Ã  remettre le jour de l'atelier.</p>
       </div>`
     if (mode_paiement === 'especes') return `
       <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:12px;padding:16px;margin:20px 0;">
@@ -288,10 +288,10 @@ function buildEmailClient(params: {
     <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:20px 0;">
       <p style="font-weight:700;color:#374151;margin:0 0 6px;font-size:13px;">ðŸ”’ Protection de vos donnÃ©es personnelles</p>
       <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.6;">
-        Vous recevez cet e-mail dans le cadre de votre rÃ©servation Ã  un atelier. Vos donnÃ©es sont utilisÃ©es uniquement pour la gestion de votre inscription et des communications liÃ©es Ã  l'Ã©vÃ©nement.
+        Vous recevez cet e-mail dans le cadre de votre rÃ©servation Ã  un atelier. Vos donnÃ©es sont utilisÃ©es uniquement pour la gestion de votre inscription et des communications liÃ©es Ã  l'Ã©vÃ©nement.
       </p>
       <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
-        Pour toute question relative Ã  vos donnÃ©es personnelles ou pour exercer vos droits, vous pouvez me contacter Ã 
+        Pour toute question relative Ã  vos donnÃ©es personnelles ou pour exercer vos droits, vous pouvez me contacter Ã 
         <a href="mailto:univers.creatif.anais@outlook.com" style="color:#ec4899;">univers.creatif.anais@outlook.com</a>.
       </p>
     </div>`
@@ -436,7 +436,7 @@ function buildEmailAdmin(params: {
     ${giftAdminBlock}
     ${supBlock}
     <div style="background:#f9fafb;border:2px solid #e5e7eb;border-radius:12px;padding:16px;margin:18px 0;">
-      <p style="margin:4px 0;font-size:14px;color:#374151;">ðŸ“… <strong>${dateFormatted}</strong> Ã  <strong>${heure}</strong></p>
+      <p style="margin:4px 0;font-size:14px;color:#374151;">ðŸ“… <strong>${dateFormatted}</strong> Ã  <strong>${heure}</strong></p>
       <p style="margin:6px 0;font-size:14px;color:#374151;">ðŸ‘¤ <strong>${nb_personnes} participant${nb_personnes > 1 ? 's' : ''}</strong></p>
       <p style="margin:6px 0;font-size:14px;color:#374151;">${modeEmoji[mode_paiement] ?? 'ðŸ’³'} <strong>${modeLabel(mode_paiement)}</strong></p>
       <p style="margin:6px 0;font-size:13px;color:#6b7280;">RÃ©f. <strong style="font-family:monospace;">${reference}</strong></p>

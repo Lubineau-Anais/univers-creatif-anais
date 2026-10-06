@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Archive, TrendingUp, Download,
   ShoppingBag, Package, Store, Paintbrush,
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import { downloadCSV } from '../lib/csv'
 import { formatPrice } from '../lib/shop'
 import type { Atelier } from '../types'
@@ -334,8 +334,7 @@ export default function TableauDeBord() {
       if (newStatut === 'annule' && oldStatut === 'paye'
         && (currentReservation.mode_paiement === 'cb' || currentReservation.mode_paiement === 'carte')
         && currentReservation.stripe_payment_intent_id) {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-        const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+        const anonKey = supabaseAnonKey
         const { data: { session: refundSession } } = await supabase.auth.getSession()
         fetch(`${supabaseUrl}/functions/v1/refund-payment`, {
           method: 'POST',
@@ -346,8 +345,7 @@ export default function TableauDeBord() {
 
       // Avoir automatique lors d'une annulation
       if (newStatut === 'annule' && oldStatut !== 'annule') {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-        const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+        const anonKey = supabaseAnonKey
         const montant     = nbPersonnes * concernedAtelier.prix
 
         // Chercher la facture originale liée à cette réservation

@@ -72,7 +72,7 @@ function ProductCard({ product, promotions, onAddToCart, onOpen, isAdmin, onEdit
         <div className="relative bg-candy border border-gray-200 overflow-hidden mb-3 cursor-pointer"
           style={{ height: '170px' }} onClick={() => onOpen(product)}>
           {product.images?.[0]
-            ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover"/>
+            ? <img src={product.images[0]} alt={product.name} loading="lazy" className="w-full h-full object-cover"/>
             : <div className="w-full h-full flex items-center justify-center text-6xl">🛍️</div>}
 
           {/* Badges */}

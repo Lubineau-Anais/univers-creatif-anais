@@ -5,9 +5,8 @@ export default function MentionsLegales() {
   return (
     <main className="flex-1 bg-[#fff5fb]">
       <Helmet>
-        <title>Mentions légales & Politique de confidentialité — L'Univers Créatif d'Anaïs</title>
+        <title>Mentions légales — L'Univers Créatif d'Anaïs</title>
         <meta name="description" content="Mentions légales, politique de confidentialité et informations légales du site L'Univers Créatif d'Anaïs." />
-        <meta name="robots" content="noindex" />
       </Helmet>
 
       {/* Hero */}
@@ -93,6 +92,7 @@ export default function MentionsLegales() {
                 <li><strong>Supabase</strong> — hébergement de la base de données (UE)</li>
                 <li><strong>Stripe</strong> — paiement en ligne sécurisé</li>
                 <li><strong>Netlify</strong> — hébergement du site</li>
+                <li><strong>Resend</strong> — envoi des e-mails transactionnels (confirmations, rappels)</li>
               </ul>
             </div>
 
@@ -118,7 +118,7 @@ export default function MentionsLegales() {
           </div>
         </section>
 
-        <p className="text-sm text-gray-400 text-right">Dernière mise à jour : octobre 2026</p>
+        <p className="text-sm text-gray-500 text-right">Dernière mise à jour : octobre 2026</p>
       </div>
     </main>
   )

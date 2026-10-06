@@ -274,7 +274,7 @@ export default function Galerie() {
                           {cat.cover_url ? (
                             <>
                               <img src={cat.cover_url} alt="" className="w-full h-full object-cover"
-                                draggable={false} onContextMenu={e => e.preventDefault()} />
+                                loading="lazy" draggable={false} onContextMenu={e => e.preventDefault()} />
                               <div className="absolute inset-0 bg-black/20" />
                             </>
                           ) : (
@@ -327,7 +327,7 @@ export default function Galerie() {
                       >
                         {/* Zone photo */}
                         <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-3 relative group" style={{ height: '136px' }}>
-                          <img src={photo.url} alt={photo.titre || ''} draggable={false}
+                          <img src={photo.url} alt={photo.titre || ''} loading="lazy" draggable={false}
                             onContextMenu={e => e.preventDefault()}
                             className="w-full h-full object-cover pointer-events-none" />
                           <div className="absolute inset-0" onContextMenu={e => e.preventDefault()} />

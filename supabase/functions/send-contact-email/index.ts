@@ -77,7 +77,7 @@ serve(async (req) => {
               ${message.replace(/\n/g, '<br>')}
             </div>
             <p style="color:#aaa;font-size:11px;margin-top:24px;">
-              RÃ©pondre directement Ã  cet email rÃ©pondra Ã  ${email}.
+              RÃ©pondre directement Ã  cet email rÃ©pondra Ã  ${email}.
             </p>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { X, Check, ChevronRight, ChevronLeft, CreditCard, RefreshCw, MapPin } fr
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useCart } from '../context/CartContext'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import { formatPrice } from '../lib/shop'
 
 type ShippingMethod = 'mondial_relay' | 'click_and_collect'
@@ -119,8 +119,8 @@ function StripePayForm({ amount, onSuccess, onError, stripeConfigured }: {
     const card = elements.getElement(CardElement)
     if (!card) { setBusy(false); return }
     try {
-      const url    = import.meta.env.VITE_SUPABASE_URL as string
-      const anon   = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+      const url = supabaseUrl
+      const anon = supabaseAnonKey
       const piRes  = await fetch(`${url}/functions/v1/create-payment-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${anon}` },

@@ -2,7 +2,6 @@ User-agent: *
 Allow: /
 
 # Pages d'administration — non indexables
-Disallow: /mentions-legales
 Disallow: /connexion
 Disallow: /tableau-de-bord
 Disallow: /archives

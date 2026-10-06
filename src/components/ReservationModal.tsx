@@ -231,8 +231,8 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             <div className="grid grid-cols-2 gap-3">
               {([['Prénom *', 'prenom', 'Camille'], ['Nom *', 'nom', 'Dupont']] as const).map(([label, key, ph]) => (
                 <div key={key}>
-                  <label className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
-                  <input required value={form[key]} placeholder={ph}
+                  <label htmlFor={`resa-${key}`} className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
+                  <input id={`resa-${key}`} required value={form[key]} placeholder={ph}
                     onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                     className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
                   />
@@ -241,11 +241,11 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             </div>
 
             <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">
+              <label htmlFor="resa-age" className="block text-xs font-black text-[#1A1040] mb-1">
                 Âge *
                 {(atelier.age_min || 0) > 0 && <span className="text-rose-500 font-bold"> (min. {atelier.age_min} ans)</span>}
               </label>
-              <input required type="number" min="5" max="120"
+              <input id="resa-age" required type="number" min="5" max="120"
                 value={form.age} placeholder="Ex : 32"
                 onChange={e => setForm(p => ({ ...p, age: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
@@ -253,8 +253,8 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             </div>
 
             <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
-              <input required type="email"
+              <label htmlFor="resa-email" className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
+              <input id="resa-email" required type="email"
                 value={form.email} placeholder="votre@email.fr"
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
@@ -262,8 +262,8 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
             </div>
 
             <div>
-              <label className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
-              <input required type="tel"
+              <label htmlFor="resa-tel" className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
+              <input id="resa-tel" required type="tel"
                 value={form.telephone} placeholder="06 00 00 00 00"
                 onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
@@ -277,26 +277,26 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <p className="text-xs font-black text-rose-500">👥 Participant 2</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-[#1A1040] mb-1">Prénom *</label>
-                  <input required value={duoParticipant.prenom} placeholder="Marie"
+                  <label htmlFor="resa-duo-prenom" className="block text-xs font-black text-[#1A1040] mb-1">Prénom *</label>
+                  <input id="resa-duo-prenom" required value={duoParticipant.prenom} placeholder="Marie"
                     onChange={e => setDuoParticipant(p => ({ ...p, prenom: e.target.value }))}
                     className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-[#1A1040] mb-1">Nom *</label>
-                  <input required value={duoParticipant.nom} placeholder="Martin"
+                  <label htmlFor="resa-duo-nom" className="block text-xs font-black text-[#1A1040] mb-1">Nom *</label>
+                  <input id="resa-duo-nom" required value={duoParticipant.nom} placeholder="Martin"
                     onChange={e => setDuoParticipant(p => ({ ...p, nom: e.target.value }))}
                     className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-black text-[#1A1040] mb-1">
+                <label htmlFor="resa-duo-age" className="block text-xs font-black text-[#1A1040] mb-1">
                   Âge *
                   {(atelier.age_min_duo_p2 || 0) > 0 && <span className="text-rose-500 font-bold"> (min. {atelier.age_min_duo_p2} ans)</span>}
                 </label>
-                <input required type="number" min="5" max="120"
+                <input id="resa-duo-age" required type="number" min="5" max="120"
                   value={duoParticipant.age} placeholder="28"
                   onChange={e => setDuoParticipant(p => ({ ...p, age: e.target.value }))}
                   className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 bg-white"

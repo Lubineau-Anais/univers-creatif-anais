@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
@@ -181,7 +181,7 @@ function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => 
         )}
         <div className="min-w-0">
           <p className="font-black text-sm text-[#1A1040] truncate">{review.authorAttribution?.displayName || 'Anonyme'}</p>
-          <p className="text-gray-400 text-xs">{review.relativePublishTimeDescription || ''}</p>
+          <p className="text-gray-500 text-xs">{review.relativePublishTimeDescription || ''}</p>
         </div>
       </div>
     </div>
@@ -481,10 +481,10 @@ async function loadContent() {
   return (
     <main className="flex-1">
       <Helmet>
-        <title>L'Univers Cr�atif d'Ana�s � Ateliers cr�atifs en Loire-Atlantique</title>
-        <meta name="description" content="Ateliers cr�atifs, boutique artisanale et galerie photo � Prinquiau (44). D�couvrez les cr�ations d'Ana�s : couture, broderie, DIY et bien plus." />
-        <meta property="og:title" content="L'Univers Cr�atif d'Ana�s" />
-        <meta property="og:description" content="Ateliers cr�atifs, boutique artisanale et galerie photo en Loire-Atlantique." />
+        <title>L'Univers Créatif d'Anaïs — Ateliers créatifs en Loire-Atlantique</title>
+        <meta name="description" content="Ateliers créatifs, boutique artisanale et galerie photo à Prinquiau (44). Découvrez les créations d'Anaïs : couture, broderie, DIY et bien plus." />
+        <meta property="og:title" content="L'Univers Créatif d'Anaïs" />
+        <meta property="og:description" content="Ateliers créatifs, boutique artisanale et galerie photo en Loire-Atlantique." />
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/" />
       </Helmet>

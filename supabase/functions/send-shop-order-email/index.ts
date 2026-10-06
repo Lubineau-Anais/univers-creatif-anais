@@ -50,11 +50,11 @@ function buildEmailClient(params: {
         Votre petite pÃ©pite est en cours de prÃ©paration et va bientÃ´t prendre la route direction votre point relais Mondial Relay prÃ©fÃ©rÃ© !
       </p>
       <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px;">
-        Un email de suivi vous prÃ©viendra dÃ¨s que le colis sera pris en charge, pour surveiller son voyage jusqu'Ã  vous.
+        Un email de suivi vous prÃ©viendra dÃ¨s que le colis sera pris en charge, pour surveiller son voyage jusqu'Ã  vous.
       </p>
       <div style="background:#fef9c3;border:2px solid #fde047;border-radius:12px;padding:14px;margin:20px 0;">
         <p style="color:#713f12;font-size:14px;margin:0;line-height:1.6;">
-          â±ï¸ <strong>Petite prÃ©cision pour les crÃ©ations sur demande :</strong> un dÃ©lai de rÃ©alisation de 3 semaines est Ã  prÃ©voir (comme indiquÃ© sur le site) le temps de crÃ©er votre piÃ¨ce avec tout le soin qu'elle mÃ©rite !
+          â±ï¸ <strong>Petite prÃ©cision pour les crÃ©ations sur demande :</strong> un dÃ©lai de rÃ©alisation de 3 semaines est Ã  prÃ©voir (comme indiquÃ© sur le site) le temps de crÃ©er votre piÃ¨ce avec tout le soin qu'elle mÃ©rite !
         </p>
       </div>
       <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px;">
@@ -67,11 +67,11 @@ function buildEmailClient(params: {
         Votre crÃ©ation (prÃ©parÃ©e avec tout mon cÅ“ur) est en cours de prÃ©paration, et vous pourrez venir la rÃ©cupÃ©rer directement en click &amp; collect dÃ¨s qu'elle sera prÃªte !
       </p>
       <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px;">
-        Je vous prÃ©viens par message dÃ¨s qu'elle vous attend bien sagement, prÃªte Ã  Ãªtre rÃ©cupÃ©rÃ©e sur <strong>PRINQUIAU (44260)</strong>.
+        Je vous prÃ©viens par message dÃ¨s qu'elle vous attend bien sagement, prÃªte Ã  Ãªtre rÃ©cupÃ©rÃ©e sur <strong>PRINQUIAU (44260)</strong>.
       </p>
       <div style="background:#fef9c3;border:2px solid #fde047;border-radius:12px;padding:14px;margin:20px 0;">
         <p style="color:#713f12;font-size:14px;margin:0;line-height:1.6;">
-          â±ï¸ <strong>Petite prÃ©cision pour les crÃ©ations sur demande :</strong> un dÃ©lai de rÃ©alisation de 3 semaines est Ã  prÃ©voir (comme indiquÃ© sur le site) le temps de crÃ©er votre piÃ¨ce avec tout le soin qu'elle mÃ©rite !
+          â±ï¸ <strong>Petite prÃ©cision pour les crÃ©ations sur demande :</strong> un dÃ©lai de rÃ©alisation de 3 semaines est Ã  prÃ©voir (comme indiquÃ© sur le site) le temps de crÃ©er votre piÃ¨ce avec tout le soin qu'elle mÃ©rite !
         </p>
       </div>
       <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px;">

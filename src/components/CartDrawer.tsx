@@ -4,7 +4,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { useCart } from '../context/CartContext'
 import { useAtelierCart, type AtelierCartItem } from '../context/AtelierCartContext'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase'
 import ShopCheckout from './ShopCheckout'
 
 function formatDate(d: string) {
@@ -46,8 +46,7 @@ function StripeCartForm({ cbItems, onSuccess, onError, stripeConfigured }: {
     if (!card) { setProcessing(false); return }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-      const anonKey     = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+      const anonKey = supabaseAnonKey
 
       const piRes = await fetch(`${supabaseUrl}/functions/v1/create-payment-intent`, {
         method: 'POST',
@@ -397,7 +396,7 @@ export default function CartDrawer() {
                 🎉 Réservations confirmées !
               </div>
               <p className="text-gray-600 font-medium mb-1">Tes réservations sont enregistrées.</p>
-              <p className="text-gray-400 text-sm">Tu recevras un email de confirmation.</p>
+              <p className="text-gray-600 text-sm">Tu recevras un email de confirmation.</p>
               <button onClick={() => { setIsOpen(false); setChecked(false) }}
                 className="mt-6 bg-rose-400 text-white px-6 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"
                 style={{ boxShadow: '3px 3px 0px 0px #1A1040' }}>

@@ -272,10 +272,11 @@ export default function Contact() {
               ) : (
                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
+                    <label htmlFor="contact-nom" className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
                       Ton prénom *
                     </label>
                     <input
+                      id="contact-nom"
                       type="text"
                       value={form.nom}
                       onChange={e => setForm(p => ({ ...p, nom: e.target.value }))}
@@ -285,10 +286,11 @@ export default function Contact() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
+                    <label htmlFor="contact-email" className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
                       Ton email *
                     </label>
                     <input
+                      id="contact-email"
                       type="email"
                       value={form.email}
                       onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
@@ -298,10 +300,11 @@ export default function Contact() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
+                    <label htmlFor="contact-message" className="block text-xs font-black text-[#1A1040] mb-1 uppercase tracking-wide">
                       Ton message *
                     </label>
                     <textarea
+                      id="contact-message"
                       rows={4}
                       value={form.message}
                       onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
