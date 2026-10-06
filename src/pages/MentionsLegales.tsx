@@ -27,6 +27,7 @@ export default function MentionsLegales() {
             <div>
               <h3 className="font-bold text-[#1A1040]">Éditeur du site</h3>
               <p>L'Univers Créatif d'Anaïs — activité en nom propre</p>
+              <p>SIREN : 109 562 546</p>
               <p>Responsable de la publication : Anaïs</p>
               <p>
                 Contact :{' '}
