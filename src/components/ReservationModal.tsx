@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import FocusTrap from 'focus-trap-react'
 import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, UserPlus, ShoppingBag, Check, Gift, Users, User } from 'lucide-react'
 import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'
@@ -130,8 +131,10 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
   // ── Écran "Ajouté au panier" ──────────────────────────────────────────────
   if (addedToCart) {
     return (
+      <FocusTrap>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-        <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
+        <div role="dialog" aria-modal="true" aria-label="Atelier ajouté au panier"
+          className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-md p-8 text-center"
           style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
           <div className="w-20 h-20 bg-citron-400 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-[#1A1040]"
             style={{ boxShadow: '4px 4px 0px 0px #1A1040' }}>
@@ -167,12 +170,15 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           </div>
         </div>
       </div>
+      </FocusTrap>
     )
   }
 
   return (
+    <FocusTrap>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg max-h-[92vh] overflow-y-auto"
+      <div role="dialog" aria-modal="true" aria-label="Réserver un atelier"
+        className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-lg max-h-[92vh] overflow-y-auto"
         style={{ boxShadow: '6px 6px 0px 0px #1A1040' }}>
 
         {/* Header */}
@@ -454,5 +460,6 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         </form>
       </div>
     </div>
+    </FocusTrap>
   )
 }

@@ -25,9 +25,12 @@ dist-ssr
 *.sln
 *.sw?
 
-# Fichiers personnels
+# Fichiers personnels / binaires non utiles au build
 *.pdf
 *.docx
 *.doc
 *.xlsx
 *.xls
+image/
+images*.jpg
+téléchargement.jpg

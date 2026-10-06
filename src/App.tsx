@@ -64,6 +64,9 @@ export default function App() {
           "url": "https://lunivers-creatif-danais.fr",
           "description": "Ateliers créatifs, boutique artisanale et galerie photos à Prinquiau (44).",
           "email": "contact@lunivers-creatif-danais.fr",
+          "telephone": "+33626711479",
+          "openingHours": "Mo-Sa 09:00-19:00",
+          "priceRange": "€€",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Prinquiau",
