@@ -211,6 +211,14 @@ function buildEmailRappel(params: {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
 
+  const cronSecret = req.headers.get('x-cron-secret')
+  const expectedSecret = Deno.env.get('CRON_SECRET')
+  if (!expectedSecret || !cronSecret || cronSecret !== expectedSecret) {
+    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+      status: 401, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,

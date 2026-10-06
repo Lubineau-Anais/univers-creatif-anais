@@ -213,6 +213,24 @@ function buildInvoiceHtml(params: {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
 
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+      status: 401, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    })
+  }
+  const supabaseAuth = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } },
+  )
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+  if (authError || !user || user.app_metadata?.is_admin !== true) {
+    return new Response(JSON.stringify({ error: 'Accès interdit' }), {
+      status: 403, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const body = await req.json()
     const {

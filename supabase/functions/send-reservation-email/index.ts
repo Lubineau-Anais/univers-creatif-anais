@@ -138,7 +138,7 @@ function buildGiftCardHtml(params: {
 <meta charset="UTF-8">
 <title>Bon Cadeau â€” L'Univers CrÃ©atif d'AnaÃ¯s</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+  /* polices système — pas de transmission IP tierce */
   *{box-sizing:border-box;margin:0;padding:0;}
   body{
     background:#e4dcd0;

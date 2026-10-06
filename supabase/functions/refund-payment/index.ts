@@ -27,9 +27,9 @@ serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   )
   const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Non autorisÃ©' }), {
-      status: 401, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+  if (authError || !user || user.app_metadata?.is_admin !== true) {
+    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+      status: 403, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
     })
   }
 

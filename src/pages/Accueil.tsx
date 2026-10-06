@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import FocusTrap from 'focus-trap-react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'
@@ -153,7 +154,11 @@ const IconPinterest = () => (
 function ReviewCard({ review, onClick }: { review: GoogleReview; onClick: () => void }) {
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Voir l'avis de ${review.authorAttribution?.displayName ?? 'un client'}`}
       onClick={onClick}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}
       className="w-80 bg-white rounded-2xl border-2 border-[#1A1040] p-6 shrink-0 flex flex-col gap-4 cursor-pointer hover:scale-[1.02] transition-transform"
       style={{ boxShadow: '4px 4px 0px 0px rgba(255,181,200,0.8)' }}>
       {/* Photo optionnelle */}
@@ -1063,10 +1068,14 @@ async function loadContent() {
 
       {/* ===== ZOOM AVIS ===== */}
       {selectedReview && (
+        <FocusTrap>
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setSelectedReview(null)}>
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Avis de ${selectedReview.authorAttribution?.displayName ?? 'un client'}`}
             className="bg-white rounded-3xl border-4 border-[#1A1040] p-8 max-w-lg w-full flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto"
             style={{ boxShadow: '8px 8px 0px 0px rgba(255,181,200,0.9)' }}
             onClick={e => e.stopPropagation()}>
@@ -1101,9 +1110,10 @@ async function loadContent() {
             </div>
           </div>
         </div>
+        </FocusTrap>
       )}
 
-      {/* ===== �DITEUR TITRE AVIS CLIENTS ===== */}
+      {/* ===== ÉDITEUR TITRE AVIS CLIENTS ===== */}
       {showAvisTitleEditor && (
         <HeroTitleEditor
           initialText={content['avis_titre']}
