@@ -363,6 +363,7 @@ export default function Informations() {
         <meta property="og:title" content="Informations pratiques — L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Adresse, horaires et accès à l'atelier d'Anaïs en Loire-Atlantique." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/informations" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/informations" />
       </Helmet>
 

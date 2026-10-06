@@ -712,6 +712,7 @@ export default function Boutique() {
         <meta property="og:title" content="Boutique — L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Créations artisanales uniques, livraison en France." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/boutique" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/boutique" />
       </Helmet>
 

@@ -486,6 +486,7 @@ async function loadContent() {
         <meta property="og:title" content="L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Ateliers créatifs, boutique artisanale et galerie photo en Loire-Atlantique." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/" />
       </Helmet>
 

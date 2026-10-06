@@ -164,6 +164,7 @@ export default function Galerie() {
         <meta property="og:title" content="Galerie créative — L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Toutes les créations artisanales d'Anaïs en photos." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/galerie" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/galerie" />
       </Helmet>
 

@@ -467,6 +467,7 @@ export default function NosAteliers() {
         <meta property="og:title" content="Nos Ateliers — L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Réservez votre atelier créatif en Loire-Atlantique." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/ateliers" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/ateliers" />
         {ateliers.filter(a => new Date(a.date + 'T00:00:00') >= today).length > 0 && (
           <script type="application/ld+json">{JSON.stringify(

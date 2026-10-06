@@ -156,6 +156,7 @@ export default function Contact() {
         <meta property="og:title" content="Contact — L'Univers Créatif d'Anaïs" />
         <meta property="og:description" content="Une question ? Contactez l'Univers Créatif d'Anaïs." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://lunivers-creatif-danais.fr/contact" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/contact" />
       </Helmet>
 
