@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextType = {
     session,
     user: session?.user ?? null,
-    isAdmin: !!session?.user,
+    isAdmin: session?.user?.app_metadata?.is_admin === true,
     loading,
     signOut,
   }

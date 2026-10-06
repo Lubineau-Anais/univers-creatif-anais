@@ -28,6 +28,7 @@ export default function MentionsLegales() {
               <h3 className="font-bold text-[#1A1040]">Éditeur du site</h3>
               <p>L'Univers Créatif d'Anaïs — activité en nom propre</p>
               <p>SIREN : 109 562 546</p>
+              <p>44260 Prinquiau, Loire-Atlantique, France</p>
               <p>Responsable de la publication : Anaïs</p>
               <p>
                 Contact :{' '}
@@ -94,6 +95,7 @@ export default function MentionsLegales() {
                 <li><strong>Stripe</strong> — paiement en ligne sécurisé</li>
                 <li><strong>Netlify</strong> — hébergement du site</li>
                 <li><strong>Resend</strong> — envoi des e-mails transactionnels (confirmations, rappels)</li>
+                <li><strong>Google LLC</strong> — service Google Places API (recherche d'établissements) ; données traitées aux États-Unis</li>
               </ul>
             </div>
 

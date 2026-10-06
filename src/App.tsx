@@ -12,9 +12,12 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages critiques — chargées immédiatement
 import Accueil from './pages/Accueil'
-import NosAteliers from './pages/NosAteliers'
-import Boutique from './pages/Boutique'
-import Contact from './pages/Contact'
+
+// Pages publiques — chargement différé
+const NosAteliers     = lazy(() => import('./pages/NosAteliers'))
+const Boutique        = lazy(() => import('./pages/Boutique'))
+const Contact         = lazy(() => import('./pages/Contact'))
+const NotFound        = lazy(() => import('./pages/NotFound'))
 
 // Pages secondaires — chargement différé
 const Connexion       = lazy(() => import('./pages/Connexion'))
@@ -133,6 +136,7 @@ export default function App() {
                   <Route path="/commandes-admin" element={
                     <ProtectedRoute><CommandesAdmin /></ProtectedRoute>
                   } />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
               </main>

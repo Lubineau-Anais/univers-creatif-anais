@@ -315,7 +315,7 @@ export default function Contact() {
                   </div>
 
                   {error && (
-                    <div className="flex items-center gap-2 bg-red-50 border-2 border-red-300 rounded-xl px-4 py-2.5 text-sm text-red-600 font-bold">
+                    <div role="alert" className="flex items-center gap-2 bg-red-50 border-2 border-red-300 rounded-xl px-4 py-2.5 text-sm text-red-600 font-bold">
                       <X className="w-4 h-4 shrink-0" /> {error}
                     </div>
                   )}

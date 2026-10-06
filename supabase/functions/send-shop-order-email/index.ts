@@ -10,6 +10,33 @@ function corsHeaders(req: Request) {
   }
 }
 
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  )
+}
+
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  ip: string,
+  endpoint: string,
+  maxRequests: number,
+  windowMinutes: number,
+): Promise<boolean> {
+  const since = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString()
+  const { count } = await supabase
+    .from('rate_limit_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip', ip)
+    .eq('endpoint', endpoint)
+    .gte('created_at', since)
+  if ((count ?? 0) >= maxRequests) return false
+  await supabase.from('rate_limit_log').insert({ ip, endpoint })
+  return true
+}
+
 function escapeHtml(str: string) {
   return str
     .replace(/&/g, '&amp;')
@@ -223,6 +250,15 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
+
+    const ip = getClientIp(req)
+    const allowed = await checkRateLimit(supabase, ip, 'shop-order', 5, 60)
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Trop de commandes envoyées. Veuillez réessayer dans une heure.' }),
+        { status: 429, headers: { ...corsHeaders(req), 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+      )
+    }
 
     const { data: rows } = await supabase
       .from('settings')
