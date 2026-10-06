@@ -150,7 +150,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
           <p className="text-[#1A1040] font-black text-lg mb-2">{resteAPayer} €</p>
           {hasGiftCard && <p className="text-xs text-emerald-600 font-bold mb-2">🎟️ Carte cadeau -10 € appliquée</p>}
           {form.paiement === 'cb' && (
-            <p className="text-gray-400 text-xs mb-4">💳 Le paiement par carte sera demandé lors de la confirmation du panier.</p>
+            <p className="text-gray-500 text-xs mb-4">💳 Le paiement par carte sera demandé lors de la confirmation du panier.</p>
           )}
           <div className="space-y-3">
             <button
@@ -218,7 +218,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               ))}
             </div>
             {typeResa === 'duo' && (
-              <p className="text-[11px] text-gray-400 font-medium mt-2 text-center">
+              <p className="text-[11px] text-gray-500 font-medium mt-2 text-center">
                 🤝 Le tarif reste le même — 1 seule place est décomptée.
               </p>
             )}
@@ -315,7 +315,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               </div>
               <div className="flex-1" onClick={() => setIsGift(p => !p)}>
                 <p className="font-black text-[#1A1040] text-sm">🎁 Je souhaite offrir cet atelier à un proche</p>
-                <p className="text-[11px] text-gray-400 font-medium mt-0.5">Une carte cadeau personnalisée sera jointe à la confirmation</p>
+                <p className="text-[11px] text-gray-500 font-medium mt-0.5">Une carte cadeau personnalisée sera jointe à la confirmation</p>
               </div>
             </label>
             {isGift && (

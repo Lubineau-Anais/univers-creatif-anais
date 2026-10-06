@@ -402,7 +402,7 @@ function CartPanel({ isOpen, onClose, onCheckout }: { isOpen: boolean; onClose: 
         {/* Articles */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {items.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-gray-500">
               <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-20"/>
               <p className="font-black text-lg">Panier vide</p>
               <p className="text-sm">Ajoute des articles pour commencer !</p>
@@ -474,7 +474,7 @@ function CartPanel({ isOpen, onClose, onCheckout }: { isOpen: boolean; onClose: 
               style={{ boxShadow:'3px 3px 0px 0px #ffe500' }}>
               Commander → {formatPrice(total)}
             </button>
-            <button onClick={clearCart} className="w-full text-xs text-gray-400 hover:text-red-500 font-bold flex items-center justify-center gap-1 transition-colors">
+            <button onClick={clearCart} className="w-full text-xs text-gray-500 hover:text-red-500 font-bold flex items-center justify-center gap-1 transition-colors">
               <Trash2 className="w-3 h-3"/> Vider le panier
             </button>
           </div>
@@ -974,7 +974,7 @@ export default function Boutique() {
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
+              <div className="text-center py-20 text-gray-500">
                 <ShoppingCart className="w-16 h-16 mx-auto mb-3 opacity-20"/>
                 <p className="font-black text-xl">Aucun produit disponible</p>
                 <p className="text-sm mt-1">Revenez bientôt, de nouveaux articles arrivent !</p>

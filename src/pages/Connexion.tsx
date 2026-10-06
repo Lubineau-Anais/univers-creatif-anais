@@ -98,7 +98,7 @@ export default function Connexion() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-6 font-medium">
+        <p className="text-center text-xs text-gray-500 mt-6 font-medium">
           Réservé à la gestionnaire du site uniquement.
         </p>
       </div>

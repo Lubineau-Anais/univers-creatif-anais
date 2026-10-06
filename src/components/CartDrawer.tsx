@@ -464,7 +464,7 @@ export default function CartDrawer() {
 
                           <div className="bg-white rounded-xl px-3 py-2 text-xs space-y-1">
                             <div className="font-black text-[#1A1040]">👤 {item.form.prenom} {item.form.nom}</div>
-                            <div className="text-gray-400">{item.form.email}</div>
+                            <div className="text-gray-500">{item.form.email}</div>
                             {item.nbPersonnes > 1 && (
                               <div className="flex items-center gap-1 text-rose-500 font-bold">
                                 <Users className="w-3 h-3" /> {item.nbPersonnes} participants
@@ -543,7 +543,7 @@ export default function CartDrawer() {
                       </div>
                     )}
                     <div className="border-t border-dashed border-[#1A1040]/20 pt-2">
-                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium bg-gray-50 rounded-lg px-2 py-1.5">
+                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium bg-gray-50 rounded-lg px-2 py-1.5">
                         <span>🚚</span>
                         <span>Livraison calculée à la commande — <span className="font-black text-gray-500">Mondial Relay ou Click &amp; Collect gratuit</span></span>
                       </div>

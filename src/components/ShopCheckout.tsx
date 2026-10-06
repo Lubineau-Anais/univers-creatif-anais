@@ -531,7 +531,7 @@ export default function ShopCheckout({ onClose }: { onClose: () => void }) {
                     {collectInfo && <div className="text-gray-600 whitespace-pre-line mt-1 text-xs">{collectInfo}</div>}
                   </div>
                 )}
-                <p className="text-gray-400 text-xs mt-3">Un email de confirmation vous sera envoyé à {info.email}</p>
+                <p className="text-gray-500 text-xs mt-3">Un email de confirmation vous sera envoyé à {info.email}</p>
               </div>
               <button onClick={onClose}
                 className="bg-rose-400 text-white px-8 py-3 rounded-2xl font-black text-sm border-2 border-[#1A1040] hover:-translate-y-0.5 transition-all"

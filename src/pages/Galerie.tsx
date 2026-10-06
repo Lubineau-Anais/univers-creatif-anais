@@ -286,7 +286,7 @@ export default function Galerie() {
                         </div>
                         <p className="font-black text-center leading-tight text-[#1A1040] text-sm"
                           style={{ fontFamily: font }}>{cat.nom}</p>
-                        <p className="text-xs font-bold text-center text-gray-400 mt-1">Voir les créations →</p>
+                        <p className="text-xs font-bold text-center text-gray-500 mt-1">Voir les créations →</p>
                       </button>
                     </div>
                   )

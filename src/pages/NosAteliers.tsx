@@ -468,6 +468,24 @@ export default function NosAteliers() {
         <meta property="og:description" content="Réservez votre atelier créatif en Loire-Atlantique." />
         <meta property="og:type" content="website" />
         <link rel="canonical" href="https://lunivers-creatif-danais.fr/ateliers" />
+        {ateliers.filter(a => new Date(a.date + 'T00:00:00') >= today).length > 0 && (
+          <script type="application/ld+json">{JSON.stringify(
+            ateliers
+              .filter(a => new Date(a.date + 'T00:00:00') >= today)
+              .map(a => ({
+                '@context': 'https://schema.org',
+                '@type': 'Event',
+                'name': a.titre,
+                'startDate': `${a.date}T${a.heure}:00`,
+                'location': { '@type': 'Place', 'name': a.lieu, 'address': { '@type': 'PostalAddress', 'addressLocality': 'Prinquiau', 'postalCode': '44260', 'addressCountry': 'FR' } },
+                'description': a.description,
+                'offers': { '@type': 'Offer', 'price': a.prix, 'priceCurrency': 'EUR', 'url': 'https://lunivers-creatif-danais.fr/ateliers', 'availability': a.places_restantes > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut' },
+                'url': 'https://lunivers-creatif-danais.fr/ateliers',
+                'organizer': { '@type': 'Organization', 'name': "L'Univers Créatif d'Anaïs", 'url': 'https://lunivers-creatif-danais.fr' },
+                ...(a.image_url ? { 'image': a.image_url } : {}),
+              }))
+          )}</script>
+        )}
       </Helmet>
 
       <PolaroidMobileStrip polaroids={atelierPolaroids} isAdmin={isAdmin} />
