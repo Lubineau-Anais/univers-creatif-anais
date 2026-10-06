@@ -21,6 +21,11 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  ::placeholder {
+    color: #6b7280;
+    opacity: 1;
+  }
+
   #root {
     min-height: 100vh;
     display: flex;

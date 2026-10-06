@@ -190,7 +190,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
         {/* ── Formulaire ── */}
         <form onSubmit={handleFormSubmit} className="px-6 py-5 space-y-4">
           {error && (
-            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm border-2 border-red-200 font-medium">
+            <div role="alert" className="bg-red-50 text-red-700 px-4 py-3 rounded-2xl text-sm border-2 border-red-200 font-medium">
               😬 {error}
             </div>
           )}
@@ -233,6 +233,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
                 <div key={key}>
                   <label htmlFor={`resa-${key}`} className="block text-xs font-black text-[#1A1040] mb-1">{label}</label>
                   <input id={`resa-${key}`} required value={form[key]} placeholder={ph}
+                    autoComplete={key === 'prenom' ? 'given-name' : 'family-name'}
                     onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                     className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
                   />
@@ -256,6 +257,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <label htmlFor="resa-email" className="block text-xs font-black text-[#1A1040] mb-1">Adresse e-mail *</label>
               <input id="resa-email" required type="email"
                 value={form.email} placeholder="votre@email.fr"
+                autoComplete="email"
                 onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
               />
@@ -265,6 +267,7 @@ export default function ReservationModal({ atelier, onClose, onReserved }: Props
               <label htmlFor="resa-tel" className="block text-xs font-black text-[#1A1040] mb-1">N° de téléphone *</label>
               <input id="resa-tel" required type="tel"
                 value={form.telephone} placeholder="06 00 00 00 00"
+                autoComplete="tel"
                 onChange={e => setForm(p => ({ ...p, telephone: e.target.value }))}
                 className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-turquoise-400 bg-candy"
               />

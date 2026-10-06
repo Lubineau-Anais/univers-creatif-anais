@@ -548,6 +548,7 @@ async function loadContent() {
                 style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.15), 6px 6px 0px 0px rgba(26,16,64,0.15)' }}>
                 <img
                   src={logoUrl}
+                  fetchPriority="high"
                   alt="l'univers cr�atif d'Ana�s"
                   className="h-44 md:h-56 w-auto"
                   onError={e => {

@@ -282,6 +282,7 @@ export default function Contact() {
                       value={form.nom}
                       onChange={e => setForm(p => ({ ...p, nom: e.target.value }))}
                       placeholder="Sophie"
+                      autoComplete="given-name"
                       className="w-full border-2 border-[#1A1040] rounded-xl px-4 py-2.5 text-sm font-medium
                                  focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
                     />
@@ -296,6 +297,7 @@ export default function Contact() {
                       value={form.email}
                       onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                       placeholder="sophie@example.fr"
+                      autoComplete="email"
                       className="w-full border-2 border-[#1A1040] rounded-xl px-4 py-2.5 text-sm font-medium
                                  focus:outline-none focus:ring-2 focus:ring-rose-300 bg-candy"
                     />
