@@ -24,3 +24,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fichiers personnels
+*.pdf
+*.docx
+*.doc
+*.xlsx
+*.xls

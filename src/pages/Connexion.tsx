@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { Scissors, LogIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -31,6 +32,8 @@ export default function Connexion() {
   }
 
   return (
+    <>
+    <Helmet><meta name="robots" content="noindex,nofollow" /></Helmet>
     <main className="flex-1 bg-candy flex items-center justify-center px-4 py-16">
       {/* Déco */}
       <div className="absolute top-24 left-10 w-16 h-16 bg-citron-400 rounded-2xl border-2 border-[#1A1040] shadow-pop rotate-12 opacity-60 pointer-events-none hidden md:block" />
@@ -100,5 +103,6 @@ export default function Connexion() {
         </p>
       </div>
     </main>
+    </>
   )
 }

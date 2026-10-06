@@ -53,9 +53,16 @@ export default function App() {
         <CartProvider>
           <AtelierCartProvider>
           <BrowserRouter>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-3 focus:left-3 focus:bg-white focus:text-[#1A1040] focus:font-bold focus:px-4 focus:py-2 focus:rounded-xl focus:ring-2 focus:ring-rose-400"
+            >
+              Aller au contenu principal
+            </a>
             <div className="flex flex-col min-h-screen">
               <Navbar />
               <CartDrawer />
+              <main id="main-content" tabIndex={-1} className="outline-none flex-1 flex flex-col">
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/" element={<Accueil />} />
@@ -107,6 +114,7 @@ export default function App() {
                   } />
                 </Routes>
               </Suspense>
+              </main>
               <Footer />
             </div>
           </BrowserRouter>

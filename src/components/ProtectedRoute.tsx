@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useAuth } from '../context/AuthContext'
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -20,5 +21,12 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/connexion" replace />
   }
 
-  return <>{children}</>
+  return (
+    <>
+      <Helmet>
+        <meta name="robots" content="noindex,nofollow" />
+      </Helmet>
+      {children}
+    </>
+  )
 }

@@ -21,13 +21,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://lunivers-creatif-danais.fr/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://lunivers-creatif-danais.fr/informations</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lunivers-creatif-danais.fr/contact</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://lunivers-creatif-danais.fr/mentions-legales</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
   </url>
 </urlset>
