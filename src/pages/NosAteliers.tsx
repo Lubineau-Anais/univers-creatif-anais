@@ -649,8 +649,8 @@ export default function NosAteliers() {
 
                     {/* Carte polaroïd */}
                     <div
-                      className="bg-white border-2 border-gray-100 w-64 md:w-72 cursor-pointer"
-                      style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}
+                      className="bg-white border-2 border-[#1A1040] w-64 md:w-72 cursor-pointer"
+                      style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}
                       onClick={() => openCategory(cat)}
                     >
                       {/* Photo */}
@@ -761,8 +761,8 @@ export default function NosAteliers() {
                   <div className={`absolute -top-4 left-1/2 -translate-x-1/2 w-14 h-6 ${tapeColor} rounded-sm z-10 border border-white/40`} />
 
                   {/* Carte polaroïd */}
-                  <div className="bg-white border-2 border-gray-100 w-64 md:w-72"
-                    style={{ boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.05)' }}>
+                  <div className="bg-white border-2 border-[#1A1040] w-64 md:w-72"
+                    style={{ boxShadow: '5px 5px 0px 0px #1A1040' }}>
 
                     {/* Photo */}
                     <div className="relative w-full h-56 overflow-hidden bg-rose-100 select-none"
