@@ -722,7 +722,7 @@ export default function Boutique() {
       <div className="relative">
 
         {/* HERO */}
-        <section className="relative overflow-hidden" style={bgStyle}>
+        <section className="relative overflow-hidden border-b-4 border-[#1A1040]" style={bgStyle}>
           {heroBgTab === 'video' && heroBg.videoUrl && (
             <video ref={videoRef} src={heroBg.videoUrl} autoPlay muted={heroBg.videoMuted} loop={heroBg.videoLoop} playsInline
               className="absolute inset-0 w-full h-full object-cover" style={{ zIndex:0 }}/>
