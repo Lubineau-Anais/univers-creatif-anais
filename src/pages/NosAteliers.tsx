@@ -318,7 +318,6 @@ export default function NosAteliers() {
   const [catHeroDescStyle,  setCatHeroDescStyle]  = useState<HeroStyle>(DEFAULT_CAT_HERO_DESC)
   const [showCatTitreEditor, setShowCatTitreEditor] = useState(false)
   const [showCatDescEditor,  setShowCatDescEditor]  = useState(false)
-  const [savingCatStyle, setSavingCatStyle] = useState(false)
 
   // Fond du hero
   const [ateliersBg, setAteliersBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
@@ -456,7 +455,6 @@ export default function NosAteliers() {
 
   async function saveCatHeroTitre(_text: string, style: HeroStyle) {
     if (!selectedCat) return
-    setSavingCatStyle(true)
     const { data } = await supabase
       .from('atelier_categories')
       .update({ hero_titre_style: style })
@@ -468,13 +466,11 @@ export default function NosAteliers() {
       setSelectedCat(updated)
       setCategories(prev => prev.map(c => c.id === updated.id ? updated : c))
     }
-    setSavingCatStyle(false)
     setShowCatTitreEditor(false)
   }
 
   async function saveCatHeroDesc(_text: string, style: HeroStyle) {
     if (!selectedCat) return
-    setSavingCatStyle(true)
     const { data } = await supabase
       .from('atelier_categories')
       .update({ hero_desc_style: style })
@@ -486,7 +482,6 @@ export default function NosAteliers() {
       setSelectedCat(updated)
       setCategories(prev => prev.map(c => c.id === updated.id ? updated : c))
     }
-    setSavingCatStyle(false)
     setShowCatDescEditor(false)
   }
 
