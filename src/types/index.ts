@@ -13,6 +13,8 @@ export interface AtelierCategory {
   texte_taille:  number | null
   titre_gras:    boolean | null
   texte_gras:    boolean | null
+  hero_titre_style: Record<string, unknown> | null
+  hero_desc_style:  Record<string, unknown> | null
 }
 
 export interface Atelier {

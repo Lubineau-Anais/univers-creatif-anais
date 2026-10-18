@@ -311,6 +311,15 @@ export default function NosAteliers() {
   const [descStyle, setDescStyle] = useState<DescStyle>(DEFAULT_DESC_STYLE)
   const [showDescEditor, setShowDescEditor] = useState(false)
 
+  // Style hero par catégorie
+  const DEFAULT_CAT_HERO_TITRE: HeroStyle = { ...DEFAULT_HERO_STYLE, font: 'serif', fontSize: 48, color: '#ffffff', bold: true, shadow: false }
+  const DEFAULT_CAT_HERO_DESC:  HeroStyle = { ...DEFAULT_HERO_STYLE, font: 'sans',  fontSize: 18, color: '#d1d5db', bold: false, shadow: false }
+  const [catHeroTitreStyle, setCatHeroTitreStyle] = useState<HeroStyle>(DEFAULT_CAT_HERO_TITRE)
+  const [catHeroDescStyle,  setCatHeroDescStyle]  = useState<HeroStyle>(DEFAULT_CAT_HERO_DESC)
+  const [showCatTitreEditor, setShowCatTitreEditor] = useState(false)
+  const [showCatDescEditor,  setShowCatDescEditor]  = useState(false)
+  const [savingCatStyle, setSavingCatStyle] = useState(false)
+
   // Fond du hero
   const [ateliersBg, setAteliersBg] = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
   const [ateliersBgTab, setAteliersBgTab] = useState<BgType>('color')
@@ -434,6 +443,53 @@ export default function NosAteliers() {
 
   function back() { setSelectedCat(null); setAteliers([]) }
 
+  useEffect(() => {
+    if (!selectedCat) return
+    setCatHeroTitreStyle(selectedCat.hero_titre_style
+      ? { ...DEFAULT_CAT_HERO_TITRE, ...(selectedCat.hero_titre_style as Partial<HeroStyle>) }
+      : DEFAULT_CAT_HERO_TITRE)
+    setCatHeroDescStyle(selectedCat.hero_desc_style
+      ? { ...DEFAULT_CAT_HERO_DESC, ...(selectedCat.hero_desc_style as Partial<HeroStyle>) }
+      : DEFAULT_CAT_HERO_DESC)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCat?.id])
+
+  async function saveCatHeroTitre(_text: string, style: HeroStyle) {
+    if (!selectedCat) return
+    setSavingCatStyle(true)
+    const { data } = await supabase
+      .from('atelier_categories')
+      .update({ hero_titre_style: style })
+      .eq('id', selectedCat.id)
+      .select()
+      .single()
+    if (data) {
+      const updated = data as AtelierCategory
+      setSelectedCat(updated)
+      setCategories(prev => prev.map(c => c.id === updated.id ? updated : c))
+    }
+    setSavingCatStyle(false)
+    setShowCatTitreEditor(false)
+  }
+
+  async function saveCatHeroDesc(_text: string, style: HeroStyle) {
+    if (!selectedCat) return
+    setSavingCatStyle(true)
+    const { data } = await supabase
+      .from('atelier_categories')
+      .update({ hero_desc_style: style })
+      .eq('id', selectedCat.id)
+      .select()
+      .single()
+    if (data) {
+      const updated = data as AtelierCategory
+      setSelectedCat(updated)
+      setCategories(prev => prev.map(c => c.id === updated.id ? updated : c))
+    }
+    setSavingCatStyle(false)
+    setShowCatDescEditor(false)
+  }
+
   async function deleteCategory(id: string) {
     await supabase.from('atelier_categories').delete().eq('id', id)
     setCategories(p => p.filter(c => c.id !== id))
@@ -523,11 +579,25 @@ export default function NosAteliers() {
                 style={{ boxShadow: '2px 2px 0px 0px #ffb5c8' }}>
                 <ChevronLeft className="w-4 h-4" /> Toutes les catégories
               </button>
-              <h1 className="font-serif text-4xl md:text-5xl font-black text-white">
-                {selectedCat.nom} <span className="text-rose-400">✦</span>
+
+              <h1 className="leading-tight" style={buildTitleStyle(catHeroTitreStyle)}>
+                {selectedCat.nom} <span style={{ color: '#fb7185' }}>✦</span>
               </h1>
+              {isAdmin && (
+                <button onClick={() => setShowCatTitreEditor(true)}
+                  className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3 h-3" /> Style du titre
+                </button>
+              )}
+
               {selectedCat.description && (
-                <p className="text-gray-300 text-base max-w-xl">{selectedCat.description}</p>
+                <p className="max-w-xl" style={buildTitleStyle(catHeroDescStyle)}>{selectedCat.description}</p>
+              )}
+              {isAdmin && (
+                <button onClick={() => setShowCatDescEditor(true)}
+                  className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3 h-3" /> Style de la description
+                </button>
               )}
             </div>
           ) : (
@@ -1088,6 +1158,32 @@ export default function NosAteliers() {
           label="✏️ Sous-titre — Nos Ateliers"
           onSave={(text, style) => { setHeroSous(text); setHeroSousStyle(style); setShowSousEditor(false) }}
           onClose={() => setShowSousEditor(false)}
+        />
+      )}
+
+      {showCatTitreEditor && selectedCat && (
+        <HeroTitleEditor
+          initialText={selectedCat.nom}
+          initialStyle={catHeroTitreStyle}
+          page="ateliers"
+          sectionKey={`cat_hero_titre_${selectedCat.id}`}
+          styleKey={`cat_hero_titre_style_${selectedCat.id}`}
+          label={`✏️ Style du titre — ${selectedCat.nom}`}
+          onSave={saveCatHeroTitre}
+          onClose={() => setShowCatTitreEditor(false)}
+        />
+      )}
+
+      {showCatDescEditor && selectedCat && (
+        <HeroTitleEditor
+          initialText={selectedCat.description ?? ''}
+          initialStyle={catHeroDescStyle}
+          page="ateliers"
+          sectionKey={`cat_hero_desc_${selectedCat.id}`}
+          styleKey={`cat_hero_desc_style_${selectedCat.id}`}
+          label={`✏️ Style de la description — ${selectedCat.nom}`}
+          onSave={saveCatHeroDesc}
+          onClose={() => setShowCatDescEditor(false)}
         />
       )}
 
