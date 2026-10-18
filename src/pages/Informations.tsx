@@ -12,6 +12,11 @@ import PolaroidMobileStrip from '../components/PolaroidMobileStrip'
 import { sanitize } from '../lib/sanitize'
 
 const DEFAULT_BG: HeroBg = { ...DEFAULT_HERO_BG, color: '#1A1040' }
+
+// ─── Badge hero ───────────────────────────────────────────────────────────────
+interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
+const DEFAULT_INFOS_BADGE: BadgeConfig = { text: '📍 Informations pratiques', bg: '#7c3aed', textColor: '#ffffff', radius: 'rounded-full' }
+
 const DEFAULT_TITRE_STYLE: HeroStyle = {
   font: 'serif', fontSize: 36, color: '#ffffff', bold: true, italic: false, underline: false,
   outline: false, outlineColor: '#1A1040', outlineWidth: 2,
@@ -268,6 +273,8 @@ export default function Informations() {
   const [heroBg,          setHeroBg]          = useState<HeroBg>(DEFAULT_BG)
   const [titreStyle,      setTitreStyle]      = useState<HeroStyle>(DEFAULT_TITRE_STYLE)
   const [cardStyles,      setCardStyles]      = useState<CardsStyle>(DEFAULT_CARD_STYLES)
+  const [heroBadge,       setHeroBadge]       = useState<BadgeConfig>(DEFAULT_INFOS_BADGE)
+  const [showBadgeEditor, setShowBadgeEditor] = useState(false)
   const [editingCard,     setEditingCard]     = useState<CardKey | null>(null)
   const [showBgEditor,    setShowBgEditor]    = useState(false)
   const [showTitreEditor, setShowTitreEditor] = useState(false)
@@ -297,13 +304,14 @@ export default function Informations() {
 
   async function loadSettings() {
     const { data } = await supabase.from('settings').select('key, value')
-      .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style', 'infos_content_bg'])
+      .in('key', ['infos_hero_bg', 'infos_titre_style', 'infos_cards_style', 'infos_content_bg', 'infos_badge_config'])
     if (!data) return
     data.forEach(r => {
-      if (r.key === 'infos_hero_bg')     { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
-      if (r.key === 'infos_titre_style') { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
-      if (r.key === 'infos_cards_style') { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
-      if (r.key === 'infos_content_bg')  { try { setContentBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_hero_bg')      { try { setHeroBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_titre_style')  { try { setTitreStyle(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_cards_style')  { try { setCardStyles(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_content_bg')   { try { setContentBg(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
+      if (r.key === 'infos_badge_config') { try { setHeroBadge(p => ({ ...p, ...JSON.parse(r.value) })) } catch { /* ignore */ } }
     })
   }
 
@@ -326,6 +334,11 @@ export default function Informations() {
   async function saveContent(section: string, contenu: string) {
     await supabase.from('page_content').upsert({ page: 'informations', section, contenu }, { onConflict: 'page,section' })
     setContent(prev => ({ ...prev, [section]: contenu }))
+  }
+
+  async function saveBadge() {
+    await supabase.from('settings').upsert({ key: 'infos_badge_config', value: JSON.stringify(heroBadge) }, { onConflict: 'key' })
+    setShowBadgeEditor(false)
   }
 
   async function saveBg() {
@@ -391,7 +404,19 @@ export default function Informations() {
             </button>
           )}
 
-          <div className="relative z-10 max-w-5xl mx-auto px-6 py-14 flex flex-col items-center text-center gap-4">
+          <div className="relative z-10 max-w-5xl mx-auto px-6 py-14 flex flex-col items-center text-center gap-2">
+            <div className={`inline-flex items-center gap-2 px-4 py-1.5 text-sm font-black border-2 border-[#1A1040] mb-1 ${heroBadge.radius}`}
+              style={{ backgroundColor: heroBadge.bg, color: heroBadge.textColor }}>
+              {heroBadge.text}
+            </div>
+            {isAdmin && (
+              <div className="flex justify-center mb-1">
+                <button onClick={() => setShowBadgeEditor(true)}
+                  className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                  <Pencil className="w-3 h-3" /> Badge
+                </button>
+              </div>
+            )}
             <h1 style={buildTitleStyle(titreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(content.infos_titre) }} />
             {isAdmin && (
               <div className="flex flex-wrap gap-2 mt-1">
@@ -622,6 +647,48 @@ export default function Informations() {
         </div>{/* fin fond du contenu */}
 
       </div>{/* fin div.relative */}
+
+      {/* ── Éditeur badge ── */}
+      {showBadgeEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowBadgeEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <h3 className="font-black text-[#1A1040]">🏷️ Badge — Informations</h3>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+              <input value={heroBadge.text} onChange={e => setHeroBadge(p => ({ ...p, text: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Fond</label>
+                <input type="color" value={heroBadge.bg} onChange={e => setHeroBadge(p => ({ ...p, bg: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+                <input type="color" value={heroBadge.textColor} onChange={e => setHeroBadge(p => ({ ...p, textColor: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Forme</label>
+              <div className="flex gap-2 flex-wrap">
+                {['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-full'].map(r => (
+                  <button key={r} onClick={() => setHeroBadge(p => ({ ...p, radius: r }))}
+                    className={`px-3 py-1.5 border-2 text-xs font-black ${r} ${heroBadge.radius === r ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-gray-300 text-gray-600 hover:border-[#1A1040]'}`}>
+                    Aa
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowBadgeEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+              <button onClick={saveBadge} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Éditeur titre ── */}
       {showTitreEditor && (

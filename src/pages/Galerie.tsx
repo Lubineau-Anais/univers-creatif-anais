@@ -1,10 +1,12 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
 import BgEditor from '../components/BgEditor'
+import HeroTitleEditor, { type HeroStyle, DEFAULT_HERO_STYLE, buildTitleStyle } from '../components/HeroTitleEditor'
+import { sanitize } from '../lib/sanitize'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface GalerieCategory {
@@ -37,6 +39,18 @@ const FONT_FAMILY: Record<string, string> = {
   mono:    'monospace',
 }
 
+// ─── Hero éditable ────────────────────────────────────────────────────────────
+interface BadgeConfig { text: string; bg: string; textColor: string; radius: string }
+const DEFAULT_GALERIE_BADGE: BadgeConfig = { text: '✨ Créations d\'Anaïs', bg: '#7c3aed', textColor: '#ffffff', radius: 'rounded-full' }
+const DEFAULT_GALERIE_TITRE_STYLE: HeroStyle = {
+  ...DEFAULT_HERO_STYLE, font: 'serif', fontSize: 48, color: '#ffffff', bold: true, shadow: false,
+}
+const DEFAULT_GALERIE_SOUS_STYLE: HeroStyle = {
+  ...DEFAULT_HERO_STYLE, font: 'sans', fontSize: 18, color: '#d1d5db', bold: false, shadow: false,
+}
+const DEFAULT_GALERIE_TITRE = 'Galerie'
+const DEFAULT_GALERIE_SOUS  = 'Découvrez toutes mes créations artisanales en photos !'
+
 const POL_ROTS  = ['-rotate-2', 'rotate-1', 'rotate-3', '-rotate-1', 'rotate-2', '-rotate-3']
 const POL_TAPES = ['bg-citron-400/60', 'bg-rose-400/60', 'bg-turquoise-400/60', 'bg-lime-300/60', 'bg-orange-400/60', 'bg-violet-400/60']
 
@@ -49,6 +63,16 @@ export default function Galerie() {
   const [loading, setLoading]         = useState(true)
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+
+  // Hero éditable (badge, titre, sous-titre)
+  const [heroBadge,      setHeroBadge]      = useState<BadgeConfig>(DEFAULT_GALERIE_BADGE)
+  const [heroTitre,      setHeroTitre]      = useState(DEFAULT_GALERIE_TITRE)
+  const [heroTitreStyle, setHeroTitreStyle] = useState<HeroStyle>(DEFAULT_GALERIE_TITRE_STYLE)
+  const [heroSous,       setHeroSous]       = useState(DEFAULT_GALERIE_SOUS)
+  const [heroSousStyle,  setHeroSousStyle]  = useState<HeroStyle>(DEFAULT_GALERIE_SOUS_STYLE)
+  const [showBadgeEditor, setShowBadgeEditor] = useState(false)
+  const [showTitreEditor, setShowTitreEditor] = useState(false)
+  const [showSousEditor,  setShowSousEditor]  = useState(false)
 
   // Fond du hero
   const [galerieBg, setGalerieBg]       = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
@@ -67,15 +91,36 @@ export default function Galerie() {
   const contentBgFileRef = useRef<HTMLInputElement>(null)
   const contentVideoRef  = useRef<HTMLVideoElement>(null)
 
-  async function loadGalerieBg() {
-    const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_bg_config').single()
-    if (data) {
+  async function loadHero() {
+    const [{ data: settings }, { data: content }] = await Promise.all([
+      supabase.from('settings').select('key, value').in('key', [
+        'galerie_badge_config', 'galerie_titre_style', 'galerie_soustitre_style', 'galerie_bg_config', 'galerie_content_bg_config',
+      ]),
+      supabase.from('page_content').select('section, contenu').eq('page', 'galerie')
+        .in('section', ['galerie_titre', 'galerie_soustitre']),
+    ])
+    ;(settings || []).forEach((s: { key: string; value: string }) => {
       try {
-        const v = JSON.parse(data.value)
-        setGalerieBg(p => ({ ...p, ...v }))
-        setGalerieBgTab(v.type || 'color')
+        if (s.key === 'galerie_badge_config')    setHeroBadge(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'galerie_titre_style')     setHeroTitreStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'galerie_soustitre_style') setHeroSousStyle(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'galerie_content_bg_config') setContentBg(p => ({ ...p, ...JSON.parse(s.value) }))
+        if (s.key === 'galerie_bg_config') {
+          const v = JSON.parse(s.value)
+          setGalerieBg(p => ({ ...p, ...v }))
+          setGalerieBgTab(v.type || 'color')
+        }
       } catch { /* ignore */ }
-    }
+    })
+    ;(content || []).forEach((c: { section: string; contenu: string }) => {
+      if (c.section === 'galerie_titre')     setHeroTitre(c.contenu)
+      if (c.section === 'galerie_soustitre') setHeroSous(c.contenu)
+    })
+  }
+
+  async function saveBadge() {
+    await supabase.from('settings').upsert({ key: 'galerie_badge_config', value: JSON.stringify(heroBadge) }, { onConflict: 'key' })
+    setShowBadgeEditor(false)
   }
 
   async function saveBg() {
@@ -84,11 +129,6 @@ export default function Galerie() {
       { onConflict: 'key' }
     )
     setShowBgEditor(false)
-  }
-
-  async function loadContentBg() {
-    const { data } = await supabase.from('settings').select('key, value').eq('key', 'galerie_content_bg_config').single()
-    if (data) { try { setContentBg(p => ({ ...p, ...JSON.parse(data.value) })) } catch { /* ignore */ } }
   }
 
   async function saveContentBg() {
@@ -109,7 +149,7 @@ export default function Galerie() {
   }
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadCategories(); loadGalerieBg(); loadContentBg() }, [])
+  useEffect(() => { loadCategories(); loadHero() }, [])
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = galerieBg.videoMuted
@@ -211,17 +251,39 @@ export default function Galerie() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-citron-400 rounded-2xl flex items-center justify-center border-2 border-citron-300"
-                style={{ boxShadow: '3px 3px 0px 0px #ffb5c8' }}>
-                <Images className="w-7 h-7 text-[#1A1040]" />
+            <div className="flex flex-col items-center text-center gap-1">
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 text-sm font-black border-2 border-[#1A1040] mb-2 ${heroBadge.radius}`}
+                style={{ backgroundColor: heroBadge.bg, color: heroBadge.textColor }}>
+                {heroBadge.text}
               </div>
-              <div>
-                <div className="inline-flex items-center gap-1.5 bg-rose-400/20 text-rose-300 px-3 py-1 rounded-full text-xs font-bold border border-rose-400/30 mb-1">
-                  ✨ Créations d'Anaïs
+              {isAdmin && (
+                <div className="flex justify-center mb-2">
+                  <button onClick={() => setShowBadgeEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Badge
+                  </button>
                 </div>
-                <h1 className="font-serif text-3xl font-black text-white">Galerie</h1>
-              </div>
+              )}
+
+              <h1 className="leading-tight mb-1" style={buildTitleStyle(heroTitreStyle)} dangerouslySetInnerHTML={{ __html: sanitize(heroTitre) }} />
+              {isAdmin && (
+                <div className="flex justify-center mb-2">
+                  <button onClick={() => setShowTitreEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Titre
+                  </button>
+                </div>
+              )}
+
+              <p className="max-w-xl mx-auto" style={buildTitleStyle(heroSousStyle)} dangerouslySetInnerHTML={{ __html: sanitize(heroSous) }} />
+              {isAdmin && (
+                <div className="flex justify-center mt-1">
+                  <button onClick={() => setShowSousEditor(true)}
+                    className="inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+                    <Pencil className="w-3 h-3" /> Sous-titre
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -349,6 +411,72 @@ export default function Galerie() {
         )}
       </div>
       </div>{/* fin fond du contenu */}
+
+      {/* ── Éditeur badge ── */}
+      {showBadgeEditor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowBadgeEditor(false)}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-sm p-6 space-y-4" style={{ boxShadow: '6px 6px 0px 0px #ffe500' }}>
+            <h3 className="font-black text-[#1A1040]">🏷️ Badge — Galerie</h3>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+              <input value={heroBadge.text} onChange={e => setHeroBadge(p => ({ ...p, text: e.target.value }))}
+                className="w-full border-2 border-[#1A1040] rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-citron-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Fond</label>
+                <input type="color" value={heroBadge.bg} onChange={e => setHeroBadge(p => ({ ...p, bg: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Texte</label>
+                <input type="color" value={heroBadge.textColor} onChange={e => setHeroBadge(p => ({ ...p, textColor: e.target.value }))}
+                  className="w-full h-9 border-2 border-[#1A1040] rounded-lg cursor-pointer" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wide mb-1 block">Forme</label>
+              <div className="flex gap-2 flex-wrap">
+                {['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-full'].map(r => (
+                  <button key={r} onClick={() => setHeroBadge(p => ({ ...p, radius: r }))}
+                    className={`px-3 py-1.5 border-2 text-xs font-black ${r} ${heroBadge.radius === r ? 'bg-[#1A1040] text-citron-400 border-[#1A1040]' : 'border-gray-300 text-gray-600 hover:border-[#1A1040]'}`}>
+                    Aa
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setShowBadgeEditor(false)}
+                className="flex-1 border-2 border-[#1A1040] rounded-2xl py-2.5 font-black text-[#1A1040] hover:bg-gray-50">Annuler</button>
+              <button onClick={saveBadge} className="flex-1 bg-[#1A1040] text-citron-400 rounded-2xl py-2.5 font-black hover:bg-[#2d2060]">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Éditeurs titre / sous-titre ── */}
+      {showTitreEditor && (
+        <HeroTitleEditor
+          page="galerie"
+          sectionKey="galerie_titre"
+          styleKey="galerie_titre_style"
+          initialText={heroTitre}
+          initialStyle={heroTitreStyle}
+          onSave={(text, style) => { setHeroTitre(text); setHeroTitreStyle(style) }}
+          onClose={() => setShowTitreEditor(false)}
+        />
+      )}
+      {showSousEditor && (
+        <HeroTitleEditor
+          page="galerie"
+          sectionKey="galerie_soustitre"
+          styleKey="galerie_soustitre_style"
+          initialText={heroSous}
+          initialStyle={heroSousStyle}
+          onSave={(text, style) => { setHeroSous(text); setHeroSousStyle(style) }}
+          onClose={() => setShowSousEditor(false)}
+        />
+      )}
 
       {/* ── Éditeur fond hero ── */}
       {showBgEditor && (
