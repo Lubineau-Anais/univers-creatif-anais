@@ -262,6 +262,11 @@ export default function Accueil() {
   const [reseauxTitleStyle,  setReseauxTitleStyle]  = useState<HeroStyle>(DEFAULT_RESEAUX_TITLE_STYLE)
   const [showReseauxBadgeEditor, setShowReseauxBadgeEditor] = useState(false)
   const [showReseauxTitleEditor, setShowReseauxTitleEditor] = useState(false)
+  const [reseauxBg,              setReseauxBg]              = useState<HeroBg>({ ...DEFAULT_HERO_BG, color: '#1A1040' })
+  const [showReseauxBgEditor,    setShowReseauxBgEditor]    = useState(false)
+  const [reseauxBgUploading,     setReseauxBgUploading]     = useState(false)
+  const [reseauxBgUploadError,   setReseauxBgUploadError]   = useState('')
+  const reseauxBgFileRef = useRef<HTMLInputElement | null>(null)
 
   // Ref pour la vid�o hero (n�cessaire pour g�rer muted en React)
   const heroVideoRef = useRef<HTMLVideoElement>(null)
@@ -383,6 +388,7 @@ async function loadContent() {
       else if (s.key === 'avis_titre_style')         { try { setAvisTitleStyle(p  => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
       else if (s.key === 'reseaux_badge_config')     { try { setReseauxBadge(p      => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
       else if (s.key === 'reseaux_titre_style')      { try { setReseauxTitleStyle(p => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
+      else if (s.key === 'reseaux_bg_config')        { try { setReseauxBg(p         => ({ ...p, ...JSON.parse(s.value) })) } catch { /* ignore */ } }
       else if (s.key === 'hero_logo_visible')        { try { setLogoVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
       else if (s.key === 'hero_titre_visible')       { try { setHeroTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
       else if (s.key === 'hero_sous_titre_visible')  { try { setHeroSousTitreVisible(JSON.parse(s.value) !== false) } catch { /* ignore */ } }
@@ -479,6 +485,12 @@ async function loadContent() {
     const val = JSON.stringify(heroBg)
     await supabase.from('settings').upsert({ key: 'hero_bg_config', value: val }, { onConflict: 'key' })
     setShowBgEditor(false)
+  }
+
+  async function saveReseauxBg() {
+    const val = JSON.stringify(reseauxBg)
+    await supabase.from('settings').upsert({ key: 'reseaux_bg_config', value: val }, { onConflict: 'key' })
+    setShowReseauxBgEditor(false)
   }
 
   const hasSocialLinks = Object.values(socialLinks).some(v => v.trim() !== '')
@@ -1133,8 +1145,22 @@ async function loadContent() {
 
       {/* ===== R�SEAUX SOCIAUX ===== */}
       {(hasSocialLinks || isAdmin) && (
-        <section className="py-12 px-4 bg-[#1A1040] border-b-4 border-[#1A1040]">
-          <div className="max-w-3xl mx-auto text-center">
+        <section className="relative py-12 px-4 border-b-4 border-[#1A1040] overflow-hidden" style={buildHeroBgStyle(reseauxBg)}>
+          {reseauxBg.type === 'video' && reseauxBg.videoUrl && (
+            <>
+              <video src={reseauxBg.videoUrl} autoPlay loop={reseauxBg.videoLoop} muted={reseauxBg.videoMuted} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }} />
+              {reseauxBg.videoOverlay && reseauxBg.videoOverlay !== 'transparent' && (
+                <div className="absolute inset-0" style={{ backgroundColor: reseauxBg.videoOverlay, zIndex: 1 }} />
+              )}
+            </>
+          )}
+          {isAdmin && (
+            <button onClick={() => setShowReseauxBgEditor(true)}
+              className="absolute top-4 right-4 z-30 inline-flex items-center gap-1.5 bg-white/90 text-[#1A1040] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#1A1040] hover:bg-white transition-all">
+              <Palette className="w-3.5 h-3.5" /> Fond
+            </button>
+          )}
+          <div className="relative z-10 max-w-3xl mx-auto text-center">
             <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-bold border-2 border-white/20 mb-2 ${reseauxBadge.radius}`}
               style={{ backgroundColor: reseauxBadge.bg, color: reseauxBadge.textColor }}>
               {reseauxBadge.text}
@@ -1267,7 +1293,36 @@ async function loadContent() {
         />
       )}
 
-      {/* ===== �DITEUR TITRE HERO ===== */}
+      {/* ===== ÉDITEUR FOND RÉSEAUX SOCIAUX ===== */}
+      {showReseauxBgEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) setShowReseauxBgEditor(false) }}>
+          <div className="bg-white rounded-3xl border-4 border-[#1A1040] w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ boxShadow: '8px 8px 0px 0px #1A1040' }}>
+            <div className="sticky top-0 bg-candy border-b-4 border-[#1A1040] px-6 py-4 flex items-center justify-between z-10">
+              <span className="font-black text-[#1A1040]">🎨 Fond — Réseaux sociaux</span>
+              <button onClick={() => setShowReseauxBgEditor(false)} className="w-8 h-8 flex items-center justify-center rounded-xl border-2 border-[#1A1040] hover:bg-red-50"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-6">
+              <BgEditor
+                bg={reseauxBg}
+                setBg={setReseauxBg}
+                activeTab={reseauxBg.type as BgType}
+                setActiveTab={t => setReseauxBg(p => ({ ...p, type: t }))}
+                fileRef={reseauxBgFileRef}
+                uploadError={reseauxBgUploadError}
+                setUploadError={setReseauxBgUploadError}
+                uploading={reseauxBgUploading}
+                setUploading={setReseauxBgUploading}
+              />
+            </div>
+            <div className="sticky bottom-0 bg-white border-t-4 border-[#1A1040] px-6 py-4 flex gap-3 z-10">
+              <button onClick={() => setShowReseauxBgEditor(false)} className="flex-1 border-2 border-[#1A1040] rounded-2xl py-3 font-black text-[#1A1040] hover:bg-gray-50 transition-all">Annuler</button>
+              <button onClick={saveReseauxBg} className="flex-1 bg-[#1A1040] text-citron-400 border-2 border-[#1A1040] rounded-2xl py-3 font-black hover:bg-[#2d2060] transition-all flex items-center justify-center gap-2"><Check className="w-4 h-4"/> Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== ÉDITEUR TITRE HERO ===== */}
       {showTitleEditor && (
         <HeroTitleEditor
           initialText={content['hero_titre']}
