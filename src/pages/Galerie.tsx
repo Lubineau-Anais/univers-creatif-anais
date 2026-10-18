@@ -197,7 +197,7 @@ export default function Galerie() {
   )
 
   return (
-    <main className="flex-1 bg-white min-h-screen">
+    <main className="flex-1 bg-white min-h-screen flex flex-col">
       <Helmet>
         <title>Galerie — L'Univers Créatif d'Anaïs</title>
         <meta name="description" content="Explorez la galerie photo des créations d'Anaïs : ateliers, broderies, coutures et objets décoratifs faits main en Loire-Atlantique." />
@@ -289,7 +289,7 @@ export default function Galerie() {
         </div>
       </section>
 
-      <div className="relative overflow-hidden" style={buildHeroBgStyle(contentBg)}>
+      <div className="relative overflow-hidden flex-1" style={buildHeroBgStyle(contentBg)}>
         {contentBg.type === 'video' && contentBg.videoUrl && (
           <>
             <video ref={contentVideoRef} src={contentBg.videoUrl} autoPlay muted={contentBg.videoMuted} loop={contentBg.videoLoop} playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}/>
@@ -330,10 +330,10 @@ export default function Galerie() {
                       <button
                         onClick={() => openCategory(cat)}
                         className="bg-white p-3 pb-6 border-2 border-[#1A1040] rounded-sm focus:outline-none block"
-                        style={{ width: '180px', boxShadow: '5px 5px 0px 0px #1A1040' }}
+                        style={{ width: '220px', boxShadow: '5px 5px 0px 0px #1A1040' }}
                       >
                         {/* Zone image / icône */}
-                        <div className="w-full overflow-hidden mb-3 relative" style={{ height: '154px' }}>
+                        <div className="w-full overflow-hidden mb-3 relative" style={{ height: '188px' }}>
                           {cat.cover_url ? (
                             <>
                               <img src={cat.cover_url} alt="" className="w-full h-full object-cover"
@@ -385,11 +385,11 @@ export default function Galerie() {
                       <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-6 ${tape} rounded-sm rotate-3 z-10 border border-white/40`} />
                       <div
                         className="bg-white p-3 pb-6 border-2 border-[#1A1040] rounded-sm cursor-zoom-in"
-                        style={{ width: '160px', boxShadow: '5px 5px 0px 0px #1A1040', userSelect: 'none' }}
+                        style={{ width: '200px', boxShadow: '5px 5px 0px 0px #1A1040', userSelect: 'none' }}
                         onClick={() => setLightboxIdx(photos.indexOf(photo))}
                       >
                         {/* Zone photo */}
-                        <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-3 relative group" style={{ height: '136px' }}>
+                        <div className="w-full bg-candy border border-gray-200 overflow-hidden mb-3 relative group" style={{ height: '170px' }}>
                           <img src={photo.url} alt={photo.titre || ''} loading="lazy" draggable={false}
                             onContextMenu={e => e.preventDefault()}
                             className="w-full h-full object-cover pointer-events-none" />
