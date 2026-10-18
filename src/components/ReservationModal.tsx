@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import FocusTrap from 'focus-trap-react'
+import { FocusTrap } from 'focus-trap-react'
 import { X, ShoppingCart, Calendar, Clock, MapPin, Euro, CreditCard, BookCheck, Banknote, Landmark, UserPlus, ShoppingBag, Check, Gift, Users, User } from 'lucide-react'
 import { useAtelierCart } from '../context/AtelierCartContext'
 import { useCart } from '../context/CartContext'

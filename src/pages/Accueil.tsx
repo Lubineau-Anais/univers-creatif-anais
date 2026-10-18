@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
-import FocusTrap from 'focus-trap-react'
+import { FocusTrap } from 'focus-trap-react'
 import { Helmet } from 'react-helmet-async'
 import { Link } from 'react-router-dom'
 import { Pencil, Star, Image as ImageIcon, Palette, Check, X } from 'lucide-react'

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { ChevronLeft, ChevronRight, Images, ZoomIn, Palette, X, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ZoomIn, Palette, X, Pencil } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { buildHeroBgStyle, type HeroBg, type BgType, DEFAULT_HERO_BG } from '../lib/heroBg'
